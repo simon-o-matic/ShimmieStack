@@ -1,0 +1,32 @@
+{
+    "name": "shimmie_stack1_server",
+    "version": "1.0.0",
+    "description": "The main XXX API REST server",
+    "main": "src/main.js",
+    "type": "module",
+    "scripts": {
+        "start": "node --experimental-vm-modules --experimental-specifier-resolution=node src/main.js",
+        "dev": "nodemon -r dotenv/config src/main.js",
+        "test": "node --experimental-vm-modules --experimental-specifier-resolution=node node_modules/.bin/jest"
+    },
+    "engines": {
+        "node": ">=14"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/simon-o-matic/ShimmieStack1"
+    },
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.17.1",
+        "express-async-errors": "^3.1.1",
+        "pg": "^8.6.0",
+        "uuid": "^8.3.2"
+    },
+    "devDependencies": {
+        "dotenv": "^10.0.0",
+        "jest": "^27.0.4"
+    }
+}
