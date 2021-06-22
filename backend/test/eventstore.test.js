@@ -8,12 +8,12 @@ const eventBase = new EventBase(process.env.DATABASE_URL);
 const eventStore = new EventStore(eventBase);
 
 beforeAll(async () => {
-    console.log('Connecting to the songbase test database');
+    console.info('Connecting to the songbase test database');
     await eventBase.connect();
 });
 
 afterAll(async () => {
-    console.log('Finishing with the songbase test database');
+    console.info('Finishing with the songbase test database');
     await eventBase.close();
 });
 

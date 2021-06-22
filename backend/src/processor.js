@@ -5,14 +5,15 @@
 //      then we can reason about which ones no one listens to. (and not send them.)
 
 export default class Processor {
-    constructor(name, mountPoint, api, model) {
+    constructor(name, mountPoint, route, model = null, events = {}) {
         this.name = name;
         this.mountPoint = mountPoint;
-        this.api = api;
+        this.route = route;
         this.model = model;
+        this.events = events;
     }
 
     emptyModel() {
-        this.model.empty();
+        if (this.model) this.model.empty();
     }
 }

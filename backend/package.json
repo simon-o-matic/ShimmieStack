@@ -1,13 +1,12 @@
 {
-    "name": "shimmie_stack1_server",
+    "name": "shimmie-stack",
     "version": "1.0.0",
     "description": "The main XXX API REST server",
     "main": "src/main.js",
     "type": "module",
     "scripts": {
-        "start": "node --experimental-vm-modules --experimental-specifier-resolution=node src/main.js",
-        "dev": "nodemon -r dotenv/config src/main.js",
-        "test": "node --experimental-vm-modules --experimental-specifier-resolution=node node_modules/.bin/jest"
+        "test": "node --experimental-vm-modules --experimental-specifier-resolution=node node_modules/.bin/jest",
+        "test-server": "nodemon --experimental-vm-modules --experimental-specifier-resolution=node test_server/song_server.js"
     },
     "engines": {
         "node": ">=14"

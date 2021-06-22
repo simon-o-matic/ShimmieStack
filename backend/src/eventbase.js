@@ -13,7 +13,7 @@ export default function Eventbase(ConnectionString) {
     if (!ConnectionString) {
         throw new Error('Missing DATABASE_URL environment variable.');
     } else {
-        console.log('Eventbase connection string: ', ConnectionString);
+        console.info('Eventbase connection string: ', ConnectionString);
     }
 
     const connection = new Client({
@@ -56,7 +56,7 @@ export default function Eventbase(ConnectionString) {
                 return (await connection.query(query)).rows;
             }
         } catch (err) {
-            console.log(`Query error <${query}> [${values}]: ${err.message}`);
+            console.error(`Query error <${query}> [${values}]: ${err.message}`);
             throw err;
         }
     };

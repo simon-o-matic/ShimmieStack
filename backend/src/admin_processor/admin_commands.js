@@ -2,7 +2,10 @@
 // TODO:  move all the datbase features to the eventbase file!
 //
 
-export default function AdminCommands(eventstore, eventbase) {
+// @eventbase The admin commands can call the database directly. No other
+//            command processors are allowed direct access to ti.
+//
+export default function AdminCommands(eventStore, eventbase) {
     const createTables = async () => {
         return await eventbase.createTables();
     };
@@ -22,5 +25,9 @@ export default function AdminCommands(eventstore, eventbase) {
         return eventbase.showTables();
     };
 
-    return { showTables, mrWolf, dropTables, createTables };
+    const getEvents = async () => {
+        return eventbase.getAllEventsInOrder();
+    };
+
+    return { showTables, mrWolf, dropTables, createTables, getEvents };
 }

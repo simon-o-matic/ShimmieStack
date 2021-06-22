@@ -11,6 +11,15 @@ export default function EventStore(eventbase) {
     const eventStoreEmitter = new EventStoreEmitter();
 
     const recordEvent = async (streamId, eventType, data, meta) => {
+        if (!streamId || !eventType || !meta) {
+            console.error(
+                'EventStore::recorEvent::missing values',
+                streamId,
+                eventType,
+                meta
+            );
+            throw new Error('Attempt to record bad event data');
+        }
         const event = new Event(streamId, eventType, data, meta);
         const rows = await eventbase.addEvent(event); // need to await here to confirm before emitting
 

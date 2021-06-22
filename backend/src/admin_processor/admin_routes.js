@@ -1,9 +1,7 @@
 //
 // The Admin API
 //
-
 import express from 'express';
-import expressAsyncErrors from 'express-async-errors'; // patches express
 
 const router = express.Router();
 
@@ -23,10 +21,9 @@ export default function (adminCommands) {
 
     router.post('/drop_database_tables', async (req, res) => {
         if (process.env.NODE_ENV != 'development') {
-            console.log('Permission denied');
+            console.error('Permission denied');
             res.status(403).json({ error: 'nick off punk' });
         } else {
-            console.log('Well, not much left of that then is there?');
             try {
                 const rows = await adminCommands.dropTables();
                 res.status(200).json({ tables: rows.rows });
@@ -42,7 +39,7 @@ export default function (adminCommands) {
 
     router.get('/events', async (req, res) => {
         try {
-            const rows = await adminCommands.getAllEventsInOrder();
+            const rows = await adminCommands.getEvents();
             res.status(200).json({ events: rows });
         } catch (err) {
             res.status(500).json({ error: err.message });
@@ -59,7 +56,7 @@ export default function (adminCommands) {
         );
     });
 
-    // HOW DOES THIS WORK?
+    // HOW DOES THIS WORK? DOES IT EVEN WORK?
     router.use((err, req, res, next) => {
         console.log('OMG 2! Custom error handler!', err);
         next(err);

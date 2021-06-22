@@ -22,7 +22,7 @@ export default function SongApi(songModel) {
         const song = songModel.getSong(id);
 
         if (!song) {
-            res.sendStatus(404);
+            res.sendStatus(404).json('No such song');
             return;
         }
 

@@ -4,56 +4,69 @@
 import express from 'express';
 import cors from 'cors';
 import Eventbase from './eventbase.js';
-import mountRouteHandlers from './routes.js';
+import insertRoutes from './routes.js';
 import EventStore from './eventstore.js';
-import processors from './processors';
-import AdminProcessor from './processors/admin_commands';
+import AdminProcessor from './admin_processor';
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const SERVER_PORT = process.env.PORT;
-const CONNECTION_STRING = process.env.DATABASE_URL;
-
 const startApiListener = (app, port) => {
     app.listen(port, () =>
-        console.log(`ShimmieStack1 API Server listening on ${port}!`)
+        console.info(`ShimmieStack1 API Server listening on ${port}!`)
     );
 };
 
-const startup = async () => {
+const startup = async (UserProcessors, config) => {
     try {
-        console.log('ShimmieStack1 Environment:', process.env.NODE_ENV);
+        console.info('ShimmieStack1 Start up sequence initiated.');
+        console.info('ShimmieStack1 Environment:', process.env.NODE_ENV);
 
-        const eventBase = new Eventbase(CONNECTION_STRING);
+        const eventBase = new Eventbase(config.EventbaseURL);
         const eventStore = new EventStore(eventBase);
-        const theProcessors = new processors(eventStore);
-
+        const userProcessors = new UserProcessors(eventStore);
+        const adminProcessor = new AdminProcessor(eventStore, eventBase);
         // The admin processor needs access to the event database so its handled separately here
-        theProcessors.adminCommands = new AdminProcessor(eventStore, eventBase);
 
         // mount all the APIs at their chosen end points
-        mountRouteHandlers(app, theProcessors);
-        console.log('ShimmieStack1 Start up: All processors mounted');
+        insertRoutes(app, userProcessors, adminProcessor);
+        console.info('ShimmieStack1 Start up: All processors mounted');
 
         // Get the database started
         await eventBase.connect();
         await eventBase.createTables();
-        console.log('ShimmieStack1 Start up: database connected.');
+        console.info('ShimmieStack1 Start up: database connected.');
 
         // Process the entire event history on start up and load into memory
         const numEvents = await eventStore.replayAllEvents();
-        console.log(`ShimmieStack1 Replayed ${numEvents} events`);
+        console.info(`ShimmieStack1 Replayed ${numEvents} events`);
 
         // Start accepting requests from the outside world
-        startApiListener(app, SERVER_PORT);
+        startApiListener(app, config.ServerPort);
 
-        console.log('ShimmieStack1 Start up complete');
+        console.info('ShimmieStack1 Start up complete');
     } catch (err) {
-        console.log('Whoops, aborted ShimmieStack1 Start up!', err);
+        console.info(
+            'ShimmieStack1 Error during start up, aborting (',
+            err,
+            ')'
+        );
     }
 };
 
-console.log('ShimmieStack1 Start up sequence initiated.');
-startup();
+export default function ShimmieStack(processors, config) {
+    return {
+        startup: () => {
+            startup(processors, config);
+        },
+
+        restart: () => {
+            console.log('TODO: empty everything and replay results');
+        },
+
+        shutdown: () => {
+            console.log('TODO: HOW DO YOU STOP THIS THING!!!!');
+        },
+    };
+}

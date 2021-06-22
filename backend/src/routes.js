@@ -3,7 +3,7 @@
 //
 
 const timeLogger = (req, res, next) => {
-    console.log(
+    console.info(
         `[${new Date(Date.now()).toLocaleString()}] Route::[${req.method}] ${
             req.path
         }`
@@ -11,15 +11,15 @@ const timeLogger = (req, res, next) => {
     next();
 };
 
-const mountProcessorHandlers = (app, processors) => {
+const mountProcessors = (app, processors) => {
     // WARNING: this does not check for overwriting, so because not to mount different functions on
     //          the same head
-    Object.values(processors).forEach((p) => {
-        if (!p.mountPoint || !p.api)
-            throw 'Missing mountPoint details. Please check';
-        app.use(p.mountPoint, p.api);
-        console.log(`>>>> Mounted ${p.mountPoint} with [${p.name}]`);
-    });
+    for (let p of processors) {
+        if (!p.mountPoint || !p.route)
+            throw 'Missing mountPoint details. Please check: ' + p;
+        app.use(p.mountPoint, p.route);
+        console.info(`>>>> Mounted ${p.mountPoint} with [${p.name}]`);
+    }
 };
 
 const catchAll404s = (req, res, next) => {
@@ -29,9 +29,14 @@ const catchAll404s = (req, res, next) => {
     });
 };
 
-const mountRouteHandlers = (app, processors) => {
+const insertRoutes = (app, userProcessors, adminProcessor) => {
+    // pre-run middleware
     app.use(timeLogger);
-    mountProcessorHandlers(app, processors);
+
+    // user api processing handlers
+    mountProcessors(app, [adminProcessor, ...userProcessors]);
+
+    // call-all 404s
     app.use('*', catchAll404s);
 
     // A catch-all call by express-async-errors
@@ -43,4 +48,4 @@ const mountRouteHandlers = (app, processors) => {
     });
 };
 
-export default mountRouteHandlers;
+export default insertRoutes;

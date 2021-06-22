@@ -1,4 +1,4 @@
-import Processor from '../processor';
+import Processor from '../../../src/processor';
 
 import songAPI from './song_api.js';
 import SongModel from './song_model.js';
