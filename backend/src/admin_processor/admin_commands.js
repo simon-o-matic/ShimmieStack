@@ -16,8 +16,7 @@ export default function AdminCommands(eventStore, eventbase) {
 
     // Whats the time, Mr. Wolf?
     const mrWolf = async () => {
-        const rows = await eventbase.mrWolf();
-        return rows[0].now;
+        return eventbase.mrWolf();
     };
 
     // filter out system tables
