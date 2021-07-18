@@ -7,6 +7,9 @@ import Eventbase from './eventbase.js';
 import insertRoutes from './routes.js';
 import EventStore from './eventstore.js';
 import AdminProcessor from './admin_processor';
+import processor from './processor.js';
+
+const STACK_VERSION = '0.2';
 
 const app = express();
 app.use(express.json());
@@ -14,14 +17,16 @@ app.use(cors());
 
 const startApiListener = (app, port) => {
     app.listen(port, () =>
-        console.info(`ShimmieStack1 API Server listening on ${port}!`)
+        console.info(
+            `ShimmieStack1 [${STACK_VERSION}] API Server listening on ${port}!`
+        )
     );
 };
 
 const startup = async (UserProcessors, config) => {
     try {
-        console.info('ShimmieStack1 Start up sequence initiated.');
-        console.info('ShimmieStack1 Environment:', process.env.NODE_ENV);
+        console.info('ShimmieStack Start up sequence initiated.');
+        console.info('ShimmieStack Environment:', process.env.NODE_ENV);
 
         const eventBase = new Eventbase(config.EventbaseURL);
         const eventStore = new EventStore(eventBase);
@@ -70,3 +75,5 @@ export default function ShimmieStack(processors, config) {
         },
     };
 }
+
+export const Processor = processor;

@@ -1,8 +1,11 @@
 {
     "name": "shimmie-stack",
     "version": "1.0.0",
-    "description": "The main XXX API REST server",
-    "main": "src/main.js",
+    "description": "The ShimmieStack event sourced CQRS in-memory server framework",
+    "exports": {
+        ".": "./src/main.js",
+        "./processor": "./src/processor.js"
+    },
     "type": "module",
     "scripts": {
         "test": "node --experimental-vm-modules --experimental-specifier-resolution=node node_modules/.bin/jest",
