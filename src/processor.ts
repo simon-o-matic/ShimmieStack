@@ -4,16 +4,17 @@
 // how about which events a service subscribes to, and the handlers?
 //      then we can reason about which ones no one listens to. (and not send them.)
 
+import { Router } from "express"
+
 export default class Processor {
-    constructor(name, mountPoint, route, model = null, events = {}) {
+    name: string
+    mountPoint: string
+    route: Router
+    events: any
+
+    constructor(name: string, mountPoint: string, route: Router) {
         this.name = name;
         this.mountPoint = mountPoint;
         this.route = route;
-        this.model = model;
-        this.events = events;
-    }
-
-    emptyModel() {
-        if (this.model) this.model.empty();
     }
 }

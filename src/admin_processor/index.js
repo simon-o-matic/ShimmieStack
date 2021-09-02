@@ -1,4 +1,4 @@
-import Processor from '../processor';
+import Processor from '../../processor';
 
 import AdminRoutes from './admin_routes.js';
 import AdminCommands from './admin_commands.js';
