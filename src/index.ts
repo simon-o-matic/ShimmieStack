@@ -87,6 +87,8 @@ export type StackType = {
     startup: () => void;
     restart: () => void;
     shutdown: () => void;
+    registerModel<T>(name: string, model: T): void;
+    getModel<T>(name: string): T;
     mountProcessor: (
         name: string,
         mountPoint: string,
@@ -103,6 +105,7 @@ export default function ShimmieStack(config: ShimmieConfig): StackType {
     routes.initRoutes(app);
 
     let apiVersion = '';
+    let modelStore: { [key: string]: any } = {};
 
     const funcs: StackType = {
         startup: () => {
@@ -120,6 +123,13 @@ export default function ShimmieStack(config: ShimmieConfig): StackType {
         setApiVersion: (version: string) => {
             apiVersion = version;
             return funcs;
+        },
+
+        registerModel: (name: string, model: any) => {
+            modelStore[name] = model;
+        },
+        getModel: (name: string): any => {
+            return modelStore[name];
         },
 
         mountProcessor: (name: string, mountPoint: string, router: Router) => {
