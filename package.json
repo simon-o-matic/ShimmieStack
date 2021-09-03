@@ -2,10 +2,8 @@
     "name": "shimmiestack",
     "version": "1.0.0",
     "description": "The ShimmieStack event sourced CQRS in-memory server framework. The shim will get you started.",
-    "exports": {
-        ".": "./src/index.ts",
-        "./processor": "./src/processor.ts"
-    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
     "type": "module",
     "scripts": {
         "test": "node --experimental-vm-modules --experimental-specifier-resolution=node node_modules/.bin/jest",
