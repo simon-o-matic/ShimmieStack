@@ -5,8 +5,8 @@
       "target": "ES2020",
       "outDir": "./dist",
       "module": "ES2020", 
-      //"lib": ["ES2020"],
       "sourceMap": true,
+      "declaration": true,
       "moduleResolution": "Node",
       "esModuleInterop": true,
       "strictPropertyInitialization": false // because we have classes without methods as objects

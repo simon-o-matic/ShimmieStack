@@ -6,6 +6,8 @@
     "module": "./dist/index.js",
     "type": "module",
     "scripts": {
+        "build": "tsc",
+        "build:check": "tsc --noEmit",
         "test": "node --experimental-vm-modules --experimental-specifier-resolution=node node_modules/.bin/jest",
         "test-server": "nodemon --experimental-vm-modules --experimental-specifier-resolution=node test_server/song_server.js"
     },
