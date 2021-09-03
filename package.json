@@ -1,10 +1,10 @@
 {
-    "name": "shimmie-stack",
+    "name": "shimmiestack",
     "version": "1.0.0",
-    "description": "The ShimmieStack event sourced CQRS in-memory server framework",
+    "description": "The ShimmieStack event sourced CQRS in-memory server framework. The shim will get you started.",
     "exports": {
-        ".": "./src/main.js",
-        "./processor": "./src/processor.js"
+        ".": "./src/index.ts",
+        "./processor": "./src/processor.ts"
     },
     "type": "module",
     "scripts": {
