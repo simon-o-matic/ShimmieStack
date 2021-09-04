@@ -6,7 +6,14 @@ import cors from 'cors';
 import eventbase from './eventbase';
 import * as routes from './routes';
 import EventStore, { IEventStore } from './eventstore';
-import { StreamId, EventData, Meta, EventName, EventHandler } from './event';
+import {
+    StreamId,
+    EventData,
+    Meta,
+    EventName,
+    EventHandler,
+    IEvent,
+} from './event';
 
 // import adminProcessor from './admin_processor';
 
@@ -39,6 +46,7 @@ const startup = async (
     try {
         console.info('ShimmieStack Start up sequence initiated.');
         console.info('ShimmieStack Environment:', process.env.NODE_ENV);
+        console.info('ShimmieStack Config:', config);
 
         // const adminProcessorObj = adminProcessor(eventStoreObj, eventBase);
         // The admin processor needs access to the event database so its handled separately here
@@ -74,6 +82,10 @@ const startup = async (
         );
     }
 };
+
+// testing a new naming scheme. Replace IEvent if we like this one better. Easier
+// for users to not be confused with their own event types (eg an event sourced system!)
+export type ShimmieEvent = IEvent;
 
 export type StackType = {
     setApiVersion: (version: string) => StackType;
@@ -129,6 +141,8 @@ export default function ShimmieStack(config: ShimmieConfig): StackType {
             modelStore[name] = model;
         },
         getModel: (name: string): any => {
+            const model = modelStore[name];
+            if (!model) throw new Error('No registered model found: ' + name);
             return modelStore[name];
         },
 
