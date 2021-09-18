@@ -1,6 +1,6 @@
 {
     "name": "shimmiestack",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "The ShimmieStack event sourced CQRS in-memory server framework. The shim will get you started.",
     "main": "./dist/index.js",
     "module": "./dist/index.js",
