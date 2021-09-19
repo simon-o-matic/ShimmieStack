@@ -15,7 +15,7 @@ import {
     IEvent,
 } from './event';
 
-// import adminProcessor from './admin_processor';
+import AdminProcessor from './admin_processor';
 
 const STACK_VERSION = '0.3';
 
@@ -47,12 +47,6 @@ const startup = async (
         console.info('ShimmieStack Start up sequence initiated.');
         console.info('ShimmieStack Environment:', process.env.NODE_ENV);
         console.info('ShimmieStack Config:', config);
-
-        // const adminProcessorObj = adminProcessor(eventStoreObj, eventBase);
-        // The admin processor needs access to the event database so its handled separately here
-
-        // mount all the APIs at their chosen end points
-        //  insertRoutes(app, userProcessors, adminProcessorObj);
 
         routes.finaliseRoutes(app);
         console.info('ShimmieStack: All processors mounted');
@@ -106,7 +100,7 @@ export type StackType = {
         mountPoint: string,
         router: Router
     ) => StackType;
-    registerEventHandler: (eventName: EventName, handler: EventHandler) => void;
+    subscribe: (eventName: EventName, handler: EventHandler) => void;
 };
 
 // processors: ((store: IEventStore) => Processor)[],
@@ -114,7 +108,16 @@ export default function ShimmieStack(config: ShimmieConfig): StackType {
     const eventBase = eventbase(config.EventbaseURL);
     const eventStore = EventStore(eventBase);
 
+    // Set of loggers and authentication before all user-defined routes
     routes.initRoutes(app);
+
+    // Install the admin API route
+    routes.mountApi(
+        app,
+        'XAdministration API',
+        '/admin',
+        AdminProcessor(eventStore, eventBase)
+    );
 
     let apiVersion = '';
     let modelStore: { [key: string]: any } = {};
@@ -140,6 +143,7 @@ export default function ShimmieStack(config: ShimmieConfig): StackType {
         registerModel: (name: string, model: any) => {
             modelStore[name] = model;
         },
+
         getModel: (name: string): any => {
             const model = modelStore[name];
             if (!model) throw new Error('No registered model found: ' + name);
@@ -151,7 +155,7 @@ export default function ShimmieStack(config: ShimmieConfig): StackType {
             return funcs;
         },
 
-        registerEventHandler: (eventName: EventName, handler: EventHandler) => {
+        subscribe: (eventName: EventName, handler: EventHandler) => {
             console.log('ShimmieStack: Registering event handler: ', eventName);
             eventStore.subscribe(eventName, handler);
         },

@@ -3,9 +3,9 @@
 //
 
 // @eventbase The admin commands can call the database directly. No other
-//            command processors are allowed direct access to ti.
+//            command processors are allowed direct access to it.
 //
-export default function AdminCommands(eventStore, eventbase) {
+export default function AdminCommands(eventStore: any, eventbase: any) {
     const createTables = async () => {
         return await eventbase.createTables();
     };
