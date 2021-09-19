@@ -2,10 +2,10 @@
 // TODO Sort out rest verbs
 //
 
-import express from 'express';
+import { Router } from 'shimmiestack';
 
 export default function SongApi(songModel) {
-    const router = express.Router();
+    const router = Router();
 
     router.get('/', (req, res) => {
         res.status(200).json({ songs: JSON.stringify(songModel.getSongs()) });

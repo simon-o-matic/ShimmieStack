@@ -1,16 +1,7 @@
-import Processor from '../../../src/processor';
-
 import songAPI from './song_api.js';
 import SongModel from './song_model.js';
 
-export default function (eventStore) {
-    const songModel = new SongModel(eventStore);
-    const apiRouter = new songAPI(songModel);
-
-    return new Processor(
-        'Song Query Processor',
-        '/songs',
-        apiRouter,
-        songModel
-    );
+export default function (songStack) {
+    const songModel = new SongModel(songStack);
+    return songAPI(songModel);
 }

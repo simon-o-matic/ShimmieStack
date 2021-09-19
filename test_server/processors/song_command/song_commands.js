@@ -3,10 +3,10 @@ import songEvents from './song_events.js';
 
 export class DoesNotExistError extends Error {}
 
-export default function SongCommands(eventStore, songModel) {
+export default function SongCommands(songStack, songModel) {
     // add a new song, only if the same one doesn't already exit
     const addSong = async (song) => {
-        await eventStore.recordEvent(uuidv4(), songEvents.SONG_ADDED, song, {
+        await songStack.recordEvent(uuidv4(), songEvents.SONG_ADDED, song, {
             user: 'Travis. T.',
         });
     };
@@ -18,7 +18,7 @@ export default function SongCommands(eventStore, songModel) {
             throw new DoesNotExistError();
         }
 
-        await eventStore.recordEvent(songId, songEvents.SONG_DELETED, {}, meta);
+        await songStack.recordEvent(songId, songEvents.SONG_DELETED, {}, meta);
     };
     return { addSong, deleteSong };
 }

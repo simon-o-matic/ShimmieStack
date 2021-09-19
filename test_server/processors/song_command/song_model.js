@@ -4,7 +4,7 @@
 
 import songEvents from './song_events.js';
 
-export default function (eventStore) {
+export default function (songStack) {
     let songs = {};
 
     // public methods
@@ -23,7 +23,6 @@ export default function (eventStore) {
     // private maintainers
 
     const songAdded = (songEvent) => {
-        console.log('DDDDD', songEvent);
         const song = songEvent.data;
         song.id = songEvent.streamId;
 
@@ -47,9 +46,9 @@ export default function (eventStore) {
         if (song && song.id) songs[song.id] = song;
     };
 
-    eventStore.subscribe(songEvents.SONG_ADDED, songAdded);
-    eventStore.subscribe(songEvents.SONG_DELETED, songDeleted);
-    eventStore.subscribe(songEvents.SONG_UPDATED, songUpdated);
+    songStack.subscribe(songEvents.SONG_ADDED, songAdded);
+    songStack.subscribe(songEvents.SONG_DELETED, songDeleted);
+    songStack.subscribe(songEvents.SONG_UPDATED, songUpdated);
 
     return { empty, getSong, getSongs };
 }

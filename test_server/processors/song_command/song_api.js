@@ -1,7 +1,7 @@
 //
 //
 //
-import express from 'express';
+import { Router } from 'shimmiestack';
 import { DoesNotExistError } from './song_commands';
 
 const DUMMY_USER = 'Travis, T.';
@@ -15,7 +15,7 @@ class Song {
 }
 
 export default function (songCommands) {
-    const router = express.Router();
+    const router = Router();
 
     // create a new song
     router.post('/', async (req, res) => {

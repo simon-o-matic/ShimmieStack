@@ -8,4 +8,4 @@ RUN npm install
 RUN npm install -g nodemon
 RUN npm install -g jest
 
-CMD npm run test-server
+CMD npm run run

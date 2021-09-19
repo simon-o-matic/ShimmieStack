@@ -1,13 +1,5 @@
 version: '3.8'
 services:
-    frontend:
-        build: ./frontend
-        volumes:
-            - ./frontend:/app
-            - /app/node_modules
-        ports:
-            - '80:4200'
-
     eventbase:
         image: postgres
         restart: always
@@ -15,18 +7,16 @@ services:
             - POSTGRES_USER=shimmie
             - POSTGRES_PASSWORD=shimmie
             - POSTGRES_DB=shimdb
-        ports:
-            - '5432:5432'
 
-    backend:
-        build: ./backend
+    songserver:
+        build: .
         volumes:
-            - ./backend:/app
+            - .:/app
             - /app/node_modules
         ports:
-            - '8080:8080'
+            - '8085:8085'
         environment:
-            - PORT=8080
+            - SONG_PORT=8085
             - DATABASE_URL=postgresql://shimmie:shimmie@eventbase/shimdb
             - NODE_TLS_REJECT_UNAUTHORIZED=0
             - NODE_ENV=development
