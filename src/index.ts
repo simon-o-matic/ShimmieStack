@@ -2,7 +2,7 @@
 // Entry point of the application. Gets everything started.
 //
 import express, { Application, Router, Request, Response } from 'express';
-import cors from 'cors';
+import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
 import eventbase from './eventbase';
 import * as routes from './routes';
@@ -29,7 +29,7 @@ export { Request, Response, Router };
 export interface ShimmieConfig {
     EventbaseURL: string;
     ServerPort: number;
-    CORS?: object;
+    CORS?: CorsOptions;
 }
 
 const startApiListener = (app: Application, port: number) => {
