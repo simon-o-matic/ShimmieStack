@@ -5,15 +5,16 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-        "run": "nodemon --experimental-specifier-resolution=node index.js",
+        "run": "npx nodemon --experimental-specifier-resolution=node index.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "Shimmie",
     "license": "ISC",
     "dependencies": {
-        "shimmiestack": "^1.1.0"
+        "shimmiestack": "^1.1.5"
     },
     "devDependencies": {
-        "@types/express": "^4.17.13"
+        "@types/express": "^4.17.13",
+        "nodemon": "^2.0.12"
     }
 }

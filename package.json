@@ -1,7 +1,7 @@
 {
     "name": "shimmiestack",
-    "version": "1.1.0",
-    "description": "The ShimmieStack event sourced CQRS in-memory server framework. The shim will get you started.",
+    "version": "1.1.6",
+    "description": "The ShimmieStack event sourced CQRS in-memory server framework.",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "module": "./dist/index.js",
@@ -22,12 +22,14 @@
     "author": "Simon Raik-Allen",
     "license": "MIT",
     "dependencies": {
+        "cookie-parser": "^1.4.5",
         "cors": "^2.8.5",
         "express": "^4.17.1",
         "pg": "^8.6.0",
         "uuid": "^8.3.2"
     },
     "devDependencies": {
+        "@types/cookie-parser": "^1.4.2",
         "@types/cors": "^2.8.12",
         "@types/express": "^4.17.13",
         "@types/node": "^16.7.10",

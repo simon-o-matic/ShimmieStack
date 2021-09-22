@@ -12,6 +12,10 @@ const songStack = ShimmieStack({
     ServerPort: parseInt(process.env.SONG_PORT),
 });
 
+songStack.use((a, b, c) => {
+    console.log('A BC ');
+});
+
 songStack
     .setApiVersion('/v1')
     .mountProcessor('Song Commands', '/songs', SongCommand(songStack))

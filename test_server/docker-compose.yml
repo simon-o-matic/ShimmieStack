@@ -7,7 +7,6 @@ services:
             - POSTGRES_USER=shimmie
             - POSTGRES_PASSWORD=shimmie
             - POSTGRES_DB=shimdb
-
     songserver:
         build: .
         volumes:

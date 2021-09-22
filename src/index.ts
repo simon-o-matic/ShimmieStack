@@ -3,6 +3,7 @@
 //
 import express, { Application, Router, Request, Response } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import eventbase from './eventbase';
 import * as routes from './routes';
 import EventStore, { IEventStore } from './eventstore';
@@ -17,17 +18,18 @@ import {
 
 import AdminProcessor from './admin_processor';
 
-const STACK_VERSION = '0.3';
+const STACK_VERSION = '0.4';
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cookieParser());
 
 export { Request, Response, Router };
 
 export interface ShimmieConfig {
     EventbaseURL: string;
     ServerPort: number;
+    CORS?: object;
 }
 
 const startApiListener = (app: Application, port: number) => {
@@ -101,6 +103,7 @@ export type StackType = {
         router: Router
     ) => StackType;
     subscribe: (eventName: EventName, handler: EventHandler) => void;
+    use: (a: any) => any;
 };
 
 // processors: ((store: IEventStore) => Processor)[],
@@ -108,13 +111,16 @@ export default function ShimmieStack(config: ShimmieConfig): StackType {
     const eventBase = eventbase(config.EventbaseURL);
     const eventStore = EventStore(eventBase);
 
+    app.use(cors(config.CORS || {}));
+
     // Set of loggers and authentication before all user-defined routes
     routes.initRoutes(app);
 
     // Install the admin API route
+    // TODO: work out how to secure this. Need a client role.
     routes.mountApi(
         app,
-        'XAdministration API',
+        'Administration API',
         '/admin',
         AdminProcessor(eventStore, eventBase)
     );
@@ -169,6 +175,8 @@ export default function ShimmieStack(config: ShimmieConfig): StackType {
 
         // Make a new Express router
         router: () => express.Router(),
+
+        use: (a: any) => app.use(a),
     };
 
     return funcs;
