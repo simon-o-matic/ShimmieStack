@@ -59,5 +59,21 @@ export default function (adminCommands: any): Router {
         );
     });
 
+    router.get('/health', async (req, res) => {
+        try {
+            const events = await adminCommands.getEvents();
+
+            res.send({
+                status: "healthy",
+                version: process.env.APP_VERSION ?? "DEV"
+            });
+
+        } catch (err: any) {
+            res.status(503).json({
+                message: "Server is not yet ready to handle requests"
+            });
+        }
+    });
+
     return router;
 }
