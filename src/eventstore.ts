@@ -48,7 +48,7 @@ export default function EventStore(eventbase: EventBase): EventStore {
         // need to await here to confirm before emitting just in case
         const rows = await eventbase.addEvent(newEvent);
 
-        eventStoreEmitter.emit(eventName, event);
+        eventStoreEmitter.emit(eventName, newEvent);
         return rows[0];
     };
 
