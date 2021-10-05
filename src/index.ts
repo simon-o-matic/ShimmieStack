@@ -28,7 +28,6 @@ app.use(cookieParser());
 export { Request, Response, Router };
 
 export interface ShimmieConfig {
-    EventbaseURL: string;
     ServerPort: number;
     CORS?: CorsOptions;
 }
