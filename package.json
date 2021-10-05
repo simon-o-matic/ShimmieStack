@@ -1,6 +1,6 @@
 {
     "name": "shimmiestack",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "description": "A simple event sourced CQRS in-memory server framework.",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -11,7 +11,7 @@
         "build:check": "tsc --noEmit",
         "test": "node --experimental-vm-modules --experimental-specifier-resolution=node node_modules/.bin/jest",
         "test-server": "nodemon --experimental-vm-modules --experimental-specifier-resolution=node test_server/song_server.js",
-        "publish": "cp README.md package-publish.json dist && npm run build && npm publish dist "
+        "publish": "cp README.md  dist && cp package-publish.json dist/package.json && npm run build && npm publish dist "
     },
     "engines": {
         "node": ">=14"
