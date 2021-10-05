@@ -3,37 +3,31 @@
 //
 import pg from 'pg';
 const { Client } = pg;
-import Event from './event';
+import { Event, EventBase } from './event';
 
-export interface IEventBase {
-    getAllEventsInOrder: () => Promise<any>;
-    runQuery: (query: string, values: string[] | undefined) => Promise<any>;
-    connect: () => Promise<void>;
-    close: () => Promise<void>;
-    addEvent: (event: Event) => Promise<any[]>;
-    showTables: () => Promise<any[]>;
-    createTables: () => Promise<any[]>;
-    dropTables: () => Promise<any[]>;
+export interface EventConfig {
+    connectionString: string;
 }
 
-export default function Eventbase(ConnectionString: string): IEventBase {
-    if (!ConnectionString) {
+export default function Eventbase(config: EventConfig): EventBase {
+    if (!config.connectionString) {
         throw new Error('Missing DATABASE_URL environment variable.');
     } else {
-        console.info('Eventbase connection string: ', ConnectionString);
+        console.info('Eventbase connection string: ', config.connectionString);
     }
 
     const connection = new Client({
-        connectionString: ConnectionString,
+        connectionString: config.connectionString,
     });
 
     // called during start up to first connect to the database
     // TODO: retry to solve docker start up timing issue
-    const connect = async () => {
+    const init = async () => {
         await connection.connect();
+        createTables();
     };
 
-    const close = async () => {
+    const shutdown = async () => {
         await connection.end();
     };
 
@@ -53,6 +47,11 @@ export default function Eventbase(ConnectionString: string): IEventBase {
     const getAllEventsInOrder = () => {
         const query = 'SELECT * FROM eventlist ORDER BY SequenceNum';
         return runQuery(query);
+    };
+
+    const reset = async () => {
+        await dropTables();
+        await createTables();
     };
 
     const runQuery = async (
@@ -100,21 +99,18 @@ export default function Eventbase(ConnectionString: string): IEventBase {
     };
 
     // filter out system tables
-    const showTables = () => {
-        const query = `
-            SELECT * FROM pg_catalog.pg_tables 
-            WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';`;
-        return runQuery(query);
-    };
+    // const showTables = () => {
+    //     const query = `
+    //         SELECT * FROM pg_catalog.pg_tables
+    //         WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';`;
+    //     return runQuery(query);
+    // };
 
     return {
         getAllEventsInOrder,
-        runQuery,
-        connect,
-        close,
         addEvent,
-        showTables,
-        createTables,
-        dropTables,
+        reset,
+        init,
+        shutdown,
     };
 }

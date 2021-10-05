@@ -5,28 +5,34 @@ export type Meta = {
     userId: string; // can be device id?
 };
 
-export type EventHandler = (event: IEvent) => void;
+export type EventHandler = (event: Event) => void;
 export type EventName = string;
 export type StreamId = string;
 export type EventData = object;
 
-export type IEvent = {
+export type Event = {
     streamId: StreamId;
     data: EventData;
     type: string;
     meta: Meta;
 };
 
-export default class Event {
-    streamId: string;
+/** What comes back after adding a new event to the event log */
+export interface StoredEventResponse {
+    sequenceNumber: number;
+    logdate: number;
     type: string;
-    data: object;
-    meta: Meta;
+}
 
-    constructor(streamId: string, type: string, data: object, meta: Meta) {
-        this.streamId = streamId;
-        this.type = type;
-        this.data = data;
-        this.meta = meta;
-    }
+export interface EventBase {
+    /**  put a new event on the event stream */
+    addEvent: (event: Event) => Promise<any>;
+    /** get all the events from the start to the end (for replay) */
+    getAllEventsInOrder: () => Promise<any>;
+    /** set up the event base */
+    init: () => Promise<void>;
+    /** clear out all the events */
+    reset: () => Promise<void>;
+    /** clean up any event base */
+    shutdown: () => Promise<void>;
 }

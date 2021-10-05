@@ -4,16 +4,17 @@
 import express, { Application, Router, Request, Response } from 'express';
 import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
-import eventbase from './eventbase';
+import eventbase from './eventbase-postgres';
 import * as routes from './routes';
-import EventStore, { IEventStore } from './eventstore';
+import AnEventStore, { EventStore } from './eventstore';
 import {
     StreamId,
     EventData,
     Meta,
     EventName,
     EventHandler,
-    IEvent,
+    Event,
+    EventBase,
 } from './event';
 
 import AdminProcessor from './admin_processor';
@@ -32,56 +33,9 @@ export interface ShimmieConfig {
     CORS?: CorsOptions;
 }
 
-const startApiListener = (app: Application, port: number) => {
-    app.listen(port, () =>
-        console.info(
-            `ShimmieStack [${STACK_VERSION}] API Server listening on ${port}!`
-        )
-    );
-};
-
-const startup = async (
-    config: ShimmieConfig,
-    eventBase: any,
-    eventStore: any
-) => {
-    try {
-        console.info('ShimmieStack Start up sequence initiated.');
-        console.info('ShimmieStack Environment:', process.env.NODE_ENV);
-        console.info('ShimmieStack Config:', config);
-
-        routes.finaliseRoutes(app);
-        console.info('ShimmieStack: All processors mounted');
-
-        // Get the database started
-        await eventBase.connect();
-        await eventBase.createTables();
-
-        console.info('ShimmieStack: database connected.');
-
-        // Process the entire event history on start up and load into memory
-        console.info(
-            `ShimmieStack: Starting to replay the entire event stream to rebuild memory models`
-        );
-        const numEvents = await eventStore.replayAllEvents();
-        console.info(`ShimmieStack: replayed ${numEvents} events`);
-
-        // Start accepting requests from the outside world
-        startApiListener(app, config.ServerPort);
-
-        console.info('ShimmieStack: Start up complete');
-    } catch (err) {
-        console.info(
-            'ShimmieStack1 Error during start up, aborting (',
-            err,
-            ')'
-        );
-    }
-};
-
 // testing a new naming scheme. Replace IEvent if we like this one better. Easier
 // for users to not be confused with their own event types (eg an event sourced system!)
-export type ShimmieEvent = IEvent;
+export type ShimmieEvent = Event;
 
 export type StackType = {
     setApiVersion: (version: string) => StackType;
@@ -106,10 +60,60 @@ export type StackType = {
     use: (a: any) => any;
 };
 
-// processors: ((store: IEventStore) => Processor)[],
-export default function ShimmieStack(config: ShimmieConfig): StackType {
-    const eventBase = eventbase(config.EventbaseURL);
-    const eventStore = EventStore(eventBase);
+const startApiListener = (app: Application, port: number) => {
+    app.listen(port, () =>
+        console.info(
+            `ShimmieStack [${STACK_VERSION}] API Server listening on ${port}!`
+        )
+    );
+};
+
+const startup = async (
+    config: ShimmieConfig,
+    eventBase: EventBase,
+    eventStore: EventStore
+) => {
+    try {
+        console.info('ShimmieStack Start up sequence initiated.');
+        console.info('ShimmieStack Environment:', process.env.NODE_ENV);
+        console.info('ShimmieStack Config:', config);
+
+        routes.finaliseRoutes(app);
+        console.info('ShimmieStack: All processors mounted');
+
+        // Get the database started
+        await eventBase.init();
+
+        console.info('ShimmieStack: database connected.');
+
+        // Process the entire event history on start up and load into memory
+        console.info(
+            `ShimmieStack: Starting to replay the entire event stream to rebuild memory models`
+        );
+        const numEvents = await eventStore.replayAllEvents();
+        console.info(`ShimmieStack: replayed ${numEvents} events`);
+
+        // Start accepting requests from the outside world
+        startApiListener(app, config.ServerPort);
+
+        console.info('ShimmieStack: Start up complete');
+    } catch (err) {
+        console.info(
+            'ShimmieStack1 Error during start up, aborting (',
+            err,
+            ')'
+        );
+    }
+};
+
+export default function ShimmieStack(
+    config: ShimmieConfig,
+    eventBase: EventBase
+): StackType {
+    if (!eventBase) throw Error('Missing event base parameter to ShimmieStack');
+
+    /** initialise the event store service by giving it an event database (db, memory, file ) */
+    const eventStore = AnEventStore(eventBase);
 
     app.use(cors(config.CORS || {}));
 

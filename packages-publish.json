@@ -1,0 +1,25 @@
+{
+    "name": "shimmiestack",
+    "version": "1.2.1",
+    "description": "A simple event sourced in-memory server framework.",
+    "main": "index.js",
+    "types": "index.d.ts",
+    "module": "index.js",
+    "type": "module",
+    "engines": {
+        "node": ">=14"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/simon-o-matic/ShimmieStack"
+    },
+    "author": "Simon Raik-Allen",
+    "license": "MIT",
+    "dependencies": {
+        "cookie-parser": "^1.4.5",
+        "cors": "^2.8.5",
+        "express": "^4.17.1",
+        "pg": "^8.6.0",
+        "uuid": "^8.3.2"
+    }
+}

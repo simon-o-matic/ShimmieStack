@@ -1,7 +1,8 @@
 TODOs:
 
--   command tests
+-   command test harness
 -   named events in the structure
--   authentication
--   websockets
--   front end framework
+-   authentication (passwordless)
+-   slack comms for notifications
+-   check which events are unhandled
+-   JOI for api validation
