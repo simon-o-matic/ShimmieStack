@@ -3,6 +3,7 @@
 export type Meta = {
     username: string;
     userId: string; // can be device id?
+    replay: boolean;
 };
 
 export type EventHandler = (event: Event) => void;

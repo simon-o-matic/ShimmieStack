@@ -72,12 +72,11 @@ export default function EventStore(eventbase: EventBase): EventStore {
             const event: Event = {
                 data: e.data,
                 streamId: e.streamid,
-                meta: e.meta,
+                meta: { ...e.meta, replay: true },
                 type: e.type,
             };
             eventStoreEmitter.emit(event.type, {
                 ...event,
-                _shim: { replay: true },
             });
         }
 
