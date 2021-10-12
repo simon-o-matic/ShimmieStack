@@ -41,7 +41,7 @@ export default function EventStore(eventbase: EventBase): EventStore {
         const newEvent: Event = {
             data,
             streamId: streamId,
-            meta,
+            meta: { ...meta, replay: false },
             type: eventName,
         };
 
