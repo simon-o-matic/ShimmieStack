@@ -75,7 +75,10 @@ export default function EventStore(eventbase: EventBase): EventStore {
                 meta: e.meta,
                 type: e.type,
             };
-            eventStoreEmitter.emit(event.type, event);
+            eventStoreEmitter.emit(event.type, {
+                ...event,
+                _shim: { replay: true },
+            });
         }
 
         return allEvents.length;
