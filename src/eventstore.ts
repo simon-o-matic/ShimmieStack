@@ -49,6 +49,9 @@ export default function EventStore(eventbase: EventBase): EventStore {
         const rows = await eventbase.addEvent(newEvent);
 
         eventStoreEmitter.emit(eventName, newEvent);
+        eventStoreEmitter.emit('*', {
+            ...newEvent,
+        });
         return rows[0];
     };
 
@@ -76,6 +79,9 @@ export default function EventStore(eventbase: EventBase): EventStore {
                 type: e.type,
             };
             eventStoreEmitter.emit(event.type, {
+                ...event,
+            });
+            eventStoreEmitter.emit('*', {
                 ...event,
             });
         }
