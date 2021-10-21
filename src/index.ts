@@ -14,6 +14,7 @@ import {
     EventName,
     EventHandler,
     Event,
+    CustomEvent,
     EventBase,
 } from './event';
 
@@ -35,6 +36,7 @@ export interface ShimmieConfig {
 // testing a new naming scheme. Replace IEvent if we like this one better. Easier
 // for users to not be confused with their own event types (eg an event sourced system!)
 export type ShimmieEvent = Event;
+export type ShimmieCustomEvent<T> = CustomEvent<T>;
 
 export type StackType = {
     setApiVersion: (version: string) => StackType;
@@ -55,7 +57,7 @@ export type StackType = {
         mountPoint: string,
         router: Router
     ) => StackType;
-    subscribe: (eventName: EventName, handler: EventHandler) => void;
+    subscribe<T>(eventName: EventName, handler: EventHandler<ShimmieEvent> | EventHandler<ShimmieCustomEvent<T>>): void;
     use: (a: any) => any;
 };
 
@@ -164,7 +166,7 @@ export default function ShimmieStack(
             return funcs;
         },
 
-        subscribe: (eventName: EventName, handler: EventHandler) => {
+        subscribe: <T>(eventName: EventName, handler: EventHandler<ShimmieEvent> | EventHandler<ShimmieCustomEvent<T>>) => {
             console.log('ShimmieStack: Registering event handler: ', eventName);
             eventStore.subscribe(eventName, handler);
         },

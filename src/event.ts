@@ -10,18 +10,19 @@ export type Meta = {
 };
 
 //XXXX
-export type EventHandler = (event: <T>Event) => void;
+export type EventHandler<T> = (event: Event | T) => void;
 export type EventName = string;
 export type StreamId = string;
 export type EventData = object;
 
-
-export interface Event<T extends Meta>  {
+export interface Event {
     streamId: StreamId;
     data: EventData;
     type: string;
-    meta: T;
+    meta: Meta;
 };
+
+export type CustomEvent<T> = (input: T) => Event & {meta: T}
 
 /** What comes back after adding a new event to the event log */
 export interface StoredEventResponse {
