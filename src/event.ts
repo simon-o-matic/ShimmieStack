@@ -1,9 +1,10 @@
 //
 
 export type Meta = {
-    username: string;
-    userId: string; // can be device id?
     replay: boolean;
+    user: any;
+    date: number;
+    userAgent: string
 };
 
 export type EventHandler = (event: Event) => void;
