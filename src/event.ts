@@ -1,21 +1,26 @@
 //
 
+import { NodeWorker } from "inspector";
+
 export type Meta = {
-    username: string;
-    userId: string; // can be device id?
     replay: boolean;
+    user: any;
+    date: number;
+    userAgent: string
 };
 
-export type EventHandler = (event: Event) => void;
+//XXXX
+export type EventHandler = (event: <T>Event) => void;
 export type EventName = string;
 export type StreamId = string;
 export type EventData = object;
 
-export type Event = {
+
+export interface Event<T extends Meta>  {
     streamId: StreamId;
     data: EventData;
     type: string;
-    meta: Meta;
+    meta: T;
 };
 
 /** What comes back after adding a new event to the event log */
