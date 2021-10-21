@@ -22,7 +22,22 @@ The stack does the following:
 -   Provides a call to place a new Event on the event log
 -   Allow queries to register to listen to events in order to build interal data models
 
-#` How to use
+# Future Architecture Ideas
+
+-   replay of events
+    -   models and commands should be notified when replay starts so they can kill their state and/or ignore things as needed. Eg. analytics
+    -   they should provide pre and post hooks which the stack will call when that happens
+    -   the stack should maintain the list of the models/commands to iterate though them before and after replay
+    -   Router will need to be wrapped an part of bigger object that also contains the hooks
+    -   replay flag should be REMOVED from the meta data of an event
+-   date should be top level event (timestamp the event was recorded)
+-   meta should be generic so the user can decide what type it is through extension
+-   validation need to be added to processors at the stack level
+-   testing of all mount points needs to be part of the stack for correctness
+-   testing of event processors should also have first class testing ability
+-   add more typing (remove ANY's) to enable better type checking at design time (will require more generics)
+
+# How to use
 
 There is an example project here, but here is a basic over view of the files:
 
