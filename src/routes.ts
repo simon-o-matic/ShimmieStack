@@ -15,7 +15,14 @@ const timeLogger = (req: Request, res: Response, next: NextFunction) => {
 
 const mountPointRegister = new Map<string, boolean>();
 
-export const mountApi = (
+type ApiMounter = (
+    app: Application,
+    name: string,
+    mountPoint: string,
+    route: Router
+) => void;
+
+export const mountApi: ApiMounter = (
     app: Application,
     name: string,
     mountPoint: string,
