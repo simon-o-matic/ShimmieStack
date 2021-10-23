@@ -3,13 +3,13 @@
 //
 import pg from 'pg';
 const { Client } = pg;
-import { Event, EventBase } from './event';
+import { Event, EventBaseType } from './event';
 
 export interface EventConfig {
     connectionString: string;
 }
 
-export default function Eventbase(config: EventConfig): EventBase {
+export default function Eventbase(config: EventConfig): EventBaseType {
     if (!config.connectionString) {
         throw new Error('Missing DATABASE_URL environment variable.');
     } else {
