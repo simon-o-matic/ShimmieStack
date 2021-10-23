@@ -4,7 +4,6 @@
 import express, { Application, Router, Request, Response } from 'express';
 import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
-import eventbase from './eventbase-postgres';
 import * as routes from './routes';
 import EventStore, { EventStoreType } from './eventstore';
 import {
@@ -156,7 +155,7 @@ export default function ShimmieStack(
         },
 
         mountProcessor: (name: string, mountPoint: string, router: Router) => {
-            routes.mountApi(app, name, mountPoint, router);
+            routes.mountApi(app, name, apiVersion + mountPoint, router);
             return funcs;
         },
 
@@ -175,6 +174,7 @@ export default function ShimmieStack(
         // Make a new Express router
         router: () => express.Router(),
 
+        // provide the client the Exprese use function so they can do whatever they want
         use: (a: any) => app.use(a),
     };
 
