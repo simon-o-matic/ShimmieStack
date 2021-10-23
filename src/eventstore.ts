@@ -3,6 +3,7 @@
 //
 
 import { EventEmitter } from 'events';
+import { type } from 'os';
 import { Event, EventBaseType, Meta } from './event';
 
 class EventStoreEmitter extends EventEmitter {}
@@ -21,7 +22,7 @@ export interface EventStoreType {
 
 export default function EventStore(eventbase: EventBaseType): EventStoreType {
     const eventStoreEmitter = new EventStoreEmitter();
-
+    const allSubscriptions = new Map<string, boolean>();
     const recordEvent = async (
         streamId: string,
         eventName: string,
@@ -48,6 +49,9 @@ export default function EventStore(eventbase: EventBaseType): EventStoreType {
         // need to await here to confirm before emitting just in case
         const rows = await eventbase.addEvent(newEvent);
 
+        if (!allSubscriptions.get(eventName))
+            console.warn(`[ShimmieStack] Event ${eventName} has no listeners`);
+
         eventStoreEmitter.emit(eventName, newEvent);
         eventStoreEmitter.emit('*', {
             ...newEvent,
@@ -59,6 +63,7 @@ export default function EventStore(eventbase: EventBaseType): EventStoreType {
         type: string,
         callback: (eventModel: any) => void
     ): void => {
+        allSubscriptions.set(type, true); // record for later
         eventStoreEmitter.on(type, callback);
     };
 
