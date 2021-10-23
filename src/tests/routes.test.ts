@@ -1,5 +1,5 @@
 import { Application, Router } from 'express';
-import { mountApi } from '../routes';
+import { mountApi, setApiVersion } from '../routes';
 
 describe('when mounting a processor', () => {
     it('and its unique it should be fine', async () => {
@@ -35,5 +35,23 @@ describe('when mounting a processor', () => {
         const routerMock = jest.fn() as unknown as Router;
         mountApi(appMock, 'blah', 'noslash', routerMock);
         expect(appMock.use).toBeCalledWith('/noslash', expect.anything());
+    });
+
+    it('and it has a version it should be pre-pended with a slash', async () => {
+        const appMock = jest.fn() as unknown as Application;
+        appMock.use = jest.fn();
+        const routerMock = jest.fn() as unknown as Router;
+        setApiVersion('v1');
+        mountApi(appMock, 'blah', 'noslash', routerMock);
+        expect(appMock.use).toBeCalledWith('/v1/noslash', expect.anything());
+    });
+
+    it('and it has a slashed version it should be pre-pended with the slash', async () => {
+        const appMock = jest.fn() as unknown as Application;
+        appMock.use = jest.fn();
+        const routerMock = jest.fn() as unknown as Router;
+        setApiVersion('/v2');
+        mountApi(appMock, 'blah', '/foo', routerMock);
+        expect(appMock.use).toBeCalledWith('/v2/foo', expect.anything());
     });
 });

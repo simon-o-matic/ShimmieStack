@@ -24,7 +24,7 @@ const addLeadingSlash = (str: string) => {
 };
 
 export const setApiVersion = (version: string) => {
-    apiVersion = addLeadingSlash(version) + version;
+    apiVersion = addLeadingSlash(version);
 };
 
 type ApiMounter = (
