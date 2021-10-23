@@ -13,6 +13,8 @@ const timeLogger = (req: Request, res: Response, next: NextFunction) => {
     next();
 };
 
+const mountPointRegister = new Map<string, boolean>();
+
 export const mountApi = (
     app: Application,
     name: string,
@@ -24,6 +26,11 @@ export const mountApi = (
     if (!mountPoint || !route) {
         throw 'Missing mountPoint details. Please check: ';
     }
+    if (mountPointRegister.get(mountPoint))
+        throw 'Mount point duplicate: ' + mountPoint;
+    if (mountPoint === '/admin') throw '"/admin" mount point is reserved';
+
+    mountPointRegister.set(mountPoint, true);
     app.use(mountPoint, route);
     console.info(`>>>> Mounted ${mountPoint} with [${name}]`);
 };
