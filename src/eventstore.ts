@@ -3,7 +3,6 @@
 //
 
 import { EventEmitter } from 'events';
-import { type } from 'os';
 import { Event, EventBaseType, Meta } from './event';
 
 class EventStoreEmitter extends EventEmitter {}
