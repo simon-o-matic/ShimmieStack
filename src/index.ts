@@ -19,8 +19,6 @@ import {
 
 import AdminProcessor from './admin_processor';
 
-const STACK_VERSION = '0.4';
-
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
@@ -61,9 +59,7 @@ export type StackType = {
 
 const startApiListener = (app: Application, port: number) => {
     app.listen(port, () =>
-        console.info(
-            `ShimmieStack [${STACK_VERSION}] API Server listening on ${port}!`
-        )
+        console.info(`ShimmieStack API Server listening on ${port}!`)
     );
 };
 
