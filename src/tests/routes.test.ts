@@ -28,4 +28,12 @@ describe('when mounting a processor', () => {
             '"/admin" mount point is reserved'
         );
     });
+
+    it('and its missing a slash it should add one', async () => {
+        const appMock = jest.fn() as unknown as Application;
+        appMock.use = jest.fn();
+        const routerMock = jest.fn() as unknown as Router;
+        mountApi(appMock, 'blah', 'noslash', routerMock);
+        expect(appMock.use).toBeCalledWith('/noslash', expect.anything());
+    });
 });

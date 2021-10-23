@@ -14,6 +14,18 @@ const timeLogger = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const mountPointRegister = new Map<string, boolean>();
+let apiVersion = '';
+
+const addLeadingSlash = (str: string) => {
+    if (str?.length > 0) {
+        return str[0] !== '/' ? '/' + str : str;
+    }
+    throw 'Bad mount point path: ' + str;
+};
+
+export const setApiVersion = (version: string) => {
+    apiVersion = addLeadingSlash(version) + version;
+};
 
 type ApiMounter = (
     app: Application,
@@ -28,18 +40,19 @@ export const mountApi: ApiMounter = (
     mountPoint: string,
     route: Router
 ) => {
-    // WARNING: this does not check for overwriting, so because not to mount different functions on
-    //          the same head
     if (!mountPoint || !route) {
         throw 'Missing mountPoint details. Please check: ';
     }
-    if (mountPointRegister.get(mountPoint))
-        throw 'Mount point duplicate: ' + mountPoint;
-    if (mountPoint === '/admin') throw '"/admin" mount point is reserved';
 
-    mountPointRegister.set(mountPoint, true);
-    app.use(mountPoint, route);
-    console.info(`>>>> Mounted ${mountPoint} with [${name}]`);
+    const finalMountPoint = apiVersion + addLeadingSlash(mountPoint);
+
+    if (mountPointRegister.get(finalMountPoint))
+        throw 'Mount point duplicate: ' + finalMountPoint;
+    if (finalMountPoint === '/admin') throw '"/admin" mount point is reserved';
+
+    mountPointRegister.set(finalMountPoint, true);
+    app.use(finalMountPoint, route);
+    console.info(`>>>> Mounted ${finalMountPoint} with [${name}]`);
 };
 
 const catchAll404s = (req: Request, res: Response, next: NextFunction) => {

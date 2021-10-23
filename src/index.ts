@@ -140,7 +140,7 @@ export default function ShimmieStack(
         },
 
         setApiVersion: (version: string) => {
-            apiVersion = version;
+            routes.setApiVersion(version);
             return funcs;
         },
 
@@ -155,7 +155,7 @@ export default function ShimmieStack(
         },
 
         mountProcessor: (name: string, mountPoint: string, router: Router) => {
-            routes.mountApi(app, name, apiVersion + mountPoint, router);
+            routes.mountApi(app, name, mountPoint, router);
             return funcs;
         },
 
