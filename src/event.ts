@@ -4,7 +4,7 @@ export type Meta = {
     replay: boolean;
     user: any;
     date: number;
-    userAgent: string
+    userAgent: string;
 };
 
 export type EventHandler = (event: Event) => void;
@@ -26,11 +26,11 @@ export interface StoredEventResponse {
     type: string;
 }
 
-export interface EventBase {
+export interface EventBaseType {
     /**  put a new event on the event stream */
     addEvent: (event: Event) => Promise<any>;
     /** get all the events from the start to the end (for replay) */
-    getAllEventsInOrder: () => Promise<any>;
+    getAllEventsInOrder: () => Promise<Event[]>;
     /** set up the event base */
     init: () => Promise<void>;
     /** clear out all the events */

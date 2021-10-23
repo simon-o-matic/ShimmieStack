@@ -2,9 +2,9 @@
 // An in-memory version of the event base. This is used for testing. No
 // events survive a restart of the server.
 //
-import { Event, EventBase, StoredEventResponse } from './event';
+import { Event, EventBaseType, StoredEventResponse } from './event';
 
-export default function Eventbase(): EventBase {
+export default function Eventbase(): EventBaseType {
     const events: Array<Event> = [];
 
     const init = () => {

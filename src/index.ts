@@ -6,7 +6,7 @@ import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
 import eventbase from './eventbase-postgres';
 import * as routes from './routes';
-import AnEventStore, { EventStore } from './eventstore';
+import EventStore, { EventStoreType } from './eventstore';
 import {
     StreamId,
     EventData,
@@ -14,7 +14,7 @@ import {
     EventName,
     EventHandler,
     Event,
-    EventBase,
+    EventBaseType,
 } from './event';
 
 import AdminProcessor from './admin_processor';
@@ -69,8 +69,8 @@ const startApiListener = (app: Application, port: number) => {
 
 const startup = async (
     config: ShimmieConfig,
-    eventBase: EventBase,
-    eventStore: EventStore
+    eventBase: EventBaseType,
+    eventStore: EventStoreType
 ) => {
     try {
         console.info('ShimmieStack Start up sequence initiated.');
@@ -107,12 +107,12 @@ const startup = async (
 
 export default function ShimmieStack(
     config: ShimmieConfig,
-    eventBase: EventBase
+    eventBase: EventBaseType
 ): StackType {
     if (!eventBase) throw Error('Missing event base parameter to ShimmieStack');
 
     /** initialise the event store service by giving it an event database (db, memory, file ) */
-    const eventStore = AnEventStore(eventBase);
+    const eventStore = EventStore(eventBase);
 
     app.use(cors(config.CORS || {}));
 

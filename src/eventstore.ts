@@ -3,11 +3,11 @@
 //
 
 import { EventEmitter } from 'events';
-import { Event, EventBase, Meta } from './event';
+import { Event, EventBaseType, Meta } from './event';
 
 class EventStoreEmitter extends EventEmitter {}
 
-export interface EventStore {
+export interface EventStoreType {
     replayAllEvents: () => Promise<number>;
     recordEvent: (
         streamId: string,
@@ -19,7 +19,7 @@ export interface EventStore {
     getAllEvents: () => Promise<any>;
 }
 
-export default function EventStore(eventbase: EventBase): EventStore {
+export default function EventStore(eventbase: EventBaseType): EventStoreType {
     const eventStoreEmitter = new EventStoreEmitter();
 
     const recordEvent = async (
@@ -74,7 +74,7 @@ export default function EventStore(eventbase: EventBase): EventStore {
             // WARNING: These are field names from the database and hence are all LOWERCASE
             const event: Event = {
                 data: e.data,
-                streamId: e.streamid,
+                streamId: e.streamId,
                 meta: { ...e.meta, replay: true },
                 type: e.type,
             };
