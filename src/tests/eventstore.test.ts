@@ -2,8 +2,6 @@ import EventBase from '../eventbase-memory';
 import EventStore from '../eventstore';
 import { Meta } from '../event';
 
-// TODO: switch to a test database
-// WHY DO WE NEED .default here? Some module crap!
 const eventBase = EventBase();
 const eventStore = EventStore(eventBase);
 
