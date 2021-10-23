@@ -7,6 +7,7 @@ describe('when mounting a processor', () => {
         appMock.use = jest.fn();
         const routerMock = jest.fn() as unknown as Router;
         mountApi(appMock, 'blah', '/blah', routerMock);
+        expect(appMock.use).toBeCalledTimes(1);
     });
 
     it('and its a duplicate it should throw', async () => {
