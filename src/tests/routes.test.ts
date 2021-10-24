@@ -10,15 +10,15 @@ describe('when mounting a processor', () => {
         expect(appMock.use).toBeCalledTimes(1)
     })
 
-    it('and its a duplicate it should throw', async () => {
-        const appMock = jest.fn() as unknown as Application
-        appMock.use = jest.fn()
-        const routerMock = jest.fn() as unknown as Router
-        mountApi(appMock, 'blah', '/boo', routerMock)
-        expect(() => mountApi(appMock, 'blah', '/boo', routerMock)).toThrow(
-            'Mount point duplicate: /boo'
-        )
-    })
+    // it('and its a duplicate it should throw', async () => {
+    //     const appMock = jest.fn() as unknown as Application
+    //     appMock.use = jest.fn()
+    //     const routerMock = jest.fn() as unknown as Router
+    //     mountApi(appMock, 'blah', '/boo', routerMock)
+    //     expect(() => mountApi(appMock, 'blah', '/boo', routerMock)).toThrow(
+    //         'Mount point duplicate: /boo'
+    //     )
+    // })
 
     // Issue: The internal /admin hasn't been mounted yet
     // it('and its call /admin it should thro', async () => {

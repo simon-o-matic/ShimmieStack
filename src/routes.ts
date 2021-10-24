@@ -46,12 +46,12 @@ export const mountApi: ApiMounter = (
 
     const finalMountPoint = apiVersion + addLeadingSlash(mountPoint)
 
-    if (mountPointRegister.get(finalMountPoint)) {
-        if (finalMountPoint === '/admin')
-            throw '"/admin" mount point is reserved'
+    // if (mountPointRegister.get(finalMountPoint)) {
+    //     if (finalMountPoint === '/admin')
+    //         throw '"/admin" mount point is reserved'
 
-        throw 'Mount point duplicate: ' + finalMountPoint
-    }
+    //     throw 'Mount point duplicate: ' + finalMountPoint
+    // }
 
     mountPointRegister.set(finalMountPoint, true)
     app.use(finalMountPoint, route)
