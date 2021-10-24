@@ -121,7 +121,7 @@ export default function ShimmieStack(
         app,
         'Administration API',
         '/admin',
-        AdminProcessor(eventStore, eventBase)
+        AdminProcessor(eventBase)
     )
 
     let modelStore: { [key: string]: any } = {}

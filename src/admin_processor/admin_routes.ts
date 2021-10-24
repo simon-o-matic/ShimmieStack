@@ -2,78 +2,70 @@
 // The Admin API
 //
 
-// TODO: CHECK FOR ADMIN PERMISSIONS
+// TODO: CHECK FOR ADMIN PERMISSIONS?
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response } from 'express'
+import { AdminCommandsType } from './admin_commands'
 
-export default function (adminCommands: any): Router {
-    const router = Router();
+export default function (adminCommands: AdminCommandsType): Router {
+    const router = Router()
 
     // Only needs to be done ONCE in prod.
-    router.post(
-        '/create_database_tables',
-        async (req: Request, res: Response) => {
-            if (process.env.NODE_ENV != 'development') {
-                res.status(403).json({ error: 'nick off punk' });
-            } else {
-                res.status(200).json({
-                    result: await adminCommands.createTables(),
-                });
-            }
-        }
-    );
-
-    router.post('/drop_database_tables', async (req, res) => {
+    router.post('/init', async (req: Request, res: Response) => {
         if (process.env.NODE_ENV != 'development') {
-            res.status(403).json({ error: 'nick off punk' });
+            return res.status(403).send({ error: 'nick off punk' })
+        } else {
+            await adminCommands.init()
+            return res.status(200).send()
+        }
+    })
+
+    router.post('/reset', async (req, res) => {
+        if (process.env.NODE_ENV != 'development') {
+            return res.status(403).send({ error: 'nick off punk' })
         } else {
             try {
-                const rows = await adminCommands.dropTables();
-                res.status(200).json({ tables: rows.rows });
+                const rows = await adminCommands.reset()
+                return res.status(200).send(rows)
             } catch (err: any) {
-                res.status(500).json({ error: err.message });
+                return res.status(500).send({ error: err.message })
             }
         }
-    });
-
-    router.get('/show_database_tables', async (req, res) => {
-        res.status(200).json({ tables: await adminCommands.showTables() });
-    });
+    })
 
     router.get('/events', async (req, res) => {
         try {
-            const rows = await adminCommands.getEvents();
-            res.status(200).json({ events: rows });
+            const rows = await adminCommands.getEvents()
+            return res.status(200).send({ events: rows })
         } catch (err: any) {
-            res.status(500).json({ error: err.message });
+            return res.status(500).send({ error: err.message })
         }
-    });
+    })
 
-    router.get('/mrwolf', async (req, res) => {
-        res.status(200).json({ time: await adminCommands.mrWolf() });
-    });
+    router.get('/time', (req, res) => {
+        return res.status(200).send({ time: adminCommands.time() })
+    })
 
     router.get('/teapot', async (req, res) => {
-        res.send(
+        return res.send(
             "I'm a little teapot short and stout. This is my handle and this is my spout."
-        );
-    });
+        )
+    })
 
     router.get('/health', async (req, res) => {
         try {
-            const events = await adminCommands.getEvents();
+            const events = await adminCommands.getEvents()
 
             res.send({
-                status: "healthy",
-                version: process.env.APP_VERSION ?? "DEV"
-            });
-
+                status: 'healthy',
+                version: process.env.APP_VERSION ?? 'DEV',
+            })
         } catch (err: any) {
             res.status(503).json({
-                message: "Server is not yet ready to handle requests"
-            });
+                message: 'Server is not yet ready to handle requests',
+            })
         }
-    });
+    })
 
-    return router;
+    return router
 }

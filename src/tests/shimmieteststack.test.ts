@@ -3,12 +3,9 @@ import ShimmieTestStack from '../shimmieteststack'
 
 const testStack = ShimmieTestStack()
 
-const whoHandler = jest.fn()
-
 const TestProcessor = (testStack: StackType) => {
     const router = testStack.getRouter()
 
-    testStack.subscribe('whoevent', whoHandler)
     router.get('/whoami', (req, res) => {
         testStack.recordEvent('1', 'whoevent', { elvis: 'costello' }, {} as any)
         res.status(200).send({ me: 'shimmie' })

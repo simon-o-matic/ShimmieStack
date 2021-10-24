@@ -33,9 +33,10 @@ The stack does the following:
 -   date should be top level event (timestamp the event was recorded)
 -   meta should be generic so the user can decide what type it is through extension
 -   validation need to be added to processors at the stack level
--   testing of all mount points needs to be part of the stack for correctness
--   testing of event processors should also have first class testing ability
+-   X testing of all mount points needs to be part of the stack for correctness
+-   X testing of event processors should also have first class testing ability
 -   add more typing (remove ANY's) to enable better type checking at design time (will require more generics)
+-   testing - consider using the internal App rather than creating a fake one, which will change the admin tests to be more real too
 
 # How to use
 
@@ -44,28 +45,28 @@ There is an example project here, but here is a basic over view of the files:
 This is the `index.js` file where you would configure the stack and register your handlers. In this example its a song database:
 
 ```javascript
-import ShimmieStack from 'shimmiestack';
+import ShimmieStack from 'shimmiestack'
 
-import SongCommand from './processors/song_command';
-import SongQuery from './processors/song_query';
+import SongCommand from './processors/song_command'
+import SongQuery from './processors/song_query'
 
 // Set up the song stack
 const songStack = ShimmieStack({
     ServerPort: 8080,
-});
+})
 
 songStack
     .setApiVersion('/v1')
     .mountProcessor('Song Commands', '/songs', SongCommand(songStack))
     .mountProcessor('Song Queries', '/songs', SongQuery(songStack))
-    .startup();
+    .startup()
 ```
 
 The `song_command.js` file:
 
 ```javascript
-import { v4 as uuidv4 } from 'uuid';
-import songEvents from './song_events.js';
+import { v4 as uuidv4 } from 'uuid'
+import songEvents from './song_events.js'
 
 export class DoesNotExistError extends Error {}
 
@@ -73,57 +74,56 @@ export default function SongCommands(songStack, songModel) {
     const addSong = async (song) => {
         await songStack.recordEvent(uuidv4(), songEvents.SONG_ADDED, song, {
             user: 'Travis. T.',
-        });
-    };
+        })
+    }
 
     const deleteSong = async (songId, meta) => {
         if (!songModel.getSong(songId)) {
-            throw new DoesNotExistError();
+            throw new DoesNotExistError()
         }
 
-        await songStack.recordEvent(songId, songEvents.SONG_DELETED, {}, meta);
-    };
-    return { addSong, deleteSong };
+        await songStack.recordEvent(songId, songEvents.SONG_DELETED, {}, meta)
+    }
+    return { addSong, deleteSong }
 }
 ```
 
 And the song API file `song_api.js` that calls the commands above looks like this:
 
 ```javascript
-import { Router } from 'shimmiestack';
+import { Router } from 'shimmiestack'
 
 class Song {
     constructor(song) {
-        this.title = song.title;
-        this.artist = song.artist;
-        this.year = song.year;
+        this.title = song.title
+        this.artist = song.artist
+        this.year = song.year
     }
 }
 
 export default function (songCommands) {
-    const router = Router();
+    const router = Router()
 
     // create a new song
     router.post('/', async (req, res) => {
-        const song = new Song(req.body);
-        const result = await songCommands.addSong(song, {});
-        res.status(201).json(result);
-    });
+        const song = new Song(req.body)
+        const result = await songCommands.addSong(song, {})
+        res.status(201).json(result)
+    })
 
     router.delete('/:id', async (req, res) => {
-        const id = req.params.id;
-        if (!id)
-            return res.status(400).json({ error: 'missing id in request' });
+        const id = req.params.id
+        if (!id) return res.status(400).json({ error: 'missing id in request' })
 
         try {
-            await songCommands.deleteSong(id, { user: DUMMY_USER });
-            res.status(204);
+            await songCommands.deleteSong(id, { user: DUMMY_USER })
+            res.status(204)
         } catch (err) {
-            res.status(500).json({ error: err.message });
+            res.status(500).json({ error: err.message })
         }
-    });
+    })
 
-    return router;
+    return router
 }
 ```
 
