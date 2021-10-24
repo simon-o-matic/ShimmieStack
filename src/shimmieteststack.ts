@@ -9,6 +9,7 @@ import ShimmieStack, { StackType } from './index'
 interface ShimmieTestStackType extends StackType {
     mountTest: (router: Router) => void
     testGet: (path: string) => Promise<superrequest.Response>
+    testPost: (path: string, body: object) => Promise<superrequest.Response>
 }
 
 export default function ShimmieTestStack(): ShimmieTestStackType {
@@ -37,9 +38,14 @@ export default function ShimmieTestStack(): ShimmieTestStackType {
         return await superrequest(app).get(path)
     }
 
+    /** Get helper that uses supertest to hook into the express route to make the actual call */
+    const testPost = async (path: string, body: object) => {
+        return await superrequest(app).post(path).send(body)
+    }
+
     // Allow passthrough to the actal function, but also let testers count calls
     jest.spyOn(testStack, 'recordEvent')
 
     // the actual shimmie stack, plus our extras
-    return { ...testStack, mountTest, testGet }
+    return { ...testStack, mountTest, testGet, testPost }
 }
