@@ -11,6 +11,7 @@ interface ShimmieTestStackType extends StackType {
     mountTest: (router: Router) => void
     testGet: (path: string) => Promise<superrequest.Response>
     testPost: (path: string, body: object) => Promise<superrequest.Response>
+    use: (a: any) => any
 }
 
 export default function ShimmieTestStack(): ShimmieTestStackType {
@@ -47,6 +48,13 @@ export default function ShimmieTestStack(): ShimmieTestStackType {
     // Allow passthrough to the actal function, but also let testers count calls
     jest.spyOn(testStack, 'recordEvent')
 
-    // the actual shimmie stack, plus our extras
-    return { ...testStack, mountTest, testGet, testPost }
+    // the actual shimmie stack, plus our extras. User overrides the one in the underlying
+    // ShimmieStack
+    return {
+        ...testStack,
+        mountTest,
+        testGet,
+        testPost,
+        use: (a: any) => app.use(a),
+    }
 }
