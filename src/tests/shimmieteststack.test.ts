@@ -17,10 +17,15 @@ const TestProcessor = (testStack: StackType) => {
         else return res.status(400).send({ error: 'Missing foo parameters' })
     })
 
-    router.post('/nobodyrequired', (req, res) => {
-        res.status(200)
-        res.send()
-    })
+    const returnHeaders = (req: any, res: any) => {
+        res.status(200).json({headers:req.headers, body: req.body})
+    }
+    router.post('/postonly-nobodyrequired', returnHeaders)
+
+    router.get('/nobodyrequired', returnHeaders)
+    router.post('/nobodyrequired', returnHeaders)
+    router.put('/nobodyrequired', returnHeaders)
+    router.delete('/nobodyrequired', returnHeaders)
 
     return router
 }
@@ -31,6 +36,60 @@ describe('when calling testPost with empty body', () => {
     it('there should be no errors', async () => {
         const response = await testStack.testPost('/nobodyrequired', {})
         expect(response.status).toBe(200)
+    })
+})
+
+const authHeaderValue = 'Definitely real'
+
+describe('when calling a POST with an auth header', () => {
+    it('there should be no errors', async () => {
+        const response = await testStack.testPost(
+            '/nobodyrequired',
+            {},
+            {'Authorization': authHeaderValue}
+        )
+        expect(response.status).toBe(200)
+        const requestHeaders = response.body.headers
+        expect(requestHeaders['authorization']).toBe(authHeaderValue)
+    })
+})
+
+describe('when calling a PUT with an auth header', () => {
+    it('there should be no errors', async () => {
+        const response = await testStack.testPost(
+            '/nobodyrequired',
+            {},
+            {'Authorization': authHeaderValue}
+        )
+        expect(response.status).toBe(200)
+        const requestHeaders = response.body.headers
+        expect(requestHeaders['authorization']).toBe(authHeaderValue)
+    })
+})
+
+describe('when calling a GET with an auth header', () => {
+    it('there should be no errors', async () => {
+        const response = await testStack.testPost(
+            '/nobodyrequired',
+            {},
+            {'Authorization': authHeaderValue}
+        )
+        expect(response.status).toBe(200)
+        const requestHeaders = response.body.headers
+        expect(requestHeaders['authorization']).toBe(authHeaderValue)
+    })
+})
+
+describe('when calling a DELETE with an auth header', () => {
+    it('there should be no errors', async () => {
+        const response = await testStack.testPost(
+            '/nobodyrequired',
+            {},
+            {'Authorization': authHeaderValue}
+        )
+        expect(response.status).toBe(200)
+        const requestHeaders = response.body.headers
+        expect(requestHeaders['authorization']).toBe(authHeaderValue)
     })
 })
 
@@ -50,7 +109,7 @@ describe('when calling non existant end point ', () => {
 
 describe('when calling an end point of the wrong type ', () => {
     it('with GET should be 404', async () => {
-        const response = await testStack.testGet('/nobodyrequired')
+        const response = await testStack.testGet('/postonly-nobodyrequired')
         expect(response.status).toBe(404)
     })
 })

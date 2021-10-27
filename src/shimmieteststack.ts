@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals'
 import cookieParser from 'cookie-parser'
 import express, { Router } from 'express'
-import superrequest from 'supertest'
+import superrequest, { SuperTest, Test } from 'supertest'
 
 import Eventbase from './eventbase-memory'
 import ShimmieStack, { StackType } from './index'
@@ -9,15 +9,59 @@ import ShimmieStack, { StackType } from './index'
 /** Some extra convenience functions for ease testing */
 interface ShimmieTestStackType extends StackType {
     mountTest: (router: Router) => void
-    testGet: (path: string) => Promise<superrequest.Response>
-    testPost: (path: string, body: object) => Promise<superrequest.Response>
+    testGet: (
+        path: string,
+        headers?: Record<string, string>
+    ) => Promise<superrequest.Response>
+    testPost: (
+        path: string,
+        body: object,
+        headers?: Record<string, string>
+    ) => Promise<superrequest.Response>
+    testPut: (
+        path: string,
+        body: object,
+        headers?: Record<string, string>
+    ) => Promise<superrequest.Response>
+    testDelete: (
+        path: string,
+        headers?: Record<string, string>
+    ) => Promise<superrequest.Response>
     use: (a: any) => any
 }
 
-export default function ShimmieTestStack(): ShimmieTestStackType {
+export default function ShimmieTestStack(
+    defaultAuthHeaderValue?: string
+): ShimmieTestStackType {
+    const authHeaderValue = defaultAuthHeaderValue
     const app = express()
     app.use(express.json())
     app.use(cookieParser())
+
+    const prepareRequest =
+        (method: string) =>
+        (path: string, headers?: Record<string, string>, withAuth = true) => {
+            const req = (superrequest(app) as any)[method](path)
+
+            if (authHeaderValue && withAuth) {
+                req.set("'Authorization'", `Bearer ${authHeaderValue}`)
+            }
+
+            if (headers) {
+                Object.entries(headers).map((header) =>
+                    req.set(header[0], header[1])
+                )
+            }
+
+            return req
+        }
+
+    const methods = {
+        post: prepareRequest('post'),
+        get: prepareRequest('get'),
+        put: prepareRequest('put'),
+        delete: prepareRequest('delete'),
+    }
 
     /** the test stack usese the in-memory event store */
     const memoryBase = Eventbase()
@@ -36,13 +80,34 @@ export default function ShimmieTestStack(): ShimmieTestStackType {
     }
 
     /** Get helper that uses supertest to hook into the express route to make the actual call */
-    const testGet = async (path: string) => {
-        return await superrequest(app).get(path)
+    const testGet = async (path: string, headers?: Record<string, string>) => {
+        return await methods.get(path, headers)
     }
 
-    /** Get helper that uses supertest to hook into the express route to make the actual call */
-    const testPost = async (path: string, body: object) => {
-        return await superrequest(app).post(path).send(body)
+    /** Post helper that uses supertest to hook into the express route to make the actual call */
+    const testPost = async (
+        path: string,
+        body: object,
+        headers?: Record<string, string>
+    ) => {
+        return await methods.post(path, headers).send(body)
+    }
+
+    /** Put helper that uses supertest to hook into the express route to make the actual call */
+    const testPut = async (
+        path: string,
+        body: object,
+        headers?: Record<string, string>
+    ) => {
+        return await methods.post(path, headers).send(body)
+    }
+
+    /** Delete helper that uses supertest to hook into the express route to make the actual call */
+    const testDelete = async (
+        path: string,
+        headers?: Record<string, string>
+    ) => {
+        return await methods.post(path, headers)
     }
 
     // Allow passthrough to the actal function, but also let testers count calls
@@ -55,6 +120,8 @@ export default function ShimmieTestStack(): ShimmieTestStackType {
         mountTest,
         testGet,
         testPost,
+        testPut,
+        testDelete,
         use: (a: any) => app.use(a),
     }
 }
