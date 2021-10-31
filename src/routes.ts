@@ -39,23 +39,16 @@ export const mountApi: ApiMounter = (
     name: string,
     mountPoint: string,
     route: Router
-) => {
+): string => {
     if (!mountPoint || !route) {
         throw 'Missing mountPoint details. Please check: '
     }
 
     const finalMountPoint = apiVersion + addLeadingSlash(mountPoint)
 
-    // if (mountPointRegister.get(finalMountPoint)) {
-    //     if (finalMountPoint === '/admin')
-    //         throw '"/admin" mount point is reserved'
-
-    //     throw 'Mount point duplicate: ' + finalMountPoint
-    // }
-
     mountPointRegister.set(finalMountPoint, true)
     app.use(finalMountPoint, route)
-    console.info(`>>>> Mounted ${finalMountPoint} with [${name}]`)
+    return finalMountPoint
 }
 
 const catchAll404s = (req: Request, res: Response, next: NextFunction) => {
