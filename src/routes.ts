@@ -17,10 +17,13 @@ const mountPointRegister = new Map<string, boolean>()
 let apiVersion = ''
 
 const addLeadingSlash = (str: string) => {
-    if (str?.length > 0) {
-        return str[0] !== '/' ? '/' + str : str
+    if (str) {
+        str = str.trim()
+        if (str.length > 0) {
+            return str[0] !== '/' ? '/' + str : str
+        }
     }
-    throw 'Bad mount point path: ' + str
+    return ''
 }
 
 export const setApiVersion = (version: string) => {
