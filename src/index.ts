@@ -28,6 +28,7 @@ export interface ShimmieConfig {
     mode?: string
     ServerPort: number
     CORS?: CorsOptions
+    enforceAuthorization: boolean
 }
 
 // testing a new naming scheme. Replace IEvent if we like this one better. Easier
@@ -121,7 +122,8 @@ export default function ShimmieStack(
         app,
         'Administration API',
         '/admin',
-        AdminProcessor(eventBase)
+        AdminProcessor(eventBase),
+        config.enforceAuthorization
     )
 
     let modelStore: { [key: string]: any } = {}
@@ -155,7 +157,7 @@ export default function ShimmieStack(
         },
 
         mountProcessor: (name: string, mountPoint: string, router: Router) => {
-            routes.mountApi(app, name, mountPoint, router)
+            routes.mountApi(app, name, mountPoint, router, config.enforceAuthorization)
             return funcs
         },
 

@@ -6,7 +6,7 @@ describe('when mounting a processor', () => {
         const appMock = jest.fn() as unknown as Application
         appMock.use = jest.fn()
         const routerMock = jest.fn() as unknown as Router
-        mountApi(appMock, 'blah', '/blah', routerMock)
+        mountApi(appMock, 'blah', '/blah', routerMock, false)
         expect(appMock.use).toBeCalledTimes(1)
     })
 
@@ -34,7 +34,7 @@ describe('when mounting a processor', () => {
         const appMock = jest.fn() as unknown as Application
         appMock.use = jest.fn()
         const routerMock = jest.fn() as unknown as Router
-        mountApi(appMock, 'blah', 'noslash', routerMock)
+        mountApi(appMock, 'blah', 'noslash', routerMock, false)
         expect(appMock.use).toBeCalledWith('/noslash', expect.anything())
     })
 
@@ -43,7 +43,7 @@ describe('when mounting a processor', () => {
         appMock.use = jest.fn()
         const routerMock = jest.fn() as unknown as Router
         setApiVersion('v1')
-        mountApi(appMock, 'blah', 'noslash', routerMock)
+        mountApi(appMock, 'blah', 'noslash', routerMock, false)
         expect(appMock.use).toBeCalledWith('/v1/noslash', expect.anything())
     })
 
@@ -52,7 +52,7 @@ describe('when mounting a processor', () => {
         appMock.use = jest.fn()
         const routerMock = jest.fn() as unknown as Router
         setApiVersion('/v2')
-        mountApi(appMock, 'blah', '/foo', routerMock)
+        mountApi(appMock, 'blah', '/foo', routerMock, false)
         expect(appMock.use).toBeCalledWith('/v2/foo', expect.anything())
     })
 })

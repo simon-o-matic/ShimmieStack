@@ -31,14 +31,16 @@ type ApiMounter = (
     app: Application,
     name: string,
     mountPoint: string,
-    route: Router
+    route: Router,
+    enforceAuthorization: boolean
 ) => void
 
 export const mountApi: ApiMounter = (
     app: Application,
     name: string,
     mountPoint: string,
-    route: Router
+    route: Router,
+    enforceAuthorization: boolean
 ) => {
     if (!mountPoint || !route) {
         throw 'Missing mountPoint details. Please check: '
@@ -52,6 +54,21 @@ export const mountApi: ApiMounter = (
 
     //     throw 'Mount point duplicate: ' + finalMountPoint
     // }
+
+    if(enforceAuthorization){
+        // for each endpoint in the router
+        route.stack.forEach( (api: any ) => {
+            // check the handler and middleware for a function called "authorizeApi"
+            // express doesnt expose the Layer type :(
+            const authorizer: any[] = api.route.stack.filter((layer: any) => {
+                return layer.name === "authorizeApi"
+            })
+
+            if(authorizer.length === 0){
+                throw new Error(`Authorization Not Implemented for ${name} at ${mountPoint}`)
+            }
+        })
+    }
 
     mountPointRegister.set(finalMountPoint, true)
     app.use(finalMountPoint, route)
