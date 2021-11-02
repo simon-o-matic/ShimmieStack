@@ -99,7 +99,7 @@ export default function ShimmieTestStack(
         body: object,
         headers?: Record<string, string>
     ) => {
-        return await methods.post(path, headers).send(body)
+        return await methods.put(path, headers).send(body)
     }
 
     /** Delete helper that uses supertest to hook into the express route to make the actual call */
