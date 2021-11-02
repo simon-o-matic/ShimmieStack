@@ -6,7 +6,7 @@
         "module": "ES2020",
         "sourceMap": true,
         "declaration": true,
-        "moduleResolution": "Node",
+        "moduleResolution": "node",
         "esModuleInterop": true,
         "strictPropertyInitialization": false // because we have classes without methods as objects
     }

@@ -18,7 +18,7 @@ const TestProcessor = (testStack: StackType) => {
     })
 
     const returnHeaders = (req: any, res: any) => {
-        res.status(200).json({headers:req.headers, body: req.body})
+        res.status(200).json({ headers: req.headers, body: req.body })
     }
     router.post('/postonly-nobodyrequired', returnHeaders)
 
@@ -31,6 +31,11 @@ const TestProcessor = (testStack: StackType) => {
 }
 
 testStack.mountTest(TestProcessor(testStack))
+testStack.mountTest(TestProcessor(testStack), '/anothermountpoint')
+
+afterEach(() => {
+    jest.clearAllMocks()
+})
 
 describe('when calling testPost with empty body', () => {
     it('there should be no errors', async () => {
@@ -46,7 +51,7 @@ describe('when calling a POST with an auth header', () => {
         const response = await testStack.testPost(
             '/nobodyrequired',
             {},
-            {'Authorization': authHeaderValue}
+            { Authorization: authHeaderValue }
         )
         expect(response.status).toBe(200)
         const requestHeaders = response.body.headers
@@ -59,7 +64,7 @@ describe('when calling a PUT with an auth header', () => {
         const response = await testStack.testPost(
             '/nobodyrequired',
             {},
-            {'Authorization': authHeaderValue}
+            { Authorization: authHeaderValue }
         )
         expect(response.status).toBe(200)
         const requestHeaders = response.body.headers
@@ -72,7 +77,7 @@ describe('when calling a GET with an auth header', () => {
         const response = await testStack.testPost(
             '/nobodyrequired',
             {},
-            {'Authorization': authHeaderValue}
+            { Authorization: authHeaderValue }
         )
         expect(response.status).toBe(200)
         const requestHeaders = response.body.headers
@@ -85,7 +90,7 @@ describe('when calling a DELETE with an auth header', () => {
         const response = await testStack.testPost(
             '/nobodyrequired',
             {},
-            {'Authorization': authHeaderValue}
+            { Authorization: authHeaderValue }
         )
         expect(response.status).toBe(200)
         const requestHeaders = response.body.headers
@@ -117,6 +122,15 @@ describe('when calling an end point of the wrong type ', () => {
 describe('when calling /whoami', () => {
     it('the current user should be returned', async () => {
         const response = await testStack.testGet('/whoami')
+        expect(response.status).toBe(200)
+        expect(response.body.me).toBe('shimmie')
+        expect(testStack.recordEvent).toBeCalledTimes(1)
+    })
+})
+
+describe('when calling a processor mounted at a different location', () => {
+    it('its should be called', async () => {
+        const response = await testStack.testGet('/anothermountpoint/whoami')
         expect(response.status).toBe(200)
         expect(response.body.me).toBe('shimmie')
         expect(testStack.recordEvent).toBeCalledTimes(1)

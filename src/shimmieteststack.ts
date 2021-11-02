@@ -8,7 +8,7 @@ import ShimmieStack, { StackType } from './index'
 
 /** Some extra convenience functions for ease testing */
 interface ShimmieTestStackType extends StackType {
-    mountTest: (router: Router) => void
+    mountTest: (router: Router, mountpoint?: string) => void
     testGet: (
         path: string,
         headers?: Record<string, string>
@@ -75,8 +75,8 @@ export default function ShimmieTestStack(
     )
 
     // Mount al the test processors at the root for ease of local testing.
-    const mountTest = (router: Router) => {
-        app.use('/', router)
+    const mountTest = (router: Router, mountpoint: string = '/') => {
+        app.use(mountpoint, router)
     }
 
     /** Get helper that uses supertest to hook into the express route to make the actual call */
