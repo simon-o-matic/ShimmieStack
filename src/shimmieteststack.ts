@@ -107,7 +107,7 @@ export default function ShimmieTestStack(
         path: string,
         headers?: Record<string, string>
     ) => {
-        return await methods.post(path, headers)
+        return await methods.delete(path, headers)
     }
 
     // Allow passthrough to the actal function, but also let testers count calls
