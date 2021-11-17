@@ -4,6 +4,7 @@ import express, { Router } from 'express'
 import superrequest, { SuperTest, Test } from 'supertest'
 
 import Eventbase from './eventbase-memory'
+import PiiBase from './piiBase-memory'
 import ShimmieStack, { StackType } from './index'
 
 /** Some extra convenience functions for ease testing */
@@ -31,7 +32,8 @@ interface ShimmieTestStackType extends StackType {
 }
 
 export default function ShimmieTestStack(
-    defaultAuthHeaderValue?: string
+    defaultAuthHeaderValue?: string,
+    usePiiBase: boolean = false,
 ): ShimmieTestStackType {
     const authHeaderValue = defaultAuthHeaderValue
     const app = express()
@@ -66,12 +68,16 @@ export default function ShimmieTestStack(
     /** the test stack usese the in-memory event store */
     const memoryBase = Eventbase()
 
+    /** the test stack usese the in-memory pii store */
+    const piiBase = usePiiBase ? PiiBase() : undefined
+
     /** our inner actal shimmie stack that we control access to for tests */
     const testStack = ShimmieStack(
         {
             ServerPort: 9999 /* ignored because the express server is never started */,
         },
-        memoryBase
+        memoryBase,
+        piiBase
     )
 
     // Mount al the test processors at the root for ease of local testing.

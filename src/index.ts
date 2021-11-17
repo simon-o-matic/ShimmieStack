@@ -14,6 +14,7 @@ import {
     EventHandler,
     Event,
     EventBaseType,
+    PiiBaseType,
 } from './event'
 
 import AdminProcessor from './admin_processor'
@@ -99,12 +100,13 @@ const startup = async (
 
 export default function ShimmieStack(
     config: ShimmieConfig,
-    eventBase: EventBaseType
+    eventBase: EventBaseType,
+    piiBase?: PiiBaseType 
 ): StackType {
     if (!eventBase) throw Error('Missing event base parameter to ShimmieStack')
 
     /** initialise the event store service by giving it an event database (db, memory, file ) */
-    const eventStore = EventStore(eventBase)
+    const eventStore = EventStore(eventBase, piiBase)
 
     app.use(cors(config.CORS || {}))
 

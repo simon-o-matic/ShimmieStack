@@ -19,12 +19,12 @@ export type Event = {
     data: EventData;
     type: string;
     meta: Meta;
-    SequenceNum?: number;
+    sequenceNum?: number;
 };
 
 /** What comes back after adding a new event to the event log */
 export interface StoredEventResponse {
-    sequenceNumber: number;
+    sequenceNum: number;
     logdate: number;
     type: string;
 }
@@ -43,11 +43,22 @@ export interface EventBaseType {
 }
 
 export interface PiiBaseType {
-    init(): Promise<void>
 
     // record some PII in the PII store
-    recordEvent(key: string, data: any): Promise<any>
+    addPiiEventData(key: string, data: any): Promise<any>
 
+    // get a single pii record if it exists
+    getPiiData(key: string): Promise<Record<string,any> | undefined>
+    
     // get all pii records
     getPiiLookup(): Promise<Record<string,any>>
+
+    // prepare the piibase
+    init(): Promise<void>
+
+    /** clear out all the data */
+    reset: () => Promise<void>;
+
+    /** clean up any anything in the pii base */
+    shutdown: () => Promise<void>;
 }
