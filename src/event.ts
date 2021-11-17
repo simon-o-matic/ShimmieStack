@@ -5,8 +5,10 @@ export type Meta = {
     user: any;
     date: number;
     userAgent: string;
+    hasPii?: boolean;
 };
 
+export type PiiFields = Set<string>;
 export type EventHandler = (event: Event) => void;
 export type EventName = string;
 export type StreamId = string;
@@ -17,6 +19,7 @@ export type Event = {
     data: EventData;
     type: string;
     meta: Meta;
+    SequenceNum?: number;
 };
 
 /** What comes back after adding a new event to the event log */
@@ -37,4 +40,14 @@ export interface EventBaseType {
     reset: () => Promise<void>;
     /** clean up any event base */
     shutdown: () => Promise<void>;
+}
+
+export interface PiiBaseType {
+    init(): Promise<void>
+
+    // record some PII in the PII store
+    recordEvent(key: string, data: any): Promise<any>
+
+    // get all pii records
+    getPiiLookup(): Promise<Record<string,any>>
 }
