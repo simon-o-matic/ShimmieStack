@@ -21,7 +21,10 @@ export default function Eventbase(config: EventConfig): EventBaseType {
     // called during start up to first connect to the database
     // TODO: retry to solve docker start up timing issue
     const init = async () => {
-        await connection.connect()
+        await connection.connect(function (err){
+            if(err)
+                console.log(err);
+        });
         createTables()
     }
 

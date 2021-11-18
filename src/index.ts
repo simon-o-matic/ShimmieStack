@@ -14,7 +14,7 @@ import {
     EventHandler,
     Event,
     EventBaseType,
-    PiiBaseType,
+    PiiBaseType, PiiFields,
 } from './event'
 
 import AdminProcessor from './admin_processor'
@@ -42,7 +42,8 @@ export type StackType = {
         streamdId: StreamId,
         eventName: EventName,
         eventData: EventData,
-        meta: Meta
+        meta: Meta,
+        piiFields?: PiiFields
     ) => void
     startup: () => void
     restart: () => void
@@ -67,7 +68,8 @@ const startApiListener = (app: Application, port: number) => {
 const startup = async (
     config: ShimmieConfig,
     eventBase: EventBaseType,
-    eventStore: EventStoreType
+    eventStore: EventStoreType,
+    piiBase?: PiiBaseType
 ) => {
     try {
         logInfo('ShimmieStack Start up sequence initiated.')
@@ -79,8 +81,12 @@ const startup = async (
 
         // Get the database started
         await eventBase.init()
+        logInfo('ShimmieStack: event database connected.')
 
-        logInfo('ShimmieStack: database connected.')
+        if (piiBase) {
+            await piiBase.init()
+            logInfo('ShimmieStack: pii database connected.')
+        }
 
         // Process the entire event history on start up and load into memory
         logInfo(
@@ -167,8 +173,9 @@ export default function ShimmieStack(
             streamdId: StreamId,
             eventName: EventName,
             eventData: EventData,
-            meta: Meta
-        ) => eventStore.recordEvent(streamdId, eventName, eventData, meta),
+            meta: Meta,
+            piiFields?: PiiFields
+        ) => eventStore.recordEvent(streamdId, eventName, eventData, meta, piiFields),
 
         // Make a new Express router
         getRouter: () => express.Router(),

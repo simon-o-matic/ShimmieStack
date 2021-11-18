@@ -20,11 +20,11 @@ export default function Eventbase(): EventBaseType {
 
     const addEvent = async (event: Event): Promise<StoredEventResponse[]> => {
         // TODO: deal with meta?
-        event.sequenceNum = events.length
+        event.sequencenum = events.length
         events.push(event);
 
         return Promise.resolve([{
-            sequenceNum: event.sequenceNum,
+            sequencenum: event.sequencenum,
             logdate: Date.now(),
             type: event.type,
         }]);

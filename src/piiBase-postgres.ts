@@ -1,5 +1,6 @@
 import { PiiBaseType } from './event';
-import { Client } from 'pg'
+import pg from 'pg'
+const { Client } = pg
 
 export interface PiiBaseConfig {
     connectionString: string
@@ -17,7 +18,10 @@ export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
     // called during start up to first connect to the database
     // TODO: retry to solve docker start up timing issue
     const init = async () => {
-        await connection.connect()
+        await connection.connect(function (err){
+            if(err)
+                console.log(err);
+        });
         await createTable()
     }
 

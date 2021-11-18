@@ -79,7 +79,7 @@ export default function EventStore(eventbase: EventBaseType, piiBase?: PiiBaseTy
 
         if(hasPii && piiBase) {
             // get the stringified sequenceNum from the event stream and use it as the key for the pii row
-            const piiKey: string = ((rows[0] as Event).sequenceNum!).toString()
+            const piiKey: string = ((rows[0] as Event).sequencenum!).toString()
 
             // store the pii in the piiBase
             piiData = await piiBase.addPiiEventData(piiKey, piiData)
@@ -119,7 +119,7 @@ export default function EventStore(eventbase: EventBaseType, piiBase?: PiiBaseTy
         // if we want pii and we have a pii db, combine the event data
         const piiLookup: Record<string,any> = await piiBase.getPiiLookup()
         return events.map((event) => {
-            const piiKey = event.sequenceNum!.toString();
+            const piiKey = event.sequencenum!.toString();
             if(!piiLookup.has(piiKey)){
                 return event
             }
@@ -151,10 +151,10 @@ export default function EventStore(eventbase: EventBaseType, piiBase?: PiiBaseTy
             // We may have a case with a key and the lookup without a value, if the value has been deleted from the piiBase
             // so if we have pii in this event, the piiLookup is defined and we a record in the lookup for this event, using
             // the sequence num as a key merge the non-pii and pii data so the caller gets back what they provided
-            if(e.meta.hasPii && piiLookup && e.sequenceNum && e.sequenceNum in piiLookup) {
+            if(e.meta.hasPii && piiLookup && e.sequencenum && e.sequencenum in piiLookup) {
                 data = {
                     ...data,
-                    ...piiLookup[e.sequenceNum.toString()]
+                    ...piiLookup[e.sequencenum.toString()]
                 }
             }
 

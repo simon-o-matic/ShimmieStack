@@ -19,12 +19,12 @@ export type Event = {
     data: EventData;
     type: string;
     meta: Meta;
-    sequenceNum?: number;
+    sequencenum?: number;
 };
 
 /** What comes back after adding a new event to the event log */
 export interface StoredEventResponse {
-    sequenceNum: number;
+    sequencenum: number;
     logdate: number;
     type: string;
 }
