@@ -57,7 +57,7 @@ describe('when recording an event', () => {
                     'type',
                     piiTestData,
                     meta,
-                    new Set(['piiField']),
+                    ['piiField'],
                 )
 
                 // check that the eventbase does not have pii in it, and does have the other data
@@ -81,7 +81,7 @@ describe('when recording an event', () => {
                 'type',
                 piiTestData,
                 meta,
-                new Set(['piiField']),
+                ['piiField'],
             )
             await eventStore.recordEvent(
                 'streamid',
@@ -116,7 +116,7 @@ describe('when recording an event', () => {
                     'type',
                     piiTestData,
                     meta,
-                    new Set(['piiField']),
+                    ['piiField'],
                 )
                 fail("Should have thrown when no piibase is configured and pii is provided");
             } catch (err: any) {

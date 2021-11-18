@@ -8,7 +8,7 @@ export type Meta = {
     hasPii?: boolean;
 };
 
-export type PiiFields = Set<string>;
+export type PiiFields = string[];
 export type EventHandler = (event: Event) => void;
 export type EventName = string;
 export type StreamId = string;

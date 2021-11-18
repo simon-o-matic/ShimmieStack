@@ -52,7 +52,7 @@ export default function EventStore(eventbase: EventBaseType, piiBase?: PiiBaseTy
 
         if(hasPii && data) {
             Object.keys(data).map((key) => {
-                if(piiFields?.has(key)){
+                if(piiFields?.includes(key)){
                     piiData[key] = (data as any)[key] // collect PII into an object,
                 } else {
                     nonPiiData[key] = (data as any)[key] // collect non PII into an object,
