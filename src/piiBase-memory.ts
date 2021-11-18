@@ -20,7 +20,7 @@ export default function PiiBase(): PiiBaseType {
         return Promise.resolve();
     };
 
-    const addPiiEventData = async (key: string, data: Record<string,any>): Promise<Record<string,string>> => {
+    const addPiiEventData = async (key: string, data: Record<string,any>): Promise<Record<string,any>> => {
         piiData.set(key, data);
 
         return Promise.resolve(data);
