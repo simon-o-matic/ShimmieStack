@@ -18,15 +18,16 @@ export default function Eventbase(): EventBaseType {
         return Promise.resolve();
     };
 
-    const addEvent = async (event: Event): Promise<StoredEventResponse> => {
+    const addEvent = async (event: Event): Promise<StoredEventResponse[]> => {
         // TODO: deal with meta?
+        event.sequenceNum = events.length
         events.push(event);
 
-        return Promise.resolve({
-            sequenceNumber: events.length - 1,
+        return Promise.resolve([{
+            sequenceNum: event.sequenceNum,
             logdate: Date.now(),
             type: event.type,
-        });
+        }]);
     };
 
     // Get all events in the correct squence for replay
