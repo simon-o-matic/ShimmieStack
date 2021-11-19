@@ -65,7 +65,7 @@ const startApiListener = (app: Application, port: number) => {
     )
 }
 
-const startup = async (
+const initializeShimmieStack = async (
     config: ShimmieConfig,
     eventBase: EventBaseType,
     eventStore: EventStoreType,
@@ -131,8 +131,9 @@ export default function ShimmieStack(
     let modelStore: { [key: string]: any } = {}
 
     const funcs: StackType = {
-        startup: () => {
-            startup(config, eventBase, eventStore)
+        startup: async () => {
+            logInfo("ShimmieStack: Starting Up")
+            await initializeShimmieStack(config, eventBase, eventStore, piiBase)
         },
 
         restart: () => {
@@ -189,5 +190,6 @@ export default function ShimmieStack(
 
 /** don't log info messages when we are running tests */
 export function logInfo(...args: any[]) {
-    if (process.env.JEST_WORKER_ID === undefined) console.log.apply(args)
+    console.log(...args)
+    // if (process.env.JEST_WORKER_ID === undefined) console.log.apply(args)
 }
