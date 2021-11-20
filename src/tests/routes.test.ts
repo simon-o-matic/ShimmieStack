@@ -112,7 +112,7 @@ describe('when mounting a processor', () => {
                 },
             )
 
-            router.get('myfakeauthorizedpath',
+            router.get('myfakeauthorizedpath2',
                 authorizeApi(customAuthorization),
                 (req, res) => {
                     // some custom auth happens in the handler body
