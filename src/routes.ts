@@ -57,7 +57,7 @@ export const mountApi: ApiMounter = (
             // check the handler and middleware for a function called "authorizeApi"
             // express doesnt expose the Layer type :(
             const authorizer: any[] = api.route.stack.filter((layer: any) => {
-                return layer.name === "authorizeApi"
+                return layer.name === "__authorizer"
             })
 
             if(authorizer.length === 0){

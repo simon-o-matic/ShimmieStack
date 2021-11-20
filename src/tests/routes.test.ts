@@ -1,6 +1,7 @@
 import express, { Application, Router } from 'express'
 import { NextFunction } from 'express-serve-static-core'
 import { mountApi, setApiVersion } from '../routes'
+import { noAuthorization, authorizeApi, customAuthorization } from '../authorizers'
 
 describe('when mounting a processor', () => {
     describe('When auth is not enforced', () => {
@@ -84,7 +85,9 @@ describe('when mounting a processor', () => {
             appMock.use = jest.fn()
             const router = express.Router()
 
-            router.get('myfakepath', () => {return null})
+            router.get('myfakepath', () => {
+                return null
+            })
 
             try {
                 mountApi(appMock, 'blah', '/blah', router, true)
@@ -101,11 +104,20 @@ describe('when mounting a processor', () => {
             appMock.use = jest.fn()
             const router = express.Router()
 
-            const authorizeApi = (req: any, res: any, next: NextFunction) => {next()}
 
-            router.get('myfakepath',
-                authorizeApi,
-                (req, res) => {return null}
+            router.get('myfakeauthorizedpath',
+                authorizeApi(noAuthorization),
+                (req, res) => {
+                    return null
+                },
+            )
+
+            router.get('myfakeauthorizedpath',
+                authorizeApi(customAuthorization),
+                (req, res) => {
+                    // some custom auth happens in the handler body
+                    return null
+                },
             )
 
             mountApi(appMock, 'blah', '/blah', router, true)
