@@ -4,11 +4,12 @@ import express, { Router } from 'express'
 import superrequest, { SuperTest, Test } from 'supertest'
 
 import Eventbase from './eventbase-memory'
+import PiiBase from './piiBase-memory'
 import ShimmieStack, { StackType } from './index'
 
 /** Some extra convenience functions for ease testing */
 interface ShimmieTestStackType extends StackType {
-    mountTest: (router: Router) => void
+    mountTest: (router: Router, mountpoint?: string) => void
     testGet: (
         path: string,
         headers?: Record<string, string>
@@ -31,7 +32,8 @@ interface ShimmieTestStackType extends StackType {
 }
 
 export default function ShimmieTestStack(
-    defaultAuthHeaderValue?: string
+    defaultAuthHeaderValue?: string,
+    usePiiBase: boolean = false,
 ): ShimmieTestStackType {
     const authHeaderValue = defaultAuthHeaderValue
     const app = express()
@@ -66,18 +68,22 @@ export default function ShimmieTestStack(
     /** the test stack usese the in-memory event store */
     const memoryBase = Eventbase()
 
+    /** the test stack usese the in-memory pii store */
+    const piiBase = usePiiBase ? PiiBase() : undefined
+
     /** our inner actal shimmie stack that we control access to for tests */
     const testStack = ShimmieStack(
         {
             ServerPort: 9999 /* ignored because the express server is never started */,
             enforceAuthorization: false
         },
-        memoryBase
+        memoryBase,
+        piiBase
     )
 
     // Mount al the test processors at the root for ease of local testing.
-    const mountTest = (router: Router) => {
-        app.use('/', router)
+    const mountTest = (router: Router, mountpoint: string = '/') => {
+        app.use(mountpoint, router)
     }
 
     /** Get helper that uses supertest to hook into the express route to make the actual call */
@@ -100,7 +106,7 @@ export default function ShimmieTestStack(
         body: object,
         headers?: Record<string, string>
     ) => {
-        return await methods.post(path, headers).send(body)
+        return await methods.put(path, headers).send(body)
     }
 
     /** Delete helper that uses supertest to hook into the express route to make the actual call */
@@ -108,7 +114,7 @@ export default function ShimmieTestStack(
         path: string,
         headers?: Record<string, string>
     ) => {
-        return await methods.post(path, headers)
+        return await methods.delete(path, headers)
     }
 
     // Allow passthrough to the actal function, but also let testers count calls

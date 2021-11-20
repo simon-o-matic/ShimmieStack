@@ -55,4 +55,22 @@ describe('when mounting a processor', () => {
         mountApi(appMock, 'blah', '/foo', routerMock, false)
         expect(appMock.use).toBeCalledWith('/v2/foo', expect.anything())
     })
+
+    it('should be able to change the api version twice', async () => {
+        const appMock = jest.fn() as unknown as Application
+        appMock.use = jest.fn()
+        const routerMock = jest.fn() as unknown as Router
+
+        setApiVersion('/v2 ')
+        mountApi(appMock, 'blah', '/foo ', routerMock, false)
+        expect(appMock.use).toBeCalledWith('/v2/foo', expect.anything())
+
+        setApiVersion(' v4')
+        mountApi(appMock, 'blah', 'bar', routerMock, false)
+        expect(appMock.use).toBeCalledWith('/v4/bar', expect.anything())
+
+        setApiVersion('')
+        mountApi(appMock, 'blah', '  /baz ', routerMock, false)
+        expect(appMock.use).toBeCalledWith('/baz', expect.anything())
+    })
 })

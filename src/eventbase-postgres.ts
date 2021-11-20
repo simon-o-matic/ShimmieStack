@@ -1,58 +1,59 @@
 //
 // TODO: encapsulate the underlying database elsewhere
 //
-import pg from 'pg';
-const { Client } = pg;
-import { Event, EventBaseType } from './event';
+import pg from 'pg'
+const { Client } = pg
+import { Event, EventBaseType } from './event'
 
 export interface EventConfig {
-    connectionString: string;
+    connectionString: string
 }
 
 export default function Eventbase(config: EventConfig): EventBaseType {
     if (!config.connectionString) {
-        throw new Error('Missing DATABASE_URL environment variable.');
-    } else {
-        console.info('Eventbase connection string: ', config.connectionString);
+        throw new Error('Missing DATABASE_URL environment variable.')
     }
 
     const connection = new Client({
         connectionString: config.connectionString,
-    });
+    })
 
     // called during start up to first connect to the database
     // TODO: retry to solve docker start up timing issue
     const init = async () => {
-        await connection.connect();
-        createTables();
-    };
+        await connection.connect(function (err){
+            if(err)
+                console.log(err);
+        });
+        createTables()
+    }
 
     const shutdown = async () => {
-        await connection.end();
-    };
+        await connection.end()
+    }
 
     const addEvent = (event: Event) => {
         const query =
-            'INSERT into eventlist(StreamId, Data, Type, Meta) VALUES($1, $2, $3, $4) RETURNING SequenceNum, streamId, logdate, type';
+            'INSERT into eventlist(StreamId, Data, Type, Meta) VALUES($1, $2, $3, $4) RETURNING SequenceNum, streamId, logdate, type'
         const values: string[] = [
             event.streamId,
             JSON.stringify(event.data),
             event.type,
             JSON.stringify(event.meta),
-        ];
-        return runQuery(query, values);
-    };
+        ]
+        return runQuery(query, values)
+    }
 
     // Get all events in the correct squence for replay
     const getAllEventsInOrder = () => {
-        const query = 'SELECT * FROM eventlist ORDER BY SequenceNum';
-        return runQuery(query);
-    };
+        const query = 'SELECT * FROM eventlist ORDER BY SequenceNum'
+        return runQuery(query)
+    }
 
     const reset = async () => {
-        await dropTables();
-        await createTables();
-    };
+        await dropTables()
+        await createTables()
+    }
 
     const runQuery = async (
         query: string,
@@ -60,15 +61,15 @@ export default function Eventbase(config: EventConfig): EventBaseType {
     ) => {
         try {
             if (values) {
-                return (await connection.query(query, values)).rows;
+                return (await connection.query(query, values)).rows
             } else {
-                return (await connection.query(query)).rows;
+                return (await connection.query(query)).rows
             }
         } catch (err: any) {
-            console.error(`Query error <${query}> [${values}]: ${err.message}`);
-            throw err;
+            console.error(`Query error <${query}> [${values}]: ${err.message}`)
+            throw err
         }
-    };
+    }
 
     //
     //  Create the tables required for the event store.
@@ -84,19 +85,19 @@ export default function Eventbase(config: EventConfig): EventBaseType {
             Meta jsonb NOT NULL,
             LogDate timestamptz NOT NULL DEFAULT now(),
             PRIMARY KEY (SequenceNum)
-        );`;
+        );`
 
-        return runQuery(queryString);
-    };
+        return runQuery(queryString)
+    }
 
     const dropTables = () => {
-        const query = 'DROP TABLE IF EXISTS eventlist';
+        const query = 'DROP TABLE IF EXISTS eventlist'
         try {
-            return runQuery(query);
+            return runQuery(query)
         } catch (err: any) {
-            throw new Error(`Error dropping database tables: ${err.message}`);
+            throw new Error(`Error dropping database tables: ${err.message}`)
         }
-    };
+    }
 
     // filter out system tables
     // const showTables = () => {
@@ -112,5 +113,5 @@ export default function Eventbase(config: EventConfig): EventBaseType {
         reset,
         init,
         shutdown,
-    };
+    }
 }

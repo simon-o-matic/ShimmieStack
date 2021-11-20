@@ -17,10 +17,13 @@ const mountPointRegister = new Map<string, boolean>()
 let apiVersion = ''
 
 const addLeadingSlash = (str: string) => {
-    if (str?.length > 0) {
-        return str[0] !== '/' ? '/' + str : str
+    if (str) {
+        str = str.trim()
+        if (str.length > 0) {
+            return str[0] !== '/' ? '/' + str : str
+        }
     }
-    throw 'Bad mount point path: ' + str
+    return ''
 }
 
 export const setApiVersion = (version: string) => {
@@ -41,19 +44,12 @@ export const mountApi: ApiMounter = (
     mountPoint: string,
     route: Router,
     enforceAuthorization: boolean
-) => {
+): string => {
     if (!mountPoint || !route) {
         throw 'Missing mountPoint details. Please check: '
     }
 
     const finalMountPoint = apiVersion + addLeadingSlash(mountPoint)
-
-    // if (mountPointRegister.get(finalMountPoint)) {
-    //     if (finalMountPoint === '/admin')
-    //         throw '"/admin" mount point is reserved'
-
-    //     throw 'Mount point duplicate: ' + finalMountPoint
-    // }
 
     if(enforceAuthorization){
         // for each endpoint in the router
@@ -72,7 +68,7 @@ export const mountApi: ApiMounter = (
 
     mountPointRegister.set(finalMountPoint, true)
     app.use(finalMountPoint, route)
-    console.info(`>>>> Mounted ${finalMountPoint} with [${name}]`)
+    return finalMountPoint
 }
 
 const catchAll404s = (req: Request, res: Response, next: NextFunction) => {
