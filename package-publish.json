@@ -7,7 +7,7 @@
     "module": "index.js",
     "type": "module",
     "engines": {
-        "node": ">=14"
+        "node": ">=16"
     },
     "repository": {
         "type": "git",
