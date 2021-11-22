@@ -75,6 +75,7 @@ export default function ShimmieTestStack(
     const testStack = ShimmieStack(
         {
             ServerPort: 9999 /* ignored because the express server is never started */,
+            enforceAuthorization: false
         },
         memoryBase,
         piiBase

@@ -29,6 +29,7 @@ export interface ShimmieConfig {
     mode?: string
     ServerPort: number
     CORS?: CorsOptions
+    enforceAuthorization: boolean
 }
 
 // testing a new naming scheme. Replace IEvent if we like this one better. Easier
@@ -107,7 +108,7 @@ const initializeShimmieStack = async (
 export default function ShimmieStack(
     config: ShimmieConfig,
     eventBase: EventBaseType,
-    piiBase?: PiiBaseType 
+    piiBase?: PiiBaseType
 ): StackType {
     if (!eventBase) throw Error('Missing event base parameter to ShimmieStack')
 
@@ -125,7 +126,8 @@ export default function ShimmieStack(
         app,
         'Administration API',
         '/admin',
-        AdminProcessor(eventBase)
+        AdminProcessor(eventBase),
+        config.enforceAuthorization
     )
 
     let modelStore: { [key: string]: any } = {}
@@ -160,7 +162,7 @@ export default function ShimmieStack(
         },
 
         mountProcessor: (name: string, mountPoint: string, router: Router) => {
-            const url = routes.mountApi(app, name, mountPoint, router)
+            const url = routes.mountApi(app, name, mountPoint, router, config.enforceAuthorization)
             logInfo(`>>>> Mounted ${url} with [${name}]`)
             return funcs
         },
