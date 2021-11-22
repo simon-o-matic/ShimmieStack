@@ -4,7 +4,7 @@ import express, { Router } from 'express'
 import superrequest, { SuperTest, Test } from 'supertest'
 
 import Eventbase from './eventbase-memory'
-import PiiBase from './piiBase-memory'
+import PiiBase from './piibase-memory'
 import ShimmieStack, { StackType } from './index'
 
 /** Some extra convenience functions for ease testing */

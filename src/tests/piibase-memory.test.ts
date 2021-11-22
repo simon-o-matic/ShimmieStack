@@ -1,7 +1,7 @@
 import EventBase from '../eventbase-memory'
 import EventStore from '../eventstore'
 import { Meta } from '../event'
-import PiiBase from '../piiBase-memory'
+import PiiBase from '../piibase-memory'
 import { ShimmieEvent } from '..'
 import exp from 'constants'
 
