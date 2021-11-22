@@ -4,14 +4,15 @@
 
 // TODO: CHECK FOR ADMIN PERMISSIONS?
 
-import { Router, Request, Response } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import { AdminCommandsType } from './admin_commands'
+import { authorizeApi, AuthorizerFunc, noAuthorization } from '../authorizers'
 
-export default function (adminCommands: AdminCommandsType): Router {
+export default function (adminCommands: AdminCommandsType, authorizer: AuthorizerFunc): Router {
     const router = Router()
 
     // Only needs to be done ONCE in prod.
-    router.post('/init', async (req: Request, res: Response) => {
+    router.post('/init', authorizer,  async (req: Request, res: Response) => {
         if (process.env.NODE_ENV != 'development') {
             return res.status(403).send({ error: 'nick off punk' })
         } else {
@@ -20,7 +21,7 @@ export default function (adminCommands: AdminCommandsType): Router {
         }
     })
 
-    router.post('/reset', async (req, res) => {
+    router.post('/reset', authorizer, async (req, res) => {
         if (process.env.NODE_ENV != 'development') {
             return res.status(403).send({ error: 'nick off punk' })
         } else {
@@ -33,7 +34,7 @@ export default function (adminCommands: AdminCommandsType): Router {
         }
     })
 
-    router.get('/events', async (req, res) => {
+    router.get('/events', authorizer, async (req, res) => {
         try {
             const rows = await adminCommands.getEvents()
             return res.status(200).send({ events: rows })
@@ -42,30 +43,35 @@ export default function (adminCommands: AdminCommandsType): Router {
         }
     })
 
-    router.get('/time', (req, res) => {
+    router.get('/time', authorizer, (req, res) => {
         return res.status(200).send({ time: adminCommands.time() })
     })
 
-    router.get('/teapot', async (req, res) => {
+    router.get('/teapot', authorizer, async (req, res) => {
         return res.send(
             "I'm a little teapot short and stout. This is my handle and this is my spout."
         )
     })
 
-    router.get('/health', async (req, res) => {
-        try {
-            const events = await adminCommands.getEvents()
+    router.get(
+        '/health',
+        authorizeApi(noAuthorization),
+        async (req, res) => {
+            try {
+                const events = await adminCommands.getEvents()
 
-            res.send({
-                status: 'healthy',
-                version: process.env.APP_VERSION ?? 'DEV',
-            })
-        } catch (err: any) {
-            res.status(503).json({
-                message: 'Server is not yet ready to handle requests',
-            })
+                res.send({
+                    status: 'healthy',
+                    version: process.env.APP_VERSION ?? 'DEV',
+                })
+            } catch (err: any) {
+                res.status(503).json({
+                    message: 'Server is not yet ready to handle requests',
+                })
+            }
         }
-    })
+    )
 
     return router
 }
+

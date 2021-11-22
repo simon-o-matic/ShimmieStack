@@ -1,7 +1,7 @@
 //
 // Entry point of the application. Gets everything started.
 //
-import express, { Application, Router, Request, Response } from 'express'
+import express, { Application, Router, Request, Response, NextFunction } from 'express'
 import cors, { CorsOptions } from 'cors'
 import cookieParser from 'cookie-parser'
 import * as routes from './routes'
@@ -18,6 +18,7 @@ import {
 } from './event'
 
 import AdminProcessor from './admin_processor'
+import { AuthorizerFunc } from './authorizers'
 
 const app = express()
 app.use(express.json())
@@ -108,6 +109,7 @@ const initializeShimmieStack = async (
 export default function ShimmieStack(
     config: ShimmieConfig,
     eventBase: EventBaseType,
+    adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
     piiBase?: PiiBaseType
 ): StackType {
     if (!eventBase) throw Error('Missing event base parameter to ShimmieStack')
@@ -122,11 +124,12 @@ export default function ShimmieStack(
 
     // Install the admin API route
     // TODO: work out how to secure this. Need a client role.
+    // todo move this into the chain to make the use cleaner
     routes.mountApi(
         app,
         'Administration API',
         '/admin',
-        AdminProcessor(eventBase),
+        AdminProcessor(eventBase, adminAuthorizer),
         config.enforceAuthorization
     )
 

@@ -6,6 +6,7 @@ import superrequest, { SuperTest, Test } from 'supertest'
 import Eventbase from './eventbase-memory'
 import PiiBase from './piibase-memory'
 import ShimmieStack, { StackType } from './index'
+import { authorizeApi, noAuthorization } from './authorizers'
 
 /** Some extra convenience functions for ease testing */
 interface ShimmieTestStackType extends StackType {
@@ -78,6 +79,7 @@ export default function ShimmieTestStack(
             enforceAuthorization: false
         },
         memoryBase,
+        authorizeApi(noAuthorization), // authorize admin apis with no auth for the test
         piiBase
     )
 

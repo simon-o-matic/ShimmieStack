@@ -4,10 +4,11 @@
 import ShimmieTestStack from '../shimmieteststack'
 import AdminProcessor from '../admin_processor'
 import MemoryEventBase from '../eventbase-memory'
+import { authorizeApi, noAuthorization } from '../authorizers'
 
 const testStack = ShimmieTestStack()
 
-testStack.mountTest(AdminProcessor(MemoryEventBase()))
+testStack.mountTest(AdminProcessor(MemoryEventBase(), authorizeApi(noAuthorization)))
 
 describe('when calling the internal admin processors on an in-memory event base', () => {
     // Will this always be true???? Its kinda useless.
