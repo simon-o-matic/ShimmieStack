@@ -1,9 +1,17 @@
 import { PiiBaseType } from './event';
 import pg from 'pg'
-const { Client } = pg
+const { Pool } = pg
+import { EventbaseError } from './eventbase-postgres'
 
 export interface PiiBaseConfig {
     connectionString: string
+}
+
+export class PiiBaseError extends Error {
+    constructor(message: string) {
+        super(message); // (1)
+        this.name = "EventbaseError"; // (2)
+    }
 }
 
 export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
@@ -11,17 +19,14 @@ export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
         throw new Error('Missing DATABASE_URL environment variable.')
     }
 
-    const connection = new Client({
+    const pool = new Pool({
         connectionString: config.connectionString,
+        connectionTimeoutMillis: 5000 // wait 5 seconds before timeout on connect
     })
 
     // called during start up to first connect to the database
     // TODO: retry to solve docker start up timing issue
     const init = async () => {
-        await connection.connect(function (err){
-            if(err)
-                console.log(err);
-        });
         await createTable()
     }
 
@@ -31,7 +36,7 @@ export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
     }
 
     const shutdown = async () => {
-        await connection.end()
+        return
     }
 
     const addPiiEventData = async (key: string, data: Record<string,any>): Promise<Record<string,any>> => {
@@ -59,7 +64,7 @@ export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
         const eventRows = await runQuery(query)
         const piiLookup: Record<string,any> = {};
 
-        eventRows.forEach((eventRow) => {
+        eventRows.forEach((eventRow: any) => {
             piiLookup[eventRow.Key] = eventRow.Data
         })
 
@@ -79,7 +84,20 @@ export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
             PRIMARY KEY (Key)
         );`
 
-        return runQuery(queryString)
+        let retries = 0
+        let res;
+        while(retries < 5) {
+            try {
+                res = await runQuery(queryString)
+                break
+            } catch (err: any) {
+                retries++
+                // sleep for 5 seconds
+                console.log('Failed to setup piibase tables, trying again in 5 seconds', err)
+                await new Promise(resolve => setTimeout(resolve, 5000))
+            }
+        }
+        return res
     }
 
     const dropTables = () => {
@@ -93,14 +111,11 @@ export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
 
     const runQuery = async (
         query: string,
-        values: string[] | undefined = undefined
+        values: string[] | undefined = undefined,
     ) => {
         try {
-            if (values) {
-                return (await connection.query(query, values)).rows
-            } else {
-                return (await connection.query(query)).rows
-            }
+            const res = values ? await pool.query(query, values) : await pool.query(query)
+            return res.rows
         } catch (err: any) {
             console.error(`Query error <${query}> [${values}]: ${err.message}`)
             throw err
