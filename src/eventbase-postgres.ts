@@ -2,11 +2,18 @@
 // TODO: encapsulate the underlying database elsewhere
 //
 import pg from 'pg'
-const { Client } = pg
+const { Pool } = pg
 import { Event, EventBaseType } from './event'
 
 export interface EventConfig {
     connectionString: string
+}
+
+export class EventbaseError extends Error {
+    constructor(message: string) {
+        super(message); // (1)
+        this.name = "EventbaseError"; // (2)
+    }
 }
 
 export default function Eventbase(config: EventConfig): EventBaseType {
@@ -14,22 +21,19 @@ export default function Eventbase(config: EventConfig): EventBaseType {
         throw new Error('Missing DATABASE_URL environment variable.')
     }
 
-    const connection = new Client({
+    const pool = new Pool({
         connectionString: config.connectionString,
+        connectionTimeoutMillis: 5000 // wait 5 seconds before timeout on connect
     })
 
     // called during start up to first connect to the database
     // TODO: retry to solve docker start up timing issue
     const init = async () => {
-        await connection.connect(function (err){
-            if(err)
-                console.log(err);
-        });
-        createTables()
+        await createTables()
     }
 
     const shutdown = async () => {
-        await connection.end()
+        return
     }
 
     const addEvent = (event: Event) => {
@@ -57,14 +61,11 @@ export default function Eventbase(config: EventConfig): EventBaseType {
 
     const runQuery = async (
         query: string,
-        values: string[] | undefined = undefined
+        values: string[] | undefined = undefined,
     ) => {
         try {
-            if (values) {
-                return (await connection.query(query, values)).rows
-            } else {
-                return (await connection.query(query)).rows
-            }
+            const res = values ? await pool.query(query, values) : await pool.query(query)
+            return res.rows
         } catch (err: any) {
             console.error(`Query error <${query}> [${values}]: ${err.message}`)
             throw err
@@ -86,8 +87,20 @@ export default function Eventbase(config: EventConfig): EventBaseType {
             LogDate timestamptz NOT NULL DEFAULT now(),
             PRIMARY KEY (SequenceNum)
         );`
-
-        return runQuery(queryString)
+        let retries = 0
+        let res;
+        while(retries < 5) {
+            try {
+                res = await runQuery(queryString)
+                break
+            } catch (err: any) {
+                retries++
+                // sleep for 5 seconds
+                console.log('Failed to setup eventbase tables, trying again in 5 seconds', err)
+                await new Promise(resolve => setTimeout(resolve, 5000))
+            }
+        }
+        return res
     }
 
     const dropTables = () => {
