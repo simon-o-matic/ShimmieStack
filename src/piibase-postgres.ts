@@ -65,7 +65,7 @@ export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
         const piiLookup: Record<string,any> = {};
 
         eventRows.forEach((eventRow: any) => {
-            piiLookup[eventRow.Key] = eventRow.Data
+            piiLookup[eventRow.key] = eventRow.data
         })
 
         return piiLookup
