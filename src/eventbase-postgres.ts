@@ -11,8 +11,8 @@ export interface EventConfig {
 
 export class EventbaseError extends Error {
     constructor(message: string) {
-        super(message); // (1)
-        this.name = "EventbaseError"; // (2)
+        super(message) // (1)
+        this.name = 'EventbaseError' // (2)
     }
 }
 
@@ -23,7 +23,7 @@ export default function Eventbase(config: EventConfig): EventBaseType {
 
     const pool = new Pool({
         connectionString: config.connectionString,
-        connectionTimeoutMillis: 5000 // wait 5 seconds before timeout on connect
+        connectionTimeoutMillis: 5000, // wait 5 seconds before timeout on connect
     })
 
     // called during start up to first connect to the database
@@ -36,7 +36,7 @@ export default function Eventbase(config: EventConfig): EventBaseType {
         return
     }
 
-    const addEvent = (event: Event) => {
+    const addEvent = async (event: Event) => {
         const query =
             'INSERT into eventlist(StreamId, Data, Type, Meta) VALUES($1, $2, $3, $4) RETURNING SequenceNum, streamId, logdate, type'
         const values: string[] = [
@@ -45,13 +45,13 @@ export default function Eventbase(config: EventConfig): EventBaseType {
             event.type,
             JSON.stringify(event.meta),
         ]
-        return runQuery(query, values)
+        return await runQuery(query, values)
     }
 
     // Get all events in the correct squence for replay
-    const getAllEventsInOrder = () => {
+    const getAllEventsInOrder = async () => {
         const query = 'SELECT * FROM eventlist ORDER BY SequenceNum'
-        return runQuery(query)
+        return await runQuery(query)
     }
 
     const reset = async () => {
@@ -61,10 +61,12 @@ export default function Eventbase(config: EventConfig): EventBaseType {
 
     const runQuery = async (
         query: string,
-        values: string[] | undefined = undefined,
+        values: string[] | undefined = undefined
     ) => {
         try {
-            const res = values ? await pool.query(query, values) : await pool.query(query)
+            const res = values
+                ? await pool.query(query, values)
+                : await pool.query(query)
             return res.rows
         } catch (err: any) {
             console.error(`Query error <${query}> [${values}]: ${err.message}`)
@@ -88,25 +90,28 @@ export default function Eventbase(config: EventConfig): EventBaseType {
             PRIMARY KEY (SequenceNum)
         );`
         let retries = 0
-        let res;
-        while(retries < 5) {
+        let res
+        while (retries < 5) {
             try {
                 res = await runQuery(queryString)
                 break
             } catch (err: any) {
                 retries++
                 // sleep for 5 seconds
-                console.log('Failed to setup eventbase tables, trying again in 5 seconds', err)
-                await new Promise(resolve => setTimeout(resolve, 5000))
+                console.log(
+                    'Failed to setup eventbase tables, trying again in 5 seconds',
+                    err
+                )
+                await new Promise((resolve) => setTimeout(resolve, 5000))
             }
         }
         return res
     }
 
-    const dropTables = () => {
+    const dropTables = async () => {
         const query = 'DROP TABLE IF EXISTS eventlist'
         try {
-            return runQuery(query)
+            return await runQuery(query)
         } catch (err: any) {
             throw new Error(`Error dropping database tables: ${err.message}`)
         }
