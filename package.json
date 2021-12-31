@@ -1,6 +1,6 @@
 {
     "name": "shimmiestack",
-    "version": "1.3.27",
+    "version": "1.3.28",
     "description": "A simple event sourced CQRS in-memory server framework.",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -10,7 +10,7 @@
         "build": "tsc",
         "build:check": "tsc --noEmit",
         "test": "npx jest",
-        "publish": "cp README.md  dist && cp package-publish.json dist/package.json && npm run build && npm publish dist "
+        "publish": "cp README.md  dist && cp package-publish.json dist/package.json && npm run build && cd dist && npm publish"
     },
     "engines": {
         "node": ">=16"
