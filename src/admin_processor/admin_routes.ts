@@ -60,13 +60,17 @@ export default function (adminCommands: AdminCommandsType, authorizer: Authorize
             try {
                 const events = await adminCommands.getEvents()
 
-                res.send({
-                    status: 'healthy',
+                res.status(200).json({
+                    status: {
+                        app: 'healthy',
+                        db: 'connected',
+                    },
+                    time: new Date().toISOString(),
                     version: process.env.APP_VERSION ?? 'DEV',
                 })
             } catch (err: any) {
                 res.status(503).json({
-                    message: 'Server is not yet ready to handle requests',
+                    error: 'Server is not yet ready to handle requests',
                 })
             }
         }

@@ -184,6 +184,7 @@ export default function ShimmieStack(
             return funcs
         },
 
+
         subscribe: (eventName: EventName, handler: EventHandler) => {
             logInfo('ShimmieStack: Registering event handler: ', eventName)
             eventStore.subscribe(eventName, handler)
