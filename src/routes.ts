@@ -87,12 +87,4 @@ export const initRoutes = (app: Application) => {
 export const finaliseRoutes = (app: Application): void => {
     // call-all 404s
     app.use('*', catchAll404s)
-
-    // A catch-all call by express-async-errors
-    // TODO: implement
-    app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-        console.error('500', err.message)
-        console.dir(err)
-        res.status(500).json({ error: err.message })
-    })
 }

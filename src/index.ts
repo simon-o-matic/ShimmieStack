@@ -1,7 +1,7 @@
 //
 // Entry point of the application. Gets everything started.
 //
-import express, { Application, Router, Request, Response, NextFunction } from 'express'
+import express, { Application, Router, Request, Response, NextFunction, ErrorRequestHandler } from 'express'
 import cors, { CorsOptions } from 'cors'
 import cookieParser from 'cookie-parser'
 import * as routes from './routes'
@@ -52,6 +52,7 @@ export type StackType = {
     shutdown: () => void
     registerModel<T>(name: string, model: T): void
     getModel<T>(name: string): T
+    setErrorHandler(fn: ErrorRequestHandler): void
     mountProcessor: (
         name: string,
         mountPoint: string,
@@ -69,6 +70,7 @@ const startApiListener = (app: Application, port: number) => {
 
 const initializeShimmieStack = async (
     config: ShimmieConfig,
+    errorHandler: ErrorRequestHandler,
     eventBase: EventBaseType,
     eventStore: EventStoreType,
     piiBase?: PiiBaseType
@@ -106,6 +108,12 @@ const initializeShimmieStack = async (
     }
 }
 
+export const catchAllErrorHandler: ErrorRequestHandler = (err: Error, req: Request, res: Response) => {
+    console.error('500', err.message)
+    console.dir(err)
+    return res.status(500).json({ error: err.message })
+}
+
 export default function ShimmieStack(
     config: ShimmieConfig,
     eventBase: EventBaseType,
@@ -116,6 +124,8 @@ export default function ShimmieStack(
 
     /** initialise the event store service by giving it an event database (db, memory, file ) */
     const eventStore = EventStore(eventBase, piiBase)
+
+    let errorHandler: ErrorRequestHandler = catchAllErrorHandler
 
     app.use(cors(config.CORS || {}))
 
@@ -138,7 +148,7 @@ export default function ShimmieStack(
     const funcs: StackType = {
         startup: async () => {
             logInfo("ShimmieStack: Starting Up")
-            await initializeShimmieStack(config, eventBase, eventStore, piiBase)
+            await initializeShimmieStack(config, errorHandler, eventBase, eventStore, piiBase)
         },
 
         restart: () => {
@@ -162,6 +172,10 @@ export default function ShimmieStack(
             const model = modelStore[name]
             if (!model) throw new Error('No registered model found: ' + name)
             return modelStore[name]
+        },
+        setErrorHandler: (handler: ErrorRequestHandler): void => {
+            logInfo('Overriding default error handler')
+            errorHandler = handler
         },
 
         mountProcessor: (name: string, mountPoint: string, router: Router) => {

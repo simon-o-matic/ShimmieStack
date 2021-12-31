@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals'
 import cookieParser from 'cookie-parser'
 import express, { Router } from 'express'
-import superrequest, { SuperTest, Test } from 'supertest'
+import superrequest from 'supertest'
 
 import Eventbase from './eventbase-memory'
 import PiiBase from './piibase-memory'
