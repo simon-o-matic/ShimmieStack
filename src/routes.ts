@@ -2,7 +2,8 @@
 // Set up all the routes from all over the place.
 //
 
-import { Application, NextFunction, Request, Response, Router } from 'express'
+import { Application, ErrorRequestHandler, NextFunction, Request, Response, Router } from 'express'
+import { logInfo } from '.'
 
 const timeLogger = (req: Request, res: Response, next: NextFunction) => {
     console.info(
@@ -84,7 +85,10 @@ export const initRoutes = (app: Application) => {
 }
 
 // Any routes that get done after all the user routes have been missed
-export const finaliseRoutes = (app: Application): void => {
+export const finaliseRoutes = (app: Application, errorHandler: ErrorRequestHandler): void => {
     // call-all 404s
     app.use('*', catchAll404s)
+
+    // set the default error handler
+    app.use(errorHandler)
 }

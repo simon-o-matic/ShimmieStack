@@ -1,7 +1,8 @@
 //
 // Entry point of the application. Gets everything started.
 //
-import express, { Application, Router, Request, Response, NextFunction, ErrorRequestHandler } from 'express'
+import express, { Application, Router, Request, Response, ErrorRequestHandler, NextFunction } from 'express'
+import 'express-async-errors'
 import cors, { CorsOptions } from 'cors'
 import cookieParser from 'cookie-parser'
 import * as routes from './routes'
@@ -79,8 +80,8 @@ const initializeShimmieStack = async (
         logInfo('ShimmieStack Start up sequence initiated.')
         logInfo('ShimmieStack Environment:', process.env.NODE_ENV)
         logInfo('ShimmieStack Config:', config)
-
-        routes.finaliseRoutes(app)
+        logInfo('Finalizing routes, setting up 404 and error handlers.')
+        routes.finaliseRoutes(app, errorHandler)
         logInfo('ShimmieStack: All processors mounted')
 
         // Get the database started
@@ -108,10 +109,11 @@ const initializeShimmieStack = async (
     }
 }
 
-export const catchAllErrorHandler: ErrorRequestHandler = (err: Error, req: Request, res: Response) => {
-    console.error('500', err.message)
+export const catchAllErrorHandler: ErrorRequestHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
+    let status = err.status ?? err.statusCode ?? 500
+    console.error('Caught an unhandled error: ', err.message)
     console.dir(err)
-    return res.status(500).json({ error: err.message })
+    return res.status(status).json({ error: "Something went wrong" })
 }
 
 export default function ShimmieStack(
