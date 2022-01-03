@@ -6,7 +6,7 @@ import 'express-async-errors'
 import cors, { CorsOptions } from 'cors'
 import cookieParser from 'cookie-parser'
 import * as routes from './routes'
-import EventStore, { EventStoreType } from './eventstore'
+import EventStore, { EventStoreType, RecordEventType } from './eventstore'
 import {
     StreamId,
     EventData,
@@ -42,22 +42,23 @@ export type StackType = {
     setApiVersion: (version: string) => StackType
     getRouter: () => Router
     recordEvent: (
-        streamdId: StreamId,
+        streamId: StreamId,
         eventName: EventName,
         eventData: EventData,
         meta: Meta,
-        piiFields?: PiiFields
+        piiFields?: PiiFields,
     ) => void
+    recordEvents: (events: RecordEventType[]) => void
     startup: () => void
     restart: () => void
     shutdown: () => void
     registerModel<T>(name: string, model: T): void
     getModel<T>(name: string): T
-    setErrorHandler(fn: ErrorRequestHandler): void
+    setErrorHandler(fn: ErrorRequestHandler): StackType
     mountProcessor: (
         name: string,
         mountPoint: string,
-        router: Router
+        router: Router,
     ) => StackType
     subscribe: (eventName: EventName, handler: EventHandler) => void
     use: (a: any) => any
@@ -65,7 +66,7 @@ export type StackType = {
 
 const startApiListener = (app: Application, port: number) => {
     app.listen(port, () =>
-        logInfo(`ShimmieStack API Server listening on ${port}!`)
+        logInfo(`ShimmieStack API Server listening on ${port}!`),
     )
 }
 
@@ -74,7 +75,7 @@ const initializeShimmieStack = async (
     errorHandler: ErrorRequestHandler,
     eventBase: EventBaseType,
     eventStore: EventStoreType,
-    piiBase?: PiiBaseType
+    piiBase?: PiiBaseType,
 ) => {
     try {
         logInfo('ShimmieStack Start up sequence initiated.')
@@ -95,7 +96,7 @@ const initializeShimmieStack = async (
 
         // Process the entire event history on start up and load into memory
         logInfo(
-            `ShimmieStack: Starting to replay the entire event stream to rebuild memory models`
+            `ShimmieStack: Starting to replay the entire event stream to rebuild memory models`,
         )
         const numEvents = await eventStore.replayAllEvents()
         logInfo(`ShimmieStack: replayed ${numEvents} events`)
@@ -113,14 +114,14 @@ export const catchAllErrorHandler: ErrorRequestHandler = (err: any, req: Request
     let status = err.status ?? err.statusCode ?? 500
     console.error('Caught an unhandled error: ', err.message)
     console.dir(err)
-    return res.status(status).json({ error: "Something went wrong" })
+    return res.status(status).json({ error: 'Something went wrong' })
 }
 
 export default function ShimmieStack(
     config: ShimmieConfig,
     eventBase: EventBaseType,
     adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
-    piiBase?: PiiBaseType
+    piiBase?: PiiBaseType,
 ): StackType {
     if (!eventBase) throw Error('Missing event base parameter to ShimmieStack')
 
@@ -142,14 +143,14 @@ export default function ShimmieStack(
         'Administration API',
         '/admin',
         AdminProcessor(eventBase, adminAuthorizer),
-        config.enforceAuthorization
+        config.enforceAuthorization,
     )
 
     let modelStore: { [key: string]: any } = {}
 
     const funcs: StackType = {
         startup: async () => {
-            logInfo("ShimmieStack: Starting Up")
+            logInfo('ShimmieStack: Starting Up')
             await initializeShimmieStack(config, errorHandler, eventBase, eventStore, piiBase)
         },
 
@@ -175,9 +176,10 @@ export default function ShimmieStack(
             if (!model) throw new Error('No registered model found: ' + name)
             return modelStore[name]
         },
-        setErrorHandler: (handler: ErrorRequestHandler): void => {
+        setErrorHandler: (handler: ErrorRequestHandler) => {
             logInfo('Overriding default error handler')
             errorHandler = handler
+            return funcs
         },
 
         mountProcessor: (name: string, mountPoint: string, router: Router) => {
@@ -191,13 +193,22 @@ export default function ShimmieStack(
             logInfo('ShimmieStack: Registering event handler: ', eventName)
             eventStore.subscribe(eventName, handler)
         },
-
+        recordEvents: (events: RecordEventType[]) => events.forEach(async (event) => {
+            try {
+                // todo discuss with shimmie how we should handle these multi event situations/failures and if this should be in parallel or sequential
+                await funcs.recordEvent(event.streamId, event.eventName, event.eventData, event.meta, event.piiFields)
+            } catch (err) {
+                logInfo('Unable to record event: ', event)
+                console.error(err)
+                console.dir(err)
+            }
+        }),
         recordEvent: (
             streamdId: StreamId,
             eventName: EventName,
             eventData: EventData,
             meta: Meta,
-            piiFields?: PiiFields
+            piiFields?: PiiFields,
         ) => eventStore.recordEvent(streamdId, eventName, eventData, meta, piiFields),
 
         // Make a new Express router
