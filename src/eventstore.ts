@@ -3,7 +3,7 @@
 //
 
 import { EventEmitter } from 'events';
-import { Event, EventBaseType, Meta, PiiBaseType, PiiFields } from './event';
+import { Event, EventBaseType, EventData, EventName, Meta, PiiBaseType, PiiFields, StreamId } from './event'
 
 class EventStoreEmitter extends EventEmitter {}
 
@@ -18,6 +18,14 @@ export interface EventStoreType {
     ) => Promise<any>;
     subscribe: (type: string, callback: (eventModel: any) => void) => void;
     getAllEvents: (withPii?: boolean) => Promise<any>;
+}
+
+export interface RecordEventType {
+    streamId: StreamId,
+    eventName: EventName,
+    eventData: EventData,
+    meta: Meta,
+    piiFields?: PiiFields
 }
 
 export default function EventStore(eventbase: EventBaseType, piiBase?: PiiBaseType): EventStoreType {

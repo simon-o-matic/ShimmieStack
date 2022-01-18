@@ -15,8 +15,14 @@ describe('when calling the internal admin processors on an in-memory event base'
     it('/time should return the time', async () => {
         const response = await testStack.testGet('/time')
         expect(response.status).toBe(200)
-        expect(response.body.time).toEqual(Date())
-        console.log('test time: ', response.body.time)
+        const timeNow: Date = new Date()
+
+        const returnedDate = new Date(response.body.time)
+        expect(returnedDate.getDate()).toEqual(timeNow.getDate())
+        expect(returnedDate.getHours()).toEqual(timeNow.getHours())
+        expect(returnedDate.getMinutes()).toEqual(timeNow.getMinutes())
+        expect((returnedDate.getSeconds() - timeNow.getSeconds()) <= 1 )
+        console.log('test time: ', returnedDate)
     })
 
     // Test reset and getAll
