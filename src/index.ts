@@ -38,6 +38,12 @@ export interface ShimmieConfig {
 // for users to not be confused with their own event types (eg an event sourced system!)
 export type ShimmieEvent = Event
 
+export enum ExecutionOrder {
+    SEQUENTIAL = 'sequential',
+    CONCURRENT = 'concurrent'
+}
+
+
 export type StackType = {
     setApiVersion: (version: string) => StackType
     getRouter: () => Router
@@ -48,7 +54,7 @@ export type StackType = {
         meta: Meta,
         piiFields?: PiiFields,
     ) => void
-    recordEvents: (events: RecordEventType[]) => void
+    recordEvents: (events: RecordEventType[], executionOrder?: ExecutionOrder) => void
     startup: () => void
     restart: () => void
     shutdown: () => void
@@ -193,16 +199,39 @@ export default function ShimmieStack(
             logInfo('ShimmieStack: Registering event handler: ', eventName)
             eventStore.subscribe(eventName, handler)
         },
-        recordEvents: (events: RecordEventType[]) => events.forEach(async (event) => {
-            try {
-                // todo discuss with shimmie how we should handle these multi event situations/failures and if this should be in parallel or sequential
-                await funcs.recordEvent(event.streamId, event.eventName, event.eventData, event.meta, event.piiFields)
-            } catch (err) {
-                logInfo('Unable to record event: ', event)
-                console.error(err)
-                console.dir(err)
+        recordEvents: async (events: RecordEventType[], executionOrder?: ExecutionOrder) => {
+            const executeConcurrently = executionOrder === ExecutionOrder.CONCURRENT
+
+            if (executeConcurrently) {
+                /**
+                 * Foreach triggers each write, and handles them as they resolve (Concurrent execution)
+                 */
+                events.forEach(async (event) => {
+                    try {
+                        await funcs.recordEvent(event.streamId, event.eventName, event.eventData, event.meta, event.piiFields)
+                    } catch (err) {
+                        logInfo('Unable to record event: ', event)
+                        console.error(err)
+                        console.dir(err)
+                    }
+                })
+            } else {
+                /**
+                 * Can't use a forEach here as it doesn't respect the order of the async record event calls.
+                 * This for each of events loop will wait for the record event call to resolve before triggering the next one
+                 */
+                for (const event of events) {
+                    try {
+                        await funcs.recordEvent(event.streamId, event.eventName, event.eventData, event.meta, event.piiFields)
+                    } catch (err) {
+                        logInfo('Unable to record event: ', event)
+                        console.error(err)
+                        console.dir(err)
+                    }
+                }
             }
-        }),
+
+        },
         recordEvent: (
             streamdId: StreamId,
             eventName: EventName,
