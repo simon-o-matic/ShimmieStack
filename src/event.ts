@@ -9,18 +9,27 @@ export type Meta = {
 };
 
 export type PiiFields = string[];
+export type TypedEventHandler<T> = (event: TypedEvent<T>) => void;
 export type EventHandler = (event: Event) => void;
 export type EventName = string;
 export type StreamId = string;
 export type EventData = object;
 
-export type Event = {
+
+type BaseEvent = {
     streamId: StreamId;
-    data: EventData;
     type: string;
     meta: Meta;
     sequencenum?: number;
+}
+
+export type Event = BaseEvent & {
+    data: EventData;
 };
+
+export type TypedEvent<T> = BaseEvent & {
+    data: T
+}
 
 /** What comes back after adding a new event to the event log */
 export interface StoredEventResponse {

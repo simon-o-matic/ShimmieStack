@@ -15,7 +15,7 @@ import {
     EventHandler,
     Event,
     EventBaseType,
-    PiiBaseType, PiiFields,
+    PiiBaseType, PiiFields, TypedEvent, TypedEventHandler,
 } from './event'
 
 import AdminProcessor from './admin_processor'
@@ -37,6 +37,7 @@ export interface ShimmieConfig {
 // testing a new naming scheme. Replace IEvent if we like this one better. Easier
 // for users to not be confused with their own event types (eg an event sourced system!)
 export type ShimmieEvent = Event
+export type ShimmieTypedEvent<T> = TypedEvent<T>
 
 export enum ExecutionOrder {
     SEQUENTIAL = 'sequential',
@@ -66,7 +67,7 @@ export type StackType = {
         mountPoint: string,
         router: Router,
     ) => StackType
-    subscribe: (eventName: EventName, handler: EventHandler) => void
+    subscribe: (eventName: EventName, handler: EventHandler | TypedEventHandler<any>) => void
     use: (a: any) => any
 }
 
@@ -195,7 +196,7 @@ export default function ShimmieStack(
         },
 
 
-        subscribe: (eventName: EventName, handler: EventHandler) => {
+        subscribe: (eventName: EventName, handler: EventHandler | TypedEventHandler<any>) => {
             logInfo('ShimmieStack: Registering event handler: ', eventName)
             eventStore.subscribe(eventName, handler)
         },
