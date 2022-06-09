@@ -187,11 +187,17 @@ export default function EventStore(
                 }
             }
 
+            // if there is no date in the meta then we can use the logdate col from the db
+            const meta = { ...e.meta, replay: true }
+            if (!meta.date) {
+                meta.date = e.logdate ? new Date(e.logdate).getTime() : 0
+            }
+
             // WARNING: These are field names from the database and hence are all LOWERCASE
             const event: Event = {
                 data,
                 streamId: e.streamId || (e as any).streamid,
-                meta: { ...e.meta, replay: true }, // note, some events may not have dates!
+                meta,
                 type: e.type,
             }
             eventStoreEmitter.emit(event.type, {

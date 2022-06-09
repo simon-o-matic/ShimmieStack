@@ -24,6 +24,7 @@ type BaseEvent = {
     type: string
     meta: Meta
     sequencenum?: number
+    logdate?: string
 }
 
 export type Event = BaseEvent & {

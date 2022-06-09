@@ -316,7 +316,7 @@ export default function ShimmieStack(
         // Make a new Express router
         getRouter: () => express.Router(),
 
-        // provide the client the Exprese use function so they can do whatever they want
+        // provide the client the Express use function so they can do whatever they want
         use: (a: any) => app.use(a),
 
         getHistory: (id: string): StreamHistory | undefined => {
@@ -357,7 +357,7 @@ function historyBuilder(e: Event) {
 
     historyArray.push({ type: e.type, date: e.meta.date, user: e.meta.user })
 
-    console.log('EVENT HISTOR', e.streamId, historyArray)
+    console.log('EVENT HISTORY', e.streamId, historyArray)
     eventHistory.set(e.streamId, historyArray)
 
     // streamId: StreamId;
