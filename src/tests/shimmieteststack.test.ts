@@ -14,7 +14,7 @@ const TestProcessor = (testStack: StackType) => {
         res.status(200).send({ me: 'shimmie' })
     })
 
-    router.post('/:sid/stout', (req, res) => {
+    router.post('/:sid/golden-girls', (req, res) => {
         testStack.recordEvent(req.params.sid, req.body.type, req.body.data, {
             user: { id: 'johnny-come-lately' }, // this can be any
             userAgent: 'agent-johnny:GECKO-9.0',
@@ -56,22 +56,74 @@ describe('when calling testPost with empty body', () => {
 
 describe('when calling posts that generate a history', () => {
     it('there should be history', async () => {
-        const response = await testStack.testPost('/999/stout', {
+        await testStack.testPost('/999/golden-girls', {
             type: 'mary',
             data: { a: 7, b: 6 },
         })
-        await testStack.testPost('/999/stout', {
+        await testStack.testPost('/999/golden-girls', {
             type: 'alice',
             data: { a: 77, b: 66 },
         })
-
-        await testStack.testPost('/34sdfsT3/stout', {
+        await testStack.testPost('/34sdfsT3/golden-girls', {
             type: 'shirley',
             data: { a: 1, b: 22222 },
         })
 
         expect(testStack.getHistory('999')?.history.length).toBe(2)
         expect(testStack.getHistory('34sdfsT3')?.history.length).toBe(1)
+    })
+})
+
+describe('when merging histories of multiple source ids', () => {
+    it('should combine all history of given ids', async () => {
+        await testStack.testPost('/111/golden-girls', {
+            type: 'abigail',
+            data: { a: 1 },
+        })
+        await testStack.testPost('/222/golden-girls', {
+            type: 'barb',
+            data: { a: 2 },
+        })
+
+        expect(testStack.getHistory(['111', '222'])?.history).toHaveLength(2)
+    })
+    it('should return history in the order the events occured', async () => {
+        await testStack.testPost('/333/golden-girls', {
+            type: 'cheryl',
+            data: { a: 3 },
+        })
+        await testStack.testPost('/555/golden-girls', {
+            type: 'dolores',
+            data: { a: 4 },
+        })
+        await testStack.testPost('/333/golden-girls', {
+            type: 'eugenie',
+            data: { a: 5 },
+        })
+        await testStack.testPost('/333/golden-girls', {
+            type: 'frances',
+            data: { a: 6 },
+        })
+        await testStack.testPost('/444/golden-girls', {
+            type: 'gertrude',
+            data: { a: 7 },
+        })
+
+        const history = testStack.getHistory(['333', '444', '555'])?.history
+        if (history) {
+            const types = history.map((histEl) => {
+                return histEl.type
+            })
+            expect(types).toEqual([
+                'cheryl',
+                'dolores',
+                'eugenie',
+                'frances',
+                'gertrude',
+            ])
+        } else {
+            fail("history wasn't build")
+        }
     })
 })
 

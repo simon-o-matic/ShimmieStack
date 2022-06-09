@@ -96,7 +96,7 @@ export type StackType = {
         handler: EventHandler | TypedEventHandler<any>
     ) => void
     use: (a: any) => any
-    getHistory: (id: string) => StreamHistory | undefined
+    getHistory: (ids: string | string[]) => StreamHistory | undefined
 }
 
 const startApiListener = (app: Application, port: number) => {
@@ -319,8 +319,19 @@ export default function ShimmieStack(
         // provide the client the Express use function so they can do whatever they want
         use: (a: any) => app.use(a),
 
-        getHistory: (id: string): StreamHistory | undefined => {
-            const history = eventHistory.get(id)
+        getHistory: (ids: string | string[]): StreamHistory | undefined => {
+            let history: EventHistory[] | undefined
+            if (typeof ids === 'string') {
+                history = eventHistory.get(ids)
+            } else {
+                history = ids
+                    .flatMap((id) => {
+                        return eventHistory.get(id)
+                    })
+                    .filter((el): el is EventHistory => !!el)
+                    .sort((a, b) => (a.date > b.date ? 1 : -1)) // oldest first
+            }
+
             if (!history) {
                 return undefined
             }
@@ -350,19 +361,16 @@ export function logInfo(...args: any[]) {
     // if (process.env.JEST_WORKER_ID === undefined) console.log.apply(args)
 }
 
+// do we need a way to reset this?
 let eventHistory = new Map<string, EventHistory[]>()
 
 function historyBuilder(e: Event) {
     const historyArray: EventHistory[] = eventHistory.get(e.streamId) || []
-
-    historyArray.push({ type: e.type, date: e.meta.date, user: e.meta.user })
-
-    console.log('EVENT HISTORY', e.streamId, historyArray)
+    // TODO: add data for diffs
+    historyArray.push({
+        type: e.type,
+        date: e.meta.date,
+        user: e.meta.user,
+    })
     eventHistory.set(e.streamId, historyArray)
-
-    // streamId: StreamId;
-    // type: string;
-    // meta: Meta;
-    // sequencenum?: number;
-    // data: EventData;
 }
