@@ -54,13 +54,13 @@ export enum ExecutionOrder {
     CONCURRENT = 'concurrent',
 }
 
-interface EventHistory {
+export interface EventHistory {
     type: string
     date: number
     user: any
 }
 
-interface StreamHistory {
+export interface StreamHistory {
     history: EventHistory[]
     updatedAt?: number
     createdAt?: number
