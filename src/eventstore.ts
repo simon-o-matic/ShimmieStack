@@ -9,6 +9,7 @@ import {
     EventData,
     EventName,
     Meta,
+    UserMeta,
     PiiBaseType,
     PiiFields,
     StreamId,
@@ -47,15 +48,15 @@ export default function EventStore(
         streamId: string,
         eventName: string,
         data: object,
-        meta: Meta,
+        userMeta: UserMeta,
         piiFields?: PiiFields
     ) => {
-        if (!streamId || !eventName || !meta) {
+        if (!streamId || !eventName || !userMeta) {
             console.error(
                 'EventStore::recorEvent::missing values',
                 streamId,
                 eventName,
-                meta
+                userMeta
             )
             throw new Error('Attempt to record bad event data')
         }
@@ -88,9 +89,10 @@ export default function EventStore(
             data: nonPiiData, // make sure if we have marked any data as pii, its not stored in the event stream
             streamId: streamId,
             meta: {
-                ...meta,
+                ...userMeta,
                 replay: false,
-                hasPii: hasPii,
+                hasPii,
+                date: userMeta.date || Date.now(), // should be calculated here. Sometimes passed in so let that be
             },
             type: eventName,
         }
@@ -189,7 +191,7 @@ export default function EventStore(
             const event: Event = {
                 data,
                 streamId: e.streamId || (e as any).streamid,
-                meta: { ...e.meta, replay: true },
+                meta: { ...e.meta, replay: true }, // note, some events may not have dates!
                 type: e.type,
             }
             eventStoreEmitter.emit(event.type, {

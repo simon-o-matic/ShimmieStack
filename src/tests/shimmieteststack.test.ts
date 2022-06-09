@@ -7,7 +7,18 @@ const TestProcessor = (testStack: StackType) => {
     const router = testStack.getRouter()
 
     router.get('/whoami', (req, res) => {
-        testStack.recordEvent('1', 'whoevent', { elvis: 'costello' }, {} as any)
+        testStack.recordEvent('1', 'whoevent', { elvis: 'costello' }, {
+            user: { id: 'johnny-come-lately' }, // this can be any
+            userAgent: 'agent-johnny:GECKO-9.0',
+        } as any)
+        res.status(200).send({ me: 'shimmie' })
+    })
+
+    router.post('/:sid/stout', (req, res) => {
+        testStack.recordEvent(req.params.sid, req.body.type, req.body.data, {
+            user: { id: 'johnny-come-lately' }, // this can be any
+            userAgent: 'agent-johnny:GECKO-9.0',
+        } as any)
         res.status(200).send({ me: 'shimmie' })
     })
 
@@ -18,7 +29,7 @@ const TestProcessor = (testStack: StackType) => {
     })
 
     const returnHeaders = (req: any, res: any) => {
-        res.status(200).json({headers:req.headers, body: req.body})
+        res.status(200).json({ headers: req.headers, body: req.body })
     }
     router.post('/postonly-nobodyrequired', returnHeaders)
 
@@ -32,10 +43,35 @@ const TestProcessor = (testStack: StackType) => {
 
 testStack.mountTest(TestProcessor(testStack))
 
+beforeEach(() => {
+    jest.clearAllMocks()
+})
+
 describe('when calling testPost with empty body', () => {
     it('there should be no errors', async () => {
         const response = await testStack.testPost('/nobodyrequired', {})
         expect(response.status).toBe(200)
+    })
+})
+
+describe('when calling posts that generate a history', () => {
+    it('there should be history', async () => {
+        const response = await testStack.testPost('/999/stout', {
+            type: 'mary',
+            data: { a: 7, b: 6 },
+        })
+        await testStack.testPost('/999/stout', {
+            type: 'alice',
+            data: { a: 77, b: 66 },
+        })
+
+        await testStack.testPost('/34sdfsT3/stout', {
+            type: 'shirley',
+            data: { a: 1, b: 22222 },
+        })
+
+        expect(testStack.getHistory('999')?.history.length).toBe(2)
+        expect(testStack.getHistory('34sdfsT3')?.history.length).toBe(1)
     })
 })
 
@@ -46,7 +82,7 @@ describe('when calling a POST with an auth header', () => {
         const response = await testStack.testPost(
             '/nobodyrequired',
             {},
-            {'Authorization': authHeaderValue}
+            { Authorization: authHeaderValue }
         )
         expect(response.status).toBe(200)
         const requestHeaders = response.body.headers
@@ -59,7 +95,7 @@ describe('when calling a PUT with an auth header', () => {
         const response = await testStack.testPost(
             '/nobodyrequired',
             {},
-            {'Authorization': authHeaderValue}
+            { Authorization: authHeaderValue }
         )
         expect(response.status).toBe(200)
         const requestHeaders = response.body.headers
@@ -72,7 +108,7 @@ describe('when calling a GET with an auth header', () => {
         const response = await testStack.testPost(
             '/nobodyrequired',
             {},
-            {'Authorization': authHeaderValue}
+            { Authorization: authHeaderValue }
         )
         expect(response.status).toBe(200)
         const requestHeaders = response.body.headers
@@ -85,7 +121,7 @@ describe('when calling a DELETE with an auth header', () => {
         const response = await testStack.testPost(
             '/nobodyrequired',
             {},
-            {'Authorization': authHeaderValue}
+            { Authorization: authHeaderValue }
         )
         expect(response.status).toBe(200)
         const requestHeaders = response.body.headers

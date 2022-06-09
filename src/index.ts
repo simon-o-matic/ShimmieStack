@@ -1,7 +1,14 @@
 //
 // Entry point of the application. Gets everything started.
 //
-import express, { Application, Router, Request, Response, ErrorRequestHandler, NextFunction } from 'express'
+import express, {
+    Application,
+    Router,
+    Request,
+    Response,
+    ErrorRequestHandler,
+    NextFunction,
+} from 'express'
 import 'express-async-errors'
 import cors, { CorsOptions } from 'cors'
 import cookieParser from 'cookie-parser'
@@ -15,7 +22,10 @@ import {
     EventHandler,
     Event,
     EventBaseType,
-    PiiBaseType, PiiFields, TypedEvent, TypedEventHandler,
+    PiiBaseType,
+    PiiFields,
+    TypedEvent,
+    TypedEventHandler,
 } from './event'
 
 import AdminProcessor from './admin_processor'
@@ -41,9 +51,20 @@ export type ShimmieTypedEvent<T> = TypedEvent<T>
 
 export enum ExecutionOrder {
     SEQUENTIAL = 'sequential',
-    CONCURRENT = 'concurrent'
+    CONCURRENT = 'concurrent',
 }
 
+interface EventHistory {
+    type: string
+    date: number
+    user: any
+}
+
+interface StreamHistory {
+    history: EventHistory[]
+    updatedAt?: number
+    createdAt?: number
+}
 
 export type StackType = {
     setApiVersion: (version: string) => StackType
@@ -53,9 +74,12 @@ export type StackType = {
         eventName: EventName,
         eventData: EventData,
         meta: Meta,
-        piiFields?: PiiFields,
+        piiFields?: PiiFields
     ) => void
-    recordEvents: (events: RecordEventType[], executionOrder?: ExecutionOrder) => void
+    recordEvents: (
+        events: RecordEventType[],
+        executionOrder?: ExecutionOrder
+    ) => void
     startup: () => void
     restart: () => void
     shutdown: () => void
@@ -65,15 +89,19 @@ export type StackType = {
     mountProcessor: (
         name: string,
         mountPoint: string,
-        router: Router,
+        router: Router
     ) => StackType
-    subscribe: (eventName: EventName, handler: EventHandler | TypedEventHandler<any>) => void
+    subscribe: (
+        eventName: EventName,
+        handler: EventHandler | TypedEventHandler<any>
+    ) => void
     use: (a: any) => any
+    getHistory: (id: string) => StreamHistory | undefined
 }
 
 const startApiListener = (app: Application, port: number) => {
     app.listen(port, () =>
-        logInfo(`ShimmieStack API Server listening on ${port}!`),
+        logInfo(`ShimmieStack API Server listening on ${port}!`)
     )
 }
 
@@ -82,7 +110,7 @@ const initializeShimmieStack = async (
     errorHandler: ErrorRequestHandler,
     eventBase: EventBaseType,
     eventStore: EventStoreType,
-    piiBase?: PiiBaseType,
+    piiBase?: PiiBaseType
 ) => {
     try {
         logInfo('ShimmieStack Start up sequence initiated.')
@@ -103,7 +131,7 @@ const initializeShimmieStack = async (
 
         // Process the entire event history on start up and load into memory
         logInfo(
-            `ShimmieStack: Starting to replay the entire event stream to rebuild memory models`,
+            `ShimmieStack: Starting to replay the entire event stream to rebuild memory models`
         )
         const numEvents = await eventStore.replayAllEvents()
         logInfo(`ShimmieStack: replayed ${numEvents} events`)
@@ -117,7 +145,12 @@ const initializeShimmieStack = async (
     }
 }
 
-export const catchAllErrorHandler: ErrorRequestHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
+export const catchAllErrorHandler: ErrorRequestHandler = (
+    err: any,
+    req: Request,
+    res: Response,
+    _next: NextFunction
+) => {
     let status = err.status ?? err.statusCode ?? 500
     console.error('Caught an unhandled error: ', err.message)
     console.dir(err)
@@ -128,12 +161,15 @@ export default function ShimmieStack(
     config: ShimmieConfig,
     eventBase: EventBaseType,
     adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
-    piiBase?: PiiBaseType,
+    piiBase?: PiiBaseType
 ): StackType {
     if (!eventBase) throw Error('Missing event base parameter to ShimmieStack')
 
     /** initialise the event store service by giving it an event database (db, memory, file ) */
     const eventStore = EventStore(eventBase, piiBase)
+
+    /** set up our history listener */
+    eventStore.subscribe('*', historyBuilder)
 
     let errorHandler: ErrorRequestHandler = catchAllErrorHandler
 
@@ -150,7 +186,7 @@ export default function ShimmieStack(
         'Administration API',
         '/admin',
         AdminProcessor(eventBase, adminAuthorizer),
-        config.enforceAuthorization,
+        config.enforceAuthorization
     )
 
     let modelStore: { [key: string]: any } = {}
@@ -158,7 +194,13 @@ export default function ShimmieStack(
     const funcs: StackType = {
         startup: async () => {
             logInfo('ShimmieStack: Starting Up')
-            await initializeShimmieStack(config, errorHandler, eventBase, eventStore, piiBase)
+            await initializeShimmieStack(
+                config,
+                errorHandler,
+                eventBase,
+                eventStore,
+                piiBase
+            )
         },
 
         restart: () => {
@@ -190,18 +232,30 @@ export default function ShimmieStack(
         },
 
         mountProcessor: (name: string, mountPoint: string, router: Router) => {
-            const url = routes.mountApi(app, name, mountPoint, router, config.enforceAuthorization)
+            const url = routes.mountApi(
+                app,
+                name,
+                mountPoint,
+                router,
+                config.enforceAuthorization
+            )
             logInfo(`>>>> Mounted ${url} with [${name}]`)
             return funcs
         },
 
-
-        subscribe: (eventName: EventName, handler: EventHandler | TypedEventHandler<any>) => {
+        subscribe: (
+            eventName: EventName,
+            handler: EventHandler | TypedEventHandler<any>
+        ) => {
             logInfo('ShimmieStack: Registering event handler: ', eventName)
             eventStore.subscribe(eventName, handler)
         },
-        recordEvents: async (events: RecordEventType[], executionOrder?: ExecutionOrder) => {
-            const executeConcurrently = executionOrder === ExecutionOrder.CONCURRENT
+        recordEvents: async (
+            events: RecordEventType[],
+            executionOrder?: ExecutionOrder
+        ) => {
+            const executeConcurrently =
+                executionOrder === ExecutionOrder.CONCURRENT
 
             if (executeConcurrently) {
                 /**
@@ -209,7 +263,13 @@ export default function ShimmieStack(
                  */
                 events.forEach(async (event) => {
                     try {
-                        await funcs.recordEvent(event.streamId, event.eventName, event.eventData, event.meta, event.piiFields)
+                        await funcs.recordEvent(
+                            event.streamId,
+                            event.eventName,
+                            event.eventData,
+                            event.meta,
+                            event.piiFields
+                        )
                     } catch (err) {
                         logInfo('Unable to record event: ', event)
                         console.error(err)
@@ -223,7 +283,13 @@ export default function ShimmieStack(
                  */
                 for (const event of events) {
                     try {
-                        await funcs.recordEvent(event.streamId, event.eventName, event.eventData, event.meta, event.piiFields)
+                        await funcs.recordEvent(
+                            event.streamId,
+                            event.eventName,
+                            event.eventData,
+                            event.meta,
+                            event.piiFields
+                        )
                     } catch (err) {
                         logInfo('Unable to record event: ', event)
                         console.error(err)
@@ -231,21 +297,48 @@ export default function ShimmieStack(
                     }
                 }
             }
-
         },
         recordEvent: (
             streamdId: StreamId,
             eventName: EventName,
             eventData: EventData,
             meta: Meta,
-            piiFields?: PiiFields,
-        ) => eventStore.recordEvent(streamdId, eventName, eventData, meta, piiFields),
+            piiFields?: PiiFields
+        ) =>
+            eventStore.recordEvent(
+                streamdId,
+                eventName,
+                eventData,
+                meta,
+                piiFields
+            ),
 
         // Make a new Express router
         getRouter: () => express.Router(),
 
         // provide the client the Exprese use function so they can do whatever they want
         use: (a: any) => app.use(a),
+
+        getHistory: (id: string): StreamHistory | undefined => {
+            const history = eventHistory.get(id)
+            if (!history) {
+                return undefined
+            }
+
+            if (history.length > 0) {
+                return {
+                    history,
+                    updatedAt: history[history?.length - 1].date,
+                    createdAt: history[0].date,
+                }
+            }
+
+            return {
+                history: [],
+                updatedAt: undefined,
+                createdAt: undefined,
+            }
+        },
     }
 
     return funcs
@@ -255,4 +348,21 @@ export default function ShimmieStack(
 export function logInfo(...args: any[]) {
     console.log(...args)
     // if (process.env.JEST_WORKER_ID === undefined) console.log.apply(args)
+}
+
+let eventHistory = new Map<string, EventHistory[]>()
+
+function historyBuilder(e: Event) {
+    const historyArray: EventHistory[] = eventHistory.get(e.streamId) || []
+
+    historyArray.push({ type: e.type, date: e.meta.date, user: e.meta.user })
+
+    console.log('EVENT HISTOR', e.streamId, historyArray)
+    eventHistory.set(e.streamId, historyArray)
+
+    // streamId: StreamId;
+    // type: string;
+    // meta: Meta;
+    // sequencenum?: number;
+    // data: EventData;
 }
