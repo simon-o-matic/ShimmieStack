@@ -319,6 +319,11 @@ export default function ShimmieStack(
         // provide the client the Express use function so they can do whatever they want
         use: (a: any) => app.use(a),
 
+        /**
+         * Get all EventHistory of every stream ID passed - sorted oldest to newest
+         * Up to the caller to collate list of related IDs, getHistory doesn't
+         * know or care if they're related events
+         */
         getHistory: (ids: string | string[]): StreamHistory | undefined => {
             let history: EventHistory[] | undefined
             if (typeof ids === 'string') {
