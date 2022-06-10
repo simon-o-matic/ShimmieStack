@@ -59,7 +59,7 @@ export interface EventHistory {
     type: string
     date: number
     user: any
-    data: any
+    data: EventData
 }
 
 export interface StreamHistory {
