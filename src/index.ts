@@ -55,6 +55,7 @@ export enum ExecutionOrder {
 }
 
 export interface EventHistory {
+    streamId: string
     type: string
     date: number
     user: any
@@ -373,6 +374,7 @@ function historyBuilder(e: Event) {
     const historyArray: EventHistory[] = eventHistory.get(e.streamId) || []
     // TODO: add data for diffs
     historyArray.push({
+        streamId: e.streamId,
         type: e.type,
         date: e.meta.date,
         user: e.meta.user,
