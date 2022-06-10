@@ -59,6 +59,7 @@ export interface EventHistory {
     type: string
     date: number
     user: any
+    data: any
 }
 
 export interface StreamHistory {
@@ -375,6 +376,7 @@ function historyBuilder(e: Event) {
     // TODO: add data for diffs
     historyArray.push({
         streamId: e.streamId,
+        data: e.data,
         type: e.type,
         date: e.meta.date,
         user: e.meta.user,
