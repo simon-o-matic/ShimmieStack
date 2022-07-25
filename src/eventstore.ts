@@ -27,6 +27,8 @@ export interface EventStoreType {
         pii?: PiiFields
     ) => Promise<any>
     subscribe: (type: string, callback: (eventModel: any) => void) => void
+    deleteEvent: (sequenceNumber: number) => void
+    updateEventData: (sequenceNumber: number, data: object) => void
     getAllEvents: (withPii?: boolean) => Promise<any>
 }
 
@@ -44,6 +46,7 @@ export default function EventStore(
 ): EventStoreType {
     const eventStoreEmitter = new EventStoreEmitter()
     const allSubscriptions = new Map<string, boolean>()
+
     const recordEvent = async (
         streamId: string,
         eventName: string,
@@ -211,10 +214,17 @@ export default function EventStore(
         return allEvents.length
     }
 
+    const deleteEvent = async (sequenceNumber: number) =>
+        await eventbase.deleteEvent(sequenceNumber)
+    const updateEventData = async (sequenceNumber: number, data: object) =>
+        await eventbase.updateEventData(sequenceNumber, data)
+
     return {
         replayAllEvents,
         recordEvent,
         subscribe,
         getAllEvents,
+        deleteEvent,
+        updateEventData,
     }
 }

@@ -47,6 +47,10 @@ export interface EventBaseType {
     addEvent: (event: Event) => Promise<any>
     /** get all the events from the start to the end (for replay) */
     getAllEventsInOrder: () => Promise<Event[]>
+    /** update a single event with new data (no other fields). Protect this in production */
+    updateEventData: (sequenceNumber: number, data: object) => Promise<void>
+    /** delete a single event by sequence number. Protect this in production */
+    deleteEvent: (sequenceNumber: number) => Promise<void>
     /** set up the event base */
     init: () => Promise<void>
     /** clear out all the events */

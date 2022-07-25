@@ -54,6 +54,19 @@ export default function Eventbase(config: EventConfig): EventBaseType {
         return await runQuery(query)
     }
 
+    /** TODO: work out what to do with PII data */
+    const deleteEvent = async (sequenceNumber: number) => {
+        const query = `DELETE FROM eventlist WHERE SequenceNum=${sequenceNumber}`
+        await runQuery(query)
+        return Promise.resolve()
+    }
+
+    const updateEventData = async (sequenceNumber: number, data: object) => {
+        const query = `UPDATE eventlist SET Data=${data} WHERE SequenceNum=${sequenceNumber}`
+        await runQuery(query)
+        return Promise.resolve()
+    }
+
     const reset = async () => {
         await dropTables()
         await createTables()
@@ -129,6 +142,8 @@ export default function Eventbase(config: EventConfig): EventBaseType {
         getAllEventsInOrder,
         addEvent,
         reset,
+        deleteEvent,
+        updateEventData,
         init,
         shutdown,
     }

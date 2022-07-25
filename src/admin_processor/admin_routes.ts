@@ -8,12 +8,14 @@ import { Router, Request, Response, NextFunction } from 'express'
 import { AdminCommandsType } from './admin_commands'
 import { authorizeApi, AuthorizerFunc, noAuthorization } from '../authorizers'
 
-export default function (adminCommands: AdminCommandsType, authorizer: AuthorizerFunc): Router {
+export default function (
+    adminCommands: AdminCommandsType,
+    authorizer: AuthorizerFunc
+): Router {
     const router = Router()
 
-    // Only needs to be done ONCE in prod.
-    router.post('/init', authorizer,  async (req: Request, res: Response) => {
-        if (process.env.NODE_ENV != 'development') {
+    router.post('/init', authorizer, async (req: Request, res: Response) => {
+        if (process.env.NODE_ENV === 'production') {
             return res.status(403).send({ error: 'nick off punk' })
         } else {
             await adminCommands.init()
@@ -22,11 +24,42 @@ export default function (adminCommands: AdminCommandsType, authorizer: Authorize
     })
 
     router.post('/reset', authorizer, async (req, res) => {
-        if (process.env.NODE_ENV != 'development') {
+        if (process.env.NODE_ENV === 'production') {
             return res.status(403).send({ error: 'nick off punk' })
         } else {
             try {
                 const rows = await adminCommands.reset()
+                return res.status(200).send(rows)
+            } catch (err: any) {
+                return res.status(500).send({ error: err.message })
+            }
+        }
+    })
+
+    router.delete('/events/:sequenceNumber', authorizer, async (req, res) => {
+        if (process.env.NODE_ENV === 'production') {
+            return res.status(403).send()
+        } else {
+            try {
+                const seqNumInt = Number.parseInt(req.params.sequenceNumber)
+                const rows = await adminCommands.deleteEvent(seqNumInt)
+                return res.status(200).send(rows)
+            } catch (err: any) {
+                return res.status(500).send({ error: err.message })
+            }
+        }
+    })
+
+    router.put('/events/:sequenceNumber', authorizer, async (req, res) => {
+        if (process.env.NODE_ENV === 'production') {
+            return res.status(403).send()
+        } else {
+            try {
+                const seqNumInt = Number.parseInt(req.params.sequenceNumber)
+                const rows = await adminCommands.updateEventData(
+                    seqNumInt,
+                    req.body
+                )
                 return res.status(200).send(rows)
             } catch (err: any) {
                 return res.status(500).send({ error: err.message })
@@ -53,29 +86,24 @@ export default function (adminCommands: AdminCommandsType, authorizer: Authorize
         )
     })
 
-    router.get(
-        '/health',
-        authorizeApi(noAuthorization),
-        async (req, res) => {
-            try {
-                const events = await adminCommands.getEvents()
+    router.get('/health', authorizeApi(noAuthorization), async (req, res) => {
+        try {
+            const events = await adminCommands.getEvents()
 
-                res.status(200).json({
-                    status: {
-                        app: 'healthy',
-                        db: 'connected',
-                    },
-                    time: new Date().toISOString(),
-                    version: process.env.APP_VERSION ?? 'DEV',
-                })
-            } catch (err: any) {
-                res.status(503).json({
-                    error: 'Server is not yet ready to handle requests',
-                })
-            }
+            res.status(200).json({
+                status: {
+                    app: 'healthy',
+                    db: 'connected',
+                },
+                time: new Date().toISOString(),
+                version: process.env.APP_VERSION ?? 'DEV',
+            })
+        } catch (err: any) {
+            res.status(503).json({
+                error: 'Server is not yet ready to handle requests',
+            })
         }
-    )
+    })
 
     return router
 }
-
