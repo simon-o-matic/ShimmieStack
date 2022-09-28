@@ -183,13 +183,13 @@ export default function ShimmieStack(
     // Install the admin API route
     // TODO: work out how to secure this. Need a client role.
     // todo move this into the chain to make the use cleaner
-    routes.mountApi(
-        app,
-        'Administration API',
-        '/admin',
-        AdminProcessor(eventBase, adminAuthorizer),
-        config.enforceAuthorization
-    )
+    // routes.mountApi(
+    //     app,
+    //     'Administration API',
+    //     '/admin',
+    //     AdminProcessor(eventBase, adminAuthorizer),
+    //     config.enforceAuthorization
+    // )
 
     let modelStore: { [key: string]: any } = {}
 
