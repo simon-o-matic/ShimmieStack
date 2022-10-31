@@ -4,6 +4,7 @@
 import pg from 'pg'
 const { Pool } = pg
 import { Event, EventBaseType } from './event'
+import { Logger } from './logger'
 
 export interface EventConfig {
     connectionString: string
@@ -82,7 +83,7 @@ export default function Eventbase(config: EventConfig): EventBaseType {
                 : await pool.query(query)
             return res.rows
         } catch (err: any) {
-            console.error(`Query error <${query}> [${values}]: ${err.message}`)
+            Logger.error(`Query error <${query}> [${values}]: ${err.message}`)
             throw err
         }
     }
@@ -111,9 +112,8 @@ export default function Eventbase(config: EventConfig): EventBaseType {
             } catch (err: any) {
                 retries++
                 // sleep for 5 seconds
-                console.log(
-                    'Failed to setup eventbase tables, trying again in 5 seconds',
-                    err
+                Logger.log(
+                    `Failed to setup eventbase tables, trying again in 5 seconds ${err}`
                 )
                 await new Promise((resolve) => setTimeout(resolve, 5000))
             }

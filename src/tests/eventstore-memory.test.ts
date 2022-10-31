@@ -1,6 +1,7 @@
 import EventBase from '../eventbase-memory'
 import EventStore from '../eventstore'
 import { Meta } from '../event'
+import { Logger } from '../logger'
 
 const eventBase = EventBase()
 const eventStore = EventStore(eventBase)
@@ -41,8 +42,8 @@ describe('when recording an event', () => {
         expect(numEvents.length).toEqual(1)
     })
 
-    it('no listener shouild produce a warning', async () => {
-        console.warn = jest.fn()
+    it('no listener should produce a warning', async () => {
+        Logger.warn = jest.fn()
 
         await eventStore.recordEvent(
             'streamid',
@@ -51,8 +52,8 @@ describe('when recording an event', () => {
             meta
         )
 
-        expect(console.warn).toHaveBeenCalledWith(
-            '[ShimmieStack] Event randomType has no listeners'
+        expect(Logger.warn).toHaveBeenCalledWith(
+            'ShimmieStack >>>> Event randomType has no listeners'
         )
     })
 
@@ -87,7 +88,7 @@ describe('when deleting an event', () => {
         await eventStore.recordEvent('streamid', 'type', { data: 'foo' }, meta)
 
         const allEvents = await eventStore.getAllEvents()
-        console.log('EVENTS,', allEvents)
+        Logger.log(`EVENTS, ${allEvents} `)
         expect(allEvents.length).toEqual(2)
 
         await eventStore.deleteEvent(1)

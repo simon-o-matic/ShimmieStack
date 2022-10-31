@@ -5,6 +5,7 @@ import ShimmieTestStack from '../shimmieteststack'
 import AdminProcessor from '../admin_processor'
 import MemoryEventBase from '../eventbase-memory'
 import { authorizeApi, noAuthorization } from '../authorizers'
+import { Logger } from '../logger'
 //import Eventbase from '../eventbase-memory'
 
 const testStack = ShimmieTestStack()
@@ -25,7 +26,7 @@ describe('when calling the internal admin processors on an in-memory event base'
         expect(returnedDate.getHours()).toEqual(timeNow.getHours())
         expect(returnedDate.getMinutes()).toEqual(timeNow.getMinutes())
         expect(returnedDate.getSeconds() - timeNow.getSeconds() <= 1)
-        console.log('test time: ', returnedDate)
+        Logger.log('test time: ' + returnedDate)
     })
 
     // Test the others...

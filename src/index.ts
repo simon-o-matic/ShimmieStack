@@ -30,6 +30,7 @@ import {
 
 import AdminProcessor from './admin_processor'
 import { AuthorizerFunc } from './authorizers'
+import { configureLogger, Logger, StackLogger } from './logger'
 
 const app = express()
 app.use(express.json())
@@ -103,7 +104,7 @@ export type StackType = {
 
 const startApiListener = (app: Application, port: number) => {
     app.listen(port, () =>
-        logInfo(`ShimmieStack API Server listening on ${port}!`)
+        Logger.info(`ShimmieStack >>>> API Server listening on ${port}!`)
     )
 }
 
@@ -112,38 +113,39 @@ const initializeShimmieStack = async (
     errorHandler: ErrorRequestHandler,
     eventBase: EventBaseType,
     eventStore: EventStoreType,
-    piiBase?: PiiBaseType
+    piiBase?: PiiBaseType,
+    logger?: StackLogger
 ) => {
     try {
-        logInfo('ShimmieStack Start up sequence initiated.')
-        logInfo('ShimmieStack Environment:', process.env.NODE_ENV)
-        logInfo('ShimmieStack Config:', config)
-        logInfo('Finalizing routes, setting up 404 and error handlers.')
+        Logger.info('ShimmieStack >>>> Initializing.')
+        Logger.info('ShimmieStack >>>> Environment: ' + process.env.NODE_ENV)
+        Logger.debug(`ShimmieStack >>>> Config: ${config} `)
+        Logger.info('ShimmieStack >>>> Finalizing routes, setting up 404 and error handlers.')
         routes.finaliseRoutes(app, errorHandler)
-        logInfo('ShimmieStack: All processors mounted')
+        Logger.info('ShimmieStack >>>>: All processors mounted')
 
         // Get the database started
         await eventBase.init()
-        logInfo('ShimmieStack: event database connected.')
+        Logger.info('ShimmieStack >>>> event database connected.')
 
         if (piiBase) {
             await piiBase.init()
-            logInfo('ShimmieStack: pii database connected.')
+            Logger.info('ShimmieStack >>>> pii database connected.')
         }
 
         // Process the entire event history on start up and load into memory
-        logInfo(
-            `ShimmieStack: Starting to replay the entire event stream to rebuild memory models`
+        Logger.info(
+            `ShimmieStack >>>> Starting to replay the entire event stream to rebuild memory models`
         )
         const numEvents = await eventStore.replayAllEvents()
-        logInfo(`ShimmieStack: replayed ${numEvents} events`)
+        Logger.info(`ShimmieStack >>>> replayed ${numEvents} events`)
 
         // Start accepting requests from the outside world
         startApiListener(app, config.ServerPort)
 
-        logInfo('ShimmieStack: Start up complete')
+        Logger.info('ShimmieStack >>>> Start up complete')
     } catch (err) {
-        logInfo('ShimmieStack1 Error during start up, aborting (', err, ')')
+        Logger.info(`ShimmieStack >>>> Error during start up, aborting ( ${err} )`)
     }
 }
 
@@ -154,8 +156,7 @@ export const catchAllErrorHandler: ErrorRequestHandler = (
     _next: NextFunction
 ) => {
     let status = err.status ?? err.statusCode ?? 500
-    console.error('Caught an unhandled error: ', err.message)
-    console.dir(err)
+    Logger.error(`Caught an unhandled error:  ${err.message}`)
     return res.status(status).json({ error: 'Something went wrong' })
 }
 
@@ -163,9 +164,15 @@ export default function ShimmieStack(
     config: ShimmieConfig,
     eventBase: EventBaseType,
     adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
-    piiBase?: PiiBaseType
+    piiBase?: PiiBaseType,
+    appLogger?: StackLogger
 ): StackType {
-    if (!eventBase) throw Error('Missing event base parameter to ShimmieStack')
+    // if the caller provided a custom logger, use it
+    configureLogger(appLogger)
+
+    if (!eventBase) {
+        throw Error('Missing event base parameter to ShimmieStack')
+    }
 
     /** initialise the event store service by giving it an event database (db, memory, file ) */
     const eventStore = EventStore(eventBase, piiBase)
@@ -195,7 +202,9 @@ export default function ShimmieStack(
 
     const funcs: StackType = {
         startup: async () => {
-            logInfo('ShimmieStack: Starting Up')
+            Logger.info('ShimmieStack >>>>>>>>>> <<<<<<<<<<')
+            Logger.info('ShimmieStack >>>> STARTING UP <<<<')
+            Logger.info('ShimmieStack >>>>>>>>>> <<<<<<<<<<')
             await initializeShimmieStack(
                 config,
                 errorHandler,
@@ -206,11 +215,11 @@ export default function ShimmieStack(
         },
 
         restart: () => {
-            logInfo('TODO: empty everything and replay results')
+            Logger.info('TODO: empty everything and replay results')
         },
 
         shutdown: () => {
-            logInfo('TODO: HOW DO YOU STOP THIS THING!!!!')
+            Logger.info('TODO: HOW DO YOU STOP THIS THING!!!!')
         },
 
         setApiVersion: (version: string) => {
@@ -228,8 +237,8 @@ export default function ShimmieStack(
             return modelStore[name]
         },
         setErrorHandler: (handler: ErrorRequestHandler) => {
-            logInfo('Overriding default error handler')
             errorHandler = handler
+            Logger.info('ShimmieStack >>>> Overridden default error handler')
             return funcs
         },
 
@@ -241,7 +250,7 @@ export default function ShimmieStack(
                 router,
                 config.enforceAuthorization
             )
-            logInfo(`>>>> Mounted ${url} with [${name}]`)
+            Logger.info(`ShimmieStack >>>> Mounted ${url} with [${name}]`)
             return funcs
         },
 
@@ -249,8 +258,8 @@ export default function ShimmieStack(
             eventName: EventName,
             handler: EventHandler | TypedEventHandler<any>
         ) => {
-            logInfo('ShimmieStack: Registering event handler: ', eventName)
             eventStore.subscribe(eventName, handler)
+            Logger.info(`ShimmieStack >>>> Registered event handler: ${eventName}` )
         },
         recordEvents: async (
             events: RecordEventType[],
@@ -273,9 +282,8 @@ export default function ShimmieStack(
                             event.piiFields
                         )
                     } catch (err) {
-                        logInfo('Unable to record event: ', event)
-                        console.error(err)
-                        console.dir(err)
+                        Logger.info(`Unable to record event: ${event}` )
+                        Logger.error(err)
                     }
                 })
             } else {
@@ -293,9 +301,9 @@ export default function ShimmieStack(
                             event.piiFields
                         )
                     } catch (err) {
-                        logInfo('Unable to record event: ', event)
-                        console.error(err)
-                        console.dir(err)
+                        Logger.info('Unable to record event: ' + event)
+                        Logger.error(err)
+
                     }
                 }
             }
@@ -362,18 +370,11 @@ export default function ShimmieStack(
     return funcs
 }
 
-/** don't log info messages when we are running tests */
-export function logInfo(...args: any[]) {
-    console.log(...args)
-    // if (process.env.JEST_WORKER_ID === undefined) console.log.apply(args)
-}
-
 // do we need a way to reset this?
 let eventHistory = new Map<string, EventHistory[]>()
 
 function historyBuilder(e: Event) {
     const historyArray: EventHistory[] = eventHistory.get(e.streamId) || []
-    // TODO: add data for diffs
     historyArray.push({
         streamId: e.streamId,
         data: e.data,

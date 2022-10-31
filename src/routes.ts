@@ -3,10 +3,10 @@
 //
 
 import { Application, ErrorRequestHandler, NextFunction, Request, Response, Router } from 'express'
-import { logInfo } from '.'
+import { Logger } from './logger'
 
 const timeLogger = (req: Request, res: Response, next: NextFunction) => {
-    console.info(
+    Logger.info(
         `[${new Date(Date.now()).toLocaleString()}] Route::[${req.method}] ${
             req.path
         }`

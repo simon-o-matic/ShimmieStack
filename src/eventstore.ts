@@ -3,19 +3,11 @@
 //
 
 import { EventEmitter } from 'events'
-import {
-    Event,
-    EventBaseType,
-    EventData,
-    EventName,
-    Meta,
-    UserMeta,
-    PiiBaseType,
-    PiiFields,
-    StreamId,
-} from './event'
+import { Event, EventBaseType, EventData, EventName, Meta, PiiBaseType, PiiFields, StreamId, UserMeta } from './event'
+import { Logger } from './logger'
 
-class EventStoreEmitter extends EventEmitter {}
+class EventStoreEmitter extends EventEmitter {
+}
 
 export interface EventStoreType {
     replayAllEvents: () => Promise<number>
@@ -55,11 +47,12 @@ export default function EventStore(
         piiFields?: PiiFields
     ) => {
         if (!streamId || !eventName || !userMeta) {
-            console.error(
-                'EventStore::recorEvent::missing values',
-                streamId,
-                eventName,
-                userMeta
+            Logger.error(
+                `EventStore::recordEvent::missing values ${{
+                    streamId,
+                    eventName,
+                    userMeta,
+                }}`,
             )
             throw new Error('Attempt to record bad event data')
         }
@@ -67,7 +60,7 @@ export default function EventStore(
         const hasPii: boolean = !!piiFields
 
         if (hasPii && !piiBase) {
-            console.warn('Pii key provided without a PiiBase defined')
+            Logger.warn('Pii key provided without a PiiBase defined')
             throw new Error(
                 'You must configure a PII base to store PII outside the event stream'
             )
@@ -118,7 +111,7 @@ export default function EventStore(
         }
 
         if (!allSubscriptions.get(eventName))
-            console.warn(`[ShimmieStack] Event ${eventName} has no listeners`)
+            Logger.warn(`ShimmieStack >>>> Event ${eventName} has no listeners`)
 
         eventStoreEmitter.emit(eventName, newEvent)
         eventStoreEmitter.emit('*', {

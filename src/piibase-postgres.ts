@@ -2,6 +2,7 @@ import { PiiBaseType } from './event'
 import pg from 'pg'
 const { Pool } = pg
 import { EventbaseError } from './eventbase-postgres'
+import { Logger } from './logger'
 
 export interface PiiBaseConfig {
     connectionString: string
@@ -98,7 +99,7 @@ export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
             } catch (err: any) {
                 retries++
                 // sleep for 5 seconds
-                console.log(
+                Logger.log(
                     'Failed to setup piibase tables, trying again in 5 seconds',
                     err
                 )
@@ -127,7 +128,7 @@ export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
                 : await pool.query(query)
             return res.rows
         } catch (err: any) {
-            console.error(`Query error <${query}> [${values}]: ${err.message}`)
+            Logger.error(`Query error <${query}> [${values}]: ${err.message}`)
             throw err
         }
     }
