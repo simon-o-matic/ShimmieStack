@@ -1,34 +1,25 @@
 //
 // Entry point of the application. Gets everything started.
 //
-import express, {
-    Application,
-    Router,
-    Request,
-    Response,
-    ErrorRequestHandler,
-    NextFunction,
-} from 'express'
+import express, { Application, ErrorRequestHandler, NextFunction, Request, Response, Router } from 'express'
 import 'express-async-errors'
 import cors, { CorsOptions } from 'cors'
 import cookieParser from 'cookie-parser'
 import * as routes from './routes'
 import EventStore, { EventStoreType, RecordEventType } from './eventstore'
 import {
-    StreamId,
-    EventData,
-    Meta,
-    EventName,
-    EventHandler,
     Event,
     EventBaseType,
+    EventData,
+    EventHandler,
+    EventName,
+    Meta,
     PiiBaseType,
     PiiFields,
+    StreamId,
     TypedEvent,
     TypedEventHandler,
 } from './event'
-
-import AdminProcessor from './admin_processor'
 import { AuthorizerFunc } from './authorizers'
 import { configureLogger, Logger, StackLogger } from './logger'
 
@@ -96,16 +87,18 @@ export type StackType = {
     ) => StackType
     subscribe: (
         eventName: EventName,
-        handler: EventHandler | TypedEventHandler<any>
+        handler: EventHandler | TypedEventHandler<any>,
     ) => void
     use: (a: any) => any
     getHistory: (ids: string | string[]) => StreamHistory | undefined
+    registerPreInitFn: (fn: () => void | Promise<void>) => StackType
+    registerPostInitFn: (fn: () => void | Promise<void>) => StackType
 }
 
-const startApiListener = (app: Application, port: number) => {
-    app.listen(port, () =>
-        Logger.info(`ShimmieStack >>>> API Server listening on ${port}!`)
-    )
+
+const startApiListener = async (app: Application, port: number) => {
+    await app.listen(port)
+    Logger.info(`ShimmieStack >>>> API Server listening on ${port}!`)
 }
 
 const initializeShimmieStack = async (
@@ -114,7 +107,7 @@ const initializeShimmieStack = async (
     eventBase: EventBaseType,
     eventStore: EventStoreType,
     piiBase?: PiiBaseType,
-    logger?: StackLogger
+    logger?: StackLogger,
 ) => {
     try {
         Logger.info('ShimmieStack >>>> Initializing.')
@@ -141,9 +134,9 @@ const initializeShimmieStack = async (
         Logger.info(`ShimmieStack >>>> replayed ${numEvents} events`)
 
         // Start accepting requests from the outside world
-        startApiListener(app, config.ServerPort)
+        await startApiListener(app, config.ServerPort)
 
-        Logger.info('ShimmieStack >>>> Start up complete')
+        Logger.info('ShimmieStack >>>> Stack init complete')
     } catch (err) {
         Logger.info(`ShimmieStack >>>> Error during start up, aborting ( ${err} )`)
     }
@@ -198,20 +191,41 @@ export default function ShimmieStack(
     //     config.enforceAuthorization
     // )
 
-    let modelStore: { [key: string]: any } = {}
+    const modelStore: { [key: string]: any } = {}
+
+    // store the references to functions to execute post startup
+    const postInitFns: (() => void | Promise<void>)[] = []
+    const preInitFns: (() => void | Promise<void>)[] = []
 
     const funcs: StackType = {
         startup: async () => {
-            Logger.info('ShimmieStack >>>>>>>>>> <<<<<<<<<<')
-            Logger.info('ShimmieStack >>>> STARTING UP <<<<')
-            Logger.info('ShimmieStack >>>>>>>>>> <<<<<<<<<<')
+            // if there are any post init fns registered execute them
+            if (preInitFns.length) {
+                Logger.info('ShimmieStack >>>> Running pre-init functions')
+                await Promise.all(preInitFns.map(f => f()))
+                Logger.info('ShimmieStack >>>> Successfully completed pre-init functions')
+            } else {
+                Logger.info('ShimmieStack >>>> No pre-init functions to run')
+            }
+
+            Logger.info('ShimmieStack >>>>>>>>>>  <<<<<<<<<<')
+            Logger.info('ShimmieStack >>>> INITIALIZING <<<<')
+            Logger.info('ShimmieStack >>>>>>>>>>  <<<<<<<<<<')
             await initializeShimmieStack(
                 config,
                 errorHandler,
                 eventBase,
                 eventStore,
-                piiBase
+                piiBase,
             )
+            // if there are any post init fns registered execute them
+            if (postInitFns.length) {
+                Logger.info('ShimmieStack >>>> Running post-init functions')
+                await Promise.all(postInitFns.map(f => f()))
+                Logger.info('ShimmieStack >>>> Successfully compelted post-init functions')
+            } else {
+                Logger.info('ShimmieStack >>>> No post-init functions to run')
+            }
         },
 
         restart: () => {
@@ -364,6 +378,17 @@ export default function ShimmieStack(
                 updatedAt: undefined,
                 createdAt: undefined,
             }
+        },
+        // add a function to be run before initialize
+        registerPreInitFn: (fn: () => void | Promise<void>): StackType => {
+            preInitFns.push(fn)
+            return funcs
+        },
+
+        // add a function to be run after initialize
+        registerPostInitFn: (fn: () => void | Promise<void>): StackType => {
+            postInitFns.push(fn)
+            return funcs
         },
     }
 
