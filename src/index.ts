@@ -68,12 +68,12 @@ export type StackType = {
         eventName: EventName,
         eventData: EventData,
         meta: Meta,
-        piiFields?: PiiFields
-    ) => void
+        piiFields?: PiiFields,
+    ) => Promise<void>
     recordEvents: (
         events: RecordEventType[],
-        executionOrder?: ExecutionOrder
-    ) => void
+        executionOrder?: ExecutionOrder,
+    ) => Promise<void>
     startup: () => void
     restart: () => void
     shutdown: () => void
@@ -284,26 +284,29 @@ export default function ShimmieStack(
 
             if (executeConcurrently) {
                 /**
-                 * Foreach triggers each write, and handles them as they resolve (Concurrent execution)
+                 * In this case we triggering all writes, and await the group
                  */
-                events.forEach(async (event) => {
-                    try {
-                        await funcs.recordEvent(
+                // todo write a proper recordEvents that does a single DB query.
+                try {
+                    const eventPromises: Promise<void>[] = []
+                    for (let i = 0; i < events.length; i++) {
+                        const event = events[i]
+                        eventPromises.push(funcs.recordEvent(
                             event.streamId,
                             event.eventName,
                             event.eventData,
                             event.meta,
-                            event.piiFields
-                        )
-                    } catch (err) {
-                        Logger.info(`Unable to record event: ${event}` )
-                        Logger.error(err)
+                            event.piiFields,
+                        ))
                     }
-                })
+                    await Promise.all(eventPromises)
+                } catch (err) {
+                    Logger.error(`Unable to record all events`)
+                    Logger.error(err)
+                }
             } else {
                 /**
-                 * Can't use a forEach here as it doesn't respect the order of the async record event calls.
-                 * This for each of events loop will wait for the record event call to resolve before triggering the next one
+                 * In this case we await each write, rather than triggering them concurrently.
                  */
                 for (const event of events) {
                     try {
@@ -327,14 +330,15 @@ export default function ShimmieStack(
             eventName: EventName,
             eventData: EventData,
             meta: Meta,
-            piiFields?: PiiFields
-        ) =>
+            piiFields?: PiiFields,
+        ): Promise<void> =>
+            // todo get these types right
             eventStore.recordEvent(
                 streamdId,
                 eventName,
                 eventData,
                 meta,
-                piiFields
+                piiFields,
             ),
 
         // Make a new Express router
