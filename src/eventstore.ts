@@ -3,7 +3,18 @@
 //
 
 import { EventEmitter } from 'events'
-import { Event, EventBaseType, EventData, EventName, Meta, PiiBaseType, PiiFields, StreamId, UserMeta } from './event'
+import {
+    Event,
+    EventBaseType,
+    EventData,
+    EventHandler,
+    EventName,
+    Meta,
+    PiiBaseType,
+    PiiFields,
+    StreamId, TypedEvent, TypedEventHandler,
+    UserMeta,
+} from './event'
 import { Logger } from './logger'
 
 class EventStoreEmitter extends EventEmitter {
@@ -18,7 +29,7 @@ export interface EventStoreType {
         meta: Meta,
         pii?: PiiFields
     ) => Promise<any>
-    subscribe: (type: string, callback: (eventModel: any) => void) => void
+    subscribe: (type: string, callback: EventHandler | TypedEventHandler<any>) => void
     deleteEvent: (sequenceNumber: number) => void
     updateEventData: (sequenceNumber: number, data: object) => void
     getAllEvents: (withPii?: boolean) => Promise<any>
@@ -122,10 +133,20 @@ export default function EventStore(
 
     const subscribe = (
         type: string,
-        callback: (eventModel: any) => void
+        callback: EventHandler | TypedEventHandler<any>
     ): void => {
+        // wrap the handler in a try catch so we don't crash the server with unhandled exceptions.
+        const tryCatchCallback: EventHandler | TypedEventHandler<any> = (eventModel: Event | TypedEvent<any>): void => {
+            try {
+                return callback(eventModel)
+            } catch (e) {
+                Logger.error(`Unable to handle event subscription. Error when handling "${type}": ${e}`)
+                return
+            }
+        }
+
         allSubscriptions.set(type, true) // record for later
-        eventStoreEmitter.on(type, callback)
+        eventStoreEmitter.on(type, tryCatchCallback)
     }
 
     const getAllEvents = async (withPii = true) => {

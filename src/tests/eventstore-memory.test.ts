@@ -119,3 +119,25 @@ describe('when updating data', () => {
         expect(allEvents[1].data).toEqual({ bar: 'boo' })
     })
 })
+
+
+describe('when subscribing to an event', () => {
+    describe('an error in the subscription', () => {
+        it('should be caught, logged and handled ', async () => {
+            let valueSet = false
+
+            eventStore.subscribe("EXAMPLE_EVENT", (event: unknown) => {
+                valueSet = true
+                throw new Error("Something happened and should be handled safely")
+            })
+            await eventStore.recordEvent('streamid', 'EXAMPLE_EVENT', { data: 'blah' }, meta)
+            expect(valueSet).toBe(true)
+            await eventStore.recordEvent('streamid', 'type', { data: 'blah' }, meta)
+
+            const numEvents = await eventStore.getAllEvents()
+
+            // both events should be there, and the errored subscriber should log and not crash the app.
+            expect(numEvents.length).toEqual(2)
+        })
+    })
+})
