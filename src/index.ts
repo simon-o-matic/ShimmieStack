@@ -152,7 +152,9 @@ const initializeShimmieStack = async (
 
         Logger.info('ShimmieStack >>>> Stack init complete')
     } catch (err) {
-        Logger.info(`ShimmieStack >>>> Error during start up, aborting ( ${err} )`)
+        const msg = `ShimmieStack >>>> Error during start up, aborting ( ${err} )`
+        Logger.error(msg)
+        throw new Error(msg)
     }
 }
 
