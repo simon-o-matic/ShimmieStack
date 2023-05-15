@@ -2,7 +2,6 @@
 // Entry point of the application. Gets everything started.
 //
 import express, { Application, ErrorRequestHandler, NextFunction, Request, Response, Router } from 'express'
-import 'express-async-errors'
 import cors, { CorsOptions } from 'cors'
 import cookieParser from 'cookie-parser'
 import * as routes from './routes'
@@ -23,7 +22,22 @@ import {
 import { AuthorizerFunc } from './authorizers'
 import { configureLogger, Logger, StackLogger } from './logger'
 
+/** Errors stop the server if not initialised, if initialised they continue on */
+let eventStoreFlags = { initialised: false }
+
 const app = express()
+
+process.on('uncaughtException', function (err) {
+    // use `winston` or your own Logger instance as appropriate
+    Logger.error(`Uncaught exception occurred: ${err} - ${err.stack}`)
+    if(eventStoreFlags.initialised === false){
+        throw err
+    }
+})
+
+process.on('unhandledRejection', (err) => {
+    throw err
+})
 app.use(express.json())
 app.use(cookieParser())
 
@@ -168,7 +182,7 @@ export default function ShimmieStack(
     }
 
     /** initialise the event store service by giving it an event database (db, memory, file ) */
-    const eventStore = EventStore(eventBase, piiBase)
+    const eventStore = EventStore(eventBase, piiBase, eventStoreFlags)
 
     /** set up our history listener */
     eventStore.subscribe('*', historyBuilder)
@@ -226,6 +240,7 @@ export default function ShimmieStack(
             } else {
                 Logger.info('ShimmieStack >>>> No post-init functions to run')
             }
+            eventStoreFlags.initialised = true
         },
 
         restart: () => {
