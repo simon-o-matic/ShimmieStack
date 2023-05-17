@@ -24,6 +24,16 @@ import { AuthorizerFunc } from './authorizers'
 import { configureLogger, Logger, StackLogger } from './logger'
 
 const app = express()
+
+process.on('uncaughtException', function (err) {
+    // use `winston` or your own Logger instance as appropriate
+    Logger.error(`Uncaught exception occurred: ${err} - ${err.stack}`)
+    throw err
+})
+
+process.on('unhandledRejection', (err) => {
+    throw err
+})
 app.use(express.json())
 app.use(cookieParser())
 

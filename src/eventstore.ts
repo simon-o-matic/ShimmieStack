@@ -141,7 +141,7 @@ export default function EventStore(
                 return callback(eventModel)
             } catch (e) {
                 Logger.error(`Unable to handle event subscription. Error when handling "${type}": ${e}`)
-                return
+                throw e
             }
         }
 
