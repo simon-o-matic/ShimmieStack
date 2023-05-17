@@ -45,8 +45,7 @@ export interface RecordEventType {
 
 export default function EventStore(
     eventbase: EventBaseType,
-    piiBase?: PiiBaseType,
-    options?: {initialised: boolean }
+    piiBase?: PiiBaseType
 ): EventStoreType {
     const eventStoreEmitter = new EventStoreEmitter()
     const allSubscriptions = new Map<string, boolean>()
@@ -142,9 +141,7 @@ export default function EventStore(
                 return callback(eventModel)
             } catch (e) {
                 Logger.error(`Unable to handle event subscription. Error when handling "${type}": ${e}`)
-                if(options?.initialised === false){
-                    throw e
-                }
+                return
             }
         }
 

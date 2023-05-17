@@ -2,9 +2,9 @@ import EventBase from '../eventbase-memory'
 import EventStore from '../eventstore'
 import { Meta } from '../event'
 import { Logger } from '../logger'
-let eventStoreOptions = { initialised: true }
+
 const eventBase = EventBase()
-const eventStore = EventStore(eventBase,undefined,eventStoreOptions)
+const eventStore = EventStore(eventBase)
 
 // ignore event meta data
 const meta: Meta = {
@@ -123,11 +123,12 @@ describe('when updating data', () => {
 
 describe('when subscribing to an event', () => {
     describe('an error in the subscription', () => {
-        it('should be caught and handled', async () => {
+        it('should be caught, logged and handled ', async () => {
             let valueSet = false
+
             eventStore.subscribe("EXAMPLE_EVENT", (event: unknown) => {
                 valueSet = true
-                throw new Error("Something happened and should stop the app launching")
+                throw new Error("Something happened and should be handled safely")
             })
             await eventStore.recordEvent('streamid', 'EXAMPLE_EVENT', { data: 'blah' }, meta)
             expect(valueSet).toBe(true)
@@ -137,16 +138,6 @@ describe('when subscribing to an event', () => {
 
             // both events should be there, and the errored subscriber should log and not crash the app.
             expect(numEvents.length).toEqual(2)
-
-            eventStoreOptions.initialised = false
-            try {
-                await eventStore.recordEvent('streamid', 'EXAMPLE_EVENT', { data: 'blah' }, meta)
-            } catch (err: any) {
-                expect(err).toBeDefined()
-                expect(err.message).toEqual("Something happened and should stop the app launching")
-                return
-            }
-            throw new Error("Should have thrown during init but didnt")
         })
     })
 })
