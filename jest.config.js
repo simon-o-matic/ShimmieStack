@@ -5,14 +5,11 @@ const jestConfig = {
         '**/?(*.)+(spec|test).+(ts|tsx|js)',
     ],
     transform: {
-        '^.+\\.(ts|tsx)$': 'ts-jest',
+        '^.+\\.(ts|tsx)$': ['ts-jest', {
+            useESM: true,
+        }],
     },
     extensionsToTreatAsEsm: ['.ts'],
-    globals: {
-        'ts-jest': {
-            useESM: true,
-        },
-    },
 }
 
 export default jestConfig
