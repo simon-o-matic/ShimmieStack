@@ -13,7 +13,7 @@
         "publish": "cp README.md  dist && cp package-publish.json dist/package.json && npm run build && cd dist && npm publish"
     },
     "engines": {
-        "node": ">=16"
+        "node": ">=18"
     },
     "repository": {
         "type": "git",
