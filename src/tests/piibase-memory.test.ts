@@ -3,8 +3,7 @@ import EventStore from '../eventstore'
 import { Meta } from '../event'
 import PiiBase from '../piibase-memory'
 import { ShimmieEvent } from '..'
-import exp from 'constants'
-
+import { expect } from '@jest/globals'
 const eventBase = EventBase()
 const piiBase = PiiBase()
 const eventStore = EventStore(eventBase, piiBase)

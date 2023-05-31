@@ -1,5 +1,6 @@
 import { StackType } from '../index'
 import ShimmieTestStack from '../shimmieteststack'
+import { expect, jest } from '@jest/globals'
 
 const testStack = ShimmieTestStack()
 

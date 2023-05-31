@@ -6,6 +6,7 @@ import AdminProcessor from '../admin_processor'
 import MemoryEventBase from '../eventbase-memory'
 import { authorizeApi, noAuthorization } from '../authorizers'
 import { Logger } from '../logger'
+import { expect } from '@jest/globals'
 //import Eventbase from '../eventbase-memory'
 
 const testStack = ShimmieTestStack()

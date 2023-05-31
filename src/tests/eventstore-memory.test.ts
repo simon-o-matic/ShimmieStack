@@ -5,7 +5,7 @@ import { Logger } from '../logger'
 let eventStoreOptions = { initialised: true }
 const eventBase = EventBase()
 const eventStore = EventStore(eventBase,undefined,eventStoreOptions)
-
+import { expect, jest } from '@jest/globals'
 // ignore event meta data
 const meta: Meta = {
     user: {},

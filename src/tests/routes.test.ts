@@ -1,14 +1,15 @@
 import express, { Application, Router } from 'express'
-import { NextFunction } from 'express-serve-static-core'
+import { expect, jest } from '@jest/globals'
 import { mountApi, setApiVersion } from '../routes'
 import { noAuthorization, authorizeApi, customAuthorization } from '../authorizers'
+import MockedFunction = jest.MockedFunction
 
 describe('when mounting a processor', () => {
     describe('When auth is not enforced', () => {
 
         it('and its unique it should be fine', async () => {
-            const appMock = jest.fn() as unknown as Application
-            appMock.use = jest.fn()
+            const appMock = jest.fn() as any
+            appMock.use = jest.fn() as any
             const routerMock = jest.fn() as unknown as Router
             mountApi(appMock, 'blah', '/blah', routerMock, false)
             expect(appMock.use).toBeCalledTimes(1)
@@ -35,16 +36,16 @@ describe('when mounting a processor', () => {
         // });
 
         it('and its missing a slash it should add one', async () => {
-            const appMock = jest.fn() as unknown as Application
-            appMock.use = jest.fn()
+            const appMock = jest.fn() as any
+            appMock.use = jest.fn() as any
             const routerMock = jest.fn() as unknown as Router
             mountApi(appMock, 'blah', 'noslash', routerMock, false)
             expect(appMock.use).toBeCalledWith('/noslash', expect.anything())
         })
 
         it('and it has a version it should be pre-pended with a slash', async () => {
-            const appMock = jest.fn() as unknown as Application
-            appMock.use = jest.fn()
+            const appMock = jest.fn() as any
+            appMock.use = jest.fn() as any
             const routerMock = jest.fn() as unknown as Router
             setApiVersion('v1')
             mountApi(appMock, 'blah', 'noslash', routerMock, false)
@@ -52,8 +53,8 @@ describe('when mounting a processor', () => {
         })
 
         it('and it has a slashed version it should be pre-pended with the slash', async () => {
-            const appMock = jest.fn() as unknown as Application
-            appMock.use = jest.fn()
+            const appMock = jest.fn() as any
+            appMock.use = jest.fn() as any
             const routerMock = jest.fn() as unknown as Router
             setApiVersion('/v2')
             mountApi(appMock, 'blah', '/foo', routerMock, false)
@@ -61,8 +62,8 @@ describe('when mounting a processor', () => {
         })
 
         it('should be able to change the api version twice', async () => {
-            const appMock = jest.fn() as unknown as Application
-            appMock.use = jest.fn()
+            const appMock = jest.fn() as any
+            appMock.use = jest.fn() as any
             const routerMock = jest.fn() as unknown as Router
 
             setApiVersion('/v2 ')
@@ -81,8 +82,8 @@ describe('when mounting a processor', () => {
 
     describe('When auth is enforced', () => {
         it('should fail to mount the router if authorizeApi is provided', async () => {
-            const appMock = jest.fn() as unknown as Application
-            appMock.use = jest.fn()
+            const appMock = jest.fn() as any
+            appMock.use = jest.fn() as any
             const router = express.Router()
 
             router.get('myfakepath', () => {
@@ -100,8 +101,8 @@ describe('when mounting a processor', () => {
         })
 
         it('should successfully mount the router if authorizeApi is provided', async () => {
-            const appMock = jest.fn() as unknown as Application
-            appMock.use = jest.fn()
+            const appMock = jest.fn() as any
+            appMock.use = jest.fn() as any
             const router = express.Router()
 
 
