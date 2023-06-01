@@ -41,6 +41,28 @@ interface ShimmieTestStackType extends StackType {
     testDelete: (
         params: TestRequestParams,
     ) => Promise<supertest.Response>
+    /** Deprecated test GET function. Use testGet() instead**/
+    testGetDep: (
+        path: string,
+        headers?: Record<string, string>
+    ) => Promise<supertest.Response>
+    /** Deprecated test Post function. Use testPost() instead**/
+    testPostDep: (
+        path: string,
+        body: object,
+        headers?: Record<string, string>
+    ) => Promise<supertest.Response>
+    /** Deprecated test Put function. Use testPut() instead**/
+    testPutDep: (
+        path: string,
+        body: object,
+        headers?: Record<string, string>
+    ) => Promise<supertest.Response>
+    /** Deprecated test DELETE function. Use testDelete() instead**/
+    testDeleteDep: (
+        path: string,
+        headers?: Record<string, string>
+    ) => Promise<supertest.Response>
     use: (a: any) => any
 }
 
@@ -87,7 +109,7 @@ export default function ShimmieTestStack(
     /** the test stack usese the in-memory pii store */
     const piiBase = usePiiBase ? PiiBase() : undefined
 
-    /** our inner actal shimmie stack that we control access to for tests */
+    /** our inner actual shimmie stack that we control access to for tests */
     const testStack = ShimmieStack(
         {
             ServerPort: 9999 /* ignored because the express server is never started */,
@@ -149,6 +171,40 @@ export default function ShimmieTestStack(
         return methods.delete(path, headers).expect(expectedResponseCode ?? 200).send()
     }
 
+
+    const testGetDep = async (
+        path: string,
+        headers?: Record<string, string>
+    ): Promise<supertest.Response> => {
+        return methods.get(path, headers).expect(200).send()
+    }
+
+    /** Deprecated */
+    const testPostDep = async (
+        path: string,
+        body: object,
+        headers?: Record<string, string>
+    ): Promise<supertest.Response> => {
+        return methods.post(path, headers).expect(200).send(body)
+    }
+
+    /** Deprecated */
+    const testPutDep = async (
+        path: string,
+        body: object,
+        headers?: Record<string, string>
+    ): Promise<supertest.Response> => {
+        return methods.put(path, headers).expect(200).send(body)
+    }
+
+    /** Deprecated */
+    const testDeleteDep = async (
+        path: string,
+        headers?: Record<string, string>
+    ): Promise<supertest.Response> => {
+        return methods.delete(path, headers).expect(200).send()
+    }
+
     // Allow passthrough to the actal function, but also let testers count calls
     jest.spyOn(testStack, 'recordEvent')
 
@@ -161,6 +217,10 @@ export default function ShimmieTestStack(
         testPost,
         testPut,
         testDelete,
+        testGetDep,
+        testPostDep,
+        testPutDep,
+        testDeleteDep,
         use: (a: any) => app.use(a),
     }
 }
