@@ -18,7 +18,7 @@ testStack.mountTest(
 describe('when calling the internal admin processors on an in-memory event base', () => {
     // Will this always be true???? Its kinda useless.
     it('/time should return the time', async () => {
-        const response = await testStack.testGet('/time')
+        const response = await testStack.testGet({path:'/time'})
         expect(response.status).toBe(200)
         const timeNow: Date = new Date()
 
@@ -53,8 +53,7 @@ describe('when deleting an event', () => {
 
         expect((await memoryEventBase.getAllEventsInOrder()).length).toBe(1)
 
-        const response = await testStack.testDelete('/events/0', {})
-        expect(response.status).toBe(200)
+        await testStack.testDelete({path:'/events/0'})
 
         expect((await memoryEventBase.getAllEventsInOrder()).length).toBe(0)
     })
@@ -70,8 +69,7 @@ describe('when updating an event', () => {
             one: 'two',
         })
 
-        const response = await testStack.testPut('/events/0', { two: 'three' })
-        expect(response.status).toBe(200)
+        await testStack.testPut({path:'/events/0', body:{ two: 'three' }})
 
         expect(
             (await memoryEventBase.getAllEventsInOrder())[0].data

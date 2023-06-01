@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals'
 import cookieParser from 'cookie-parser'
 import express, { Router } from 'express'
-import superrequest from 'supertest'
+import supertest from 'supertest'
 
 import Eventbase from './eventbase-memory'
 import PiiBase from './piibase-memory'
@@ -9,28 +9,43 @@ import ShimmieStack, { StackType } from './index'
 import { authorizeApi, noAuthorization } from './authorizers'
 
 /** Some extra convenience functions for ease testing */
+
+// A record<string, any> with the Auth key autocomplete/type defined.
+export type TestRequestHeaders = Record<string, any> & {
+    Authorization: string,
+}
+
+// A base set of inputs for a test request
+export interface TestRequestParams {
+    path: string,
+    headers?: TestRequestHeaders,
+    expectedResponseCode?: number
+}
+
+// The above test request, but with a body. If T is provided, the body is typed to it.
+export type TestRequestWithBodyParams<T = any> = TestRequestParams & {
+    body?: T,
+}
+
 interface ShimmieTestStackType extends StackType {
     mountTest: (router: Router, mountpoint?: string) => void
     testGet: (
-        path: string,
-        headers?: Record<string, string>
-    ) => Promise<superrequest.Response>
+        params: TestRequestParams,
+    ) => Promise<supertest.Response>
     testPost: (
-        path: string,
-        body: object,
-        headers?: Record<string, string>
-    ) => Promise<superrequest.Response>
+        params: TestRequestWithBodyParams,
+    ) => Promise<supertest.Response>
     testPut: (
-        path: string,
-        body: object,
-        headers?: Record<string, string>
-    ) => Promise<superrequest.Response>
+        params: TestRequestWithBodyParams,
+    ) => Promise<supertest.Response>
     testDelete: (
-        path: string,
-        headers?: Record<string, string>
-    ) => Promise<superrequest.Response>
+        params: TestRequestParams,
+    ) => Promise<supertest.Response>
     use: (a: any) => any
 }
+
+// allow indexed function lookup by name
+type SuperTester = supertest.SuperTest<supertest.Test> & Record<string, any>
 
 export default function ShimmieTestStack(
     defaultAuthHeaderValue?: string,
@@ -43,21 +58,21 @@ export default function ShimmieTestStack(
 
     const prepareRequest =
         (method: string) =>
-        (path: string, headers?: Record<string, string>, withAuth = true) => {
-            const req = (superrequest(app) as any)[method](path)
+            (path: string, headers?: Record<string, string>, withAuth = true): supertest.Test => {
+                const req: supertest.Test = (supertest(app) as SuperTester)[method](path)
 
-            if (authHeaderValue && withAuth) {
-                req.set("'Authorization'", `Bearer ${authHeaderValue}`)
+                if (authHeaderValue && withAuth) {
+                    req.set('\'Authorization\'', `Bearer ${authHeaderValue}`)
+                }
+
+                if (headers) {
+                    Object.entries(headers).map((header) =>
+                        req.set(header[0], header[1]),
+                    )
+                }
+
+                return req
             }
-
-            if (headers) {
-                Object.entries(headers).map((header) =>
-                    req.set(header[0], header[1])
-                )
-            }
-
-            return req
-        }
 
     const methods = {
         post: prepareRequest('post'),
@@ -89,34 +104,49 @@ export default function ShimmieTestStack(
     }
 
     /** Get helper that uses supertest to hook into the express route to make the actual call */
-    const testGet = async (path: string, headers?: Record<string, string>) => {
-        return await methods.get(path, headers)
+    const testGet = async (
+        {
+            path,
+            headers,
+            expectedResponseCode,
+        }: TestRequestParams
+    ): Promise<supertest.Response> => {
+        return methods.get(path, headers).expect(expectedResponseCode ?? 200).send()
     }
 
     /** Post helper that uses supertest to hook into the express route to make the actual call */
     const testPost = async (
-        path: string,
-        body: object,
-        headers?: Record<string, string>
-    ) => {
-        return await methods.post(path, headers).send(body)
+        {
+            path,
+            headers,
+            expectedResponseCode,
+            body,
+        }: TestRequestWithBodyParams
+    ): Promise<supertest.Response> => {
+        return methods.post(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {})
     }
 
     /** Put helper that uses supertest to hook into the express route to make the actual call */
     const testPut = async (
-        path: string,
-        body: object,
-        headers?: Record<string, string>
-    ) => {
-        return await methods.put(path, headers).send(body)
+        {
+            path,
+            headers,
+            expectedResponseCode,
+            body,
+        }: TestRequestWithBodyParams
+    ): Promise<supertest.Response> => {
+        return methods.put(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {})
     }
 
     /** Delete helper that uses supertest to hook into the express route to make the actual call */
     const testDelete = async (
-        path: string,
-        headers?: Record<string, string>
-    ) => {
-        return await methods.delete(path, headers)
+        {
+            path,
+            headers,
+            expectedResponseCode,
+        }: TestRequestParams
+    ): Promise<supertest.Response> => {
+        return methods.delete(path, headers).expect(expectedResponseCode ?? 200).send()
     }
 
     // Allow passthrough to the actal function, but also let testers count calls

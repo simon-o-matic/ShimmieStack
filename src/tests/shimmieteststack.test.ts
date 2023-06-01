@@ -50,24 +50,32 @@ beforeEach(() => {
 
 describe('when calling testPost with empty body', () => {
     it('there should be no errors', async () => {
-        const response = await testStack.testPost('/nobodyrequired', {})
-        expect(response.status).toBe(200)
+        const response = await testStack.testPost({ path: '/nobodyrequired' })
     })
 })
 
 describe('when calling posts that generate a history', () => {
     it('there should be history', async () => {
-        await testStack.testPost('/999/golden-girls', {
-            type: 'mary',
-            data: { a: 7, b: 6 },
+        await testStack.testPost({
+            path: '/999/golden-girls',
+            body: {
+                type: 'mary',
+                data: { a: 7, b: 6 },
+            },
         })
-        await testStack.testPost('/999/golden-girls', {
-            type: 'alice',
-            data: { a: 77, b: 66 },
+        await testStack.testPost({
+            path: '/999/golden-girls',
+            body: {
+                type: 'alice',
+                data: { a: 77, b: 66 },
+            },
         })
-        await testStack.testPost('/34sdfsT3/golden-girls', {
-            type: 'shirley',
-            data: { a: 1, b: 22222 },
+        await testStack.testPost({
+            path: '/34sdfsT3/golden-girls',
+            body: {
+                type: 'shirley',
+                data: { a: 1, b: 22222 },
+            },
         })
 
         expect(testStack.getHistory('999')?.history.length).toBe(2)
@@ -77,37 +85,52 @@ describe('when calling posts that generate a history', () => {
 
 describe('when merging histories of multiple source ids', () => {
     it('should combine all history of given ids', async () => {
-        await testStack.testPost('/111/golden-girls', {
-            type: 'abigail',
-            data: { a: 1 },
+        await testStack.testPost({
+            path: '/111/golden-girls',
+            body: {
+                type: 'abigail',
+                data: { a: 1 },
+            },
         })
-        await testStack.testPost('/222/golden-girls', {
-            type: 'barb',
-            data: { a: 2 },
+        await testStack.testPost({
+            path: '/222/golden-girls',
+            body: {
+                type: 'barb',
+                data: { a: 2 },
+            },
         })
-
         expect(testStack.getHistory(['111', '222'])?.history).toHaveLength(2)
     })
     it('should return history in the order the events occured', async () => {
-        await testStack.testPost('/333/golden-girls', {
-            type: 'cheryl',
-            data: { a: 3 },
+        await testStack.testPost({
+            path: '/333/golden-girls', body: {
+                type: 'cheryl',
+                data: { a: 3 },
+            },
         })
-        await testStack.testPost('/555/golden-girls', {
-            type: 'dolores',
-            data: { a: 4 },
+        await testStack.testPost({
+            path: '/555/golden-girls', body: {
+                type: 'dolores',
+                data: { a: 4 },
+            },
         })
-        await testStack.testPost('/333/golden-girls', {
-            type: 'eugenie',
-            data: { a: 5 },
+        await testStack.testPost({
+            path: '/333/golden-girls', body: {
+                type: 'eugenie',
+                data: { a: 5 },
+            },
         })
-        await testStack.testPost('/333/golden-girls', {
-            type: 'frances',
-            data: { a: 6 },
+        await testStack.testPost({
+            path: '/333/golden-girls', body: {
+                type: 'frances',
+                data: { a: 6 },
+            },
         })
-        await testStack.testPost('/444/golden-girls', {
-            type: 'gertrude',
-            data: { a: 7 },
+        await testStack.testPost({
+            path: '/444/golden-girls', body: {
+                type: 'gertrude',
+                data: { a: 7 },
+            },
         })
 
         const history = testStack.getHistory(['333', '444', '555'])?.history
@@ -132,12 +155,10 @@ const authHeaderValue = 'Definitely real'
 
 describe('when calling a POST with an auth header', () => {
     it('there should be no errors', async () => {
-        const response = await testStack.testPost(
-            '/nobodyrequired',
-            {},
-            { Authorization: authHeaderValue }
-        )
-        expect(response.status).toBe(200)
+        const response = await testStack.testPost({
+            path: '/nobodyrequired',
+            headers: { Authorization: authHeaderValue },
+        })
         const requestHeaders = response.body.headers
         expect(requestHeaders['authorization']).toBe(authHeaderValue)
     })
@@ -145,12 +166,10 @@ describe('when calling a POST with an auth header', () => {
 
 describe('when calling a PUT with an auth header', () => {
     it('there should be no errors', async () => {
-        const response = await testStack.testPost(
-            '/nobodyrequired',
-            {},
-            { Authorization: authHeaderValue }
-        )
-        expect(response.status).toBe(200)
+        const response = await testStack.testPut({
+            path: '/nobodyrequired',
+            headers: { Authorization: authHeaderValue },
+        })
         const requestHeaders = response.body.headers
         expect(requestHeaders['authorization']).toBe(authHeaderValue)
     })
@@ -158,12 +177,10 @@ describe('when calling a PUT with an auth header', () => {
 
 describe('when calling a GET with an auth header', () => {
     it('there should be no errors', async () => {
-        const response = await testStack.testPost(
-            '/nobodyrequired',
-            {},
-            { Authorization: authHeaderValue }
-        )
-        expect(response.status).toBe(200)
+        const response = await testStack.testGet({
+            path: '/nobodyrequired',
+            headers: { Authorization: authHeaderValue },
+        })
         const requestHeaders = response.body.headers
         expect(requestHeaders['authorization']).toBe(authHeaderValue)
     })
@@ -171,12 +188,11 @@ describe('when calling a GET with an auth header', () => {
 
 describe('when calling a DELETE with an auth header', () => {
     it('there should be no errors', async () => {
-        const response = await testStack.testPost(
-            '/nobodyrequired',
-            {},
-            { Authorization: authHeaderValue }
+        const response = await testStack.testPost({
+                path: '/nobodyrequired',
+                headers: { Authorization: authHeaderValue }
+            }
         )
-        expect(response.status).toBe(200)
         const requestHeaders = response.body.headers
         expect(requestHeaders['authorization']).toBe(authHeaderValue)
     })
@@ -184,29 +200,34 @@ describe('when calling a DELETE with an auth header', () => {
 
 describe('when calling non existant end point ', () => {
     it('with GET should be 404', async () => {
-        const response = await testStack.testGet('/doesnotexist')
-        expect(response.status).toBe(404)
+        await testStack.testGet({
+            path: '/doesnotexist',
+            expectedResponseCode: 404,
+        })
     })
 })
 
 describe('when calling non existant end point ', () => {
     it('with GET should be 404', async () => {
-        const response = await testStack.testPost('/doesnotexist', {})
-        expect(response.status).toBe(404)
+        await testStack.testPost({
+            path: '/doesnotexist',
+            expectedResponseCode: 404,
+        })
     })
 })
 
 describe('when calling an end point of the wrong type ', () => {
     it('with GET should be 404', async () => {
-        const response = await testStack.testGet('/postonly-nobodyrequired')
-        expect(response.status).toBe(404)
+        await testStack.testGet({
+            path: '/doesnotexist',
+            expectedResponseCode: 404,
+        })
     })
 })
 
 describe('when calling /whoami', () => {
     it('the current user should be returned', async () => {
-        const response = await testStack.testGet('/whoami')
-        expect(response.status).toBe(200)
+        const response = await testStack.testGet({path:'/whoami'})
         expect(response.body.me).toBe('shimmie')
         expect(testStack.recordEvent).toBeCalledTimes(1)
     })
@@ -214,13 +235,15 @@ describe('when calling /whoami', () => {
 
 describe('when posting to /foo ', () => {
     it('the request body parameter should be returned', async () => {
-        const response = await testStack.testPost('/foo', { foo: 'boo' })
-        expect(response.status).toBe(200)
+        const response = await testStack.testPost({path:'/foo', body:{ foo: 'boo' }})
         expect(response.body.foo).toBe('boo')
     })
 
     it('without a parameter there should be an error', async () => {
-        const response = await testStack.testPost('/foo', { xoo: 'boo' })
-        expect(response.status).toBe(400)
+        await testStack.testPost({
+            path:'/foo',
+            body:{ xoo: 'boo' },
+            expectedResponseCode: 400
+        })
     })
 })
