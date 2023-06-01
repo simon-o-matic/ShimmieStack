@@ -7,6 +7,7 @@ import Eventbase from './eventbase-memory'
 import PiiBase from './piibase-memory'
 import ShimmieStack, { StackType } from './index'
 import { authorizeApi, noAuthorization } from './authorizers'
+import 'express-async-errors'
 
 /** Some extra convenience functions for ease testing */
 
