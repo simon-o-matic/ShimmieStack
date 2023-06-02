@@ -205,7 +205,7 @@ export default function ShimmieTestStack(
         headers?: Record<string, string>
     ): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            methods.post(path, headers).expect(200).send(body).end((err: any, res: supertest.Response) => {
+            methods.put(path, headers).expect(200).send(body).end((err: any, res: supertest.Response) => {
                 resolve(res)
             })
         })
