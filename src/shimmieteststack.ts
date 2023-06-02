@@ -173,11 +173,16 @@ export default function ShimmieTestStack(
     }
 
 
+    /** Deprecated */
     const testGetDep = async (
         path: string,
         headers?: Record<string, string>
     ): Promise<supertest.Response> => {
-        return methods.get(path, headers).expect(200).send()
+        return new Promise<supertest.Response>((resolve, reject) => {
+            methods.get(path, headers).expect(200).end((err: any, res: supertest.Response) => {
+                resolve(res)
+            })
+        })
     }
 
     /** Deprecated */
@@ -186,7 +191,11 @@ export default function ShimmieTestStack(
         body: object,
         headers?: Record<string, string>
     ): Promise<supertest.Response> => {
-        return methods.post(path, headers).expect(200).send(body)
+        return new Promise<supertest.Response>((resolve, reject) => {
+            methods.post(path, headers).expect(200).send(body).end((err: any, res: supertest.Response) => {
+                resolve(res)
+            })
+        })
     }
 
     /** Deprecated */
@@ -195,15 +204,24 @@ export default function ShimmieTestStack(
         body: object,
         headers?: Record<string, string>
     ): Promise<supertest.Response> => {
-        return methods.put(path, headers).expect(200).send(body)
+        return new Promise<supertest.Response>((resolve, reject) => {
+            methods.post(path, headers).expect(200).send(body).end((err: any, res: supertest.Response) => {
+                resolve(res)
+            })
+        })
     }
 
     /** Deprecated */
+        // todo wrap in a try/catch
     const testDeleteDep = async (
         path: string,
         headers?: Record<string, string>
     ): Promise<supertest.Response> => {
-        return methods.delete(path, headers).expect(200).send()
+        return new Promise<supertest.Response>((resolve, reject) => {
+            return methods.delete(path, headers).expect(200).end((err: any, res: supertest.Response) => {
+                resolve(res)
+            })
+        })
     }
 
     // Allow passthrough to the actal function, but also let testers count calls

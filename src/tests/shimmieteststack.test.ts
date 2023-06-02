@@ -242,7 +242,7 @@ describe('when posting to /foo ', () => {
     it('without a parameter there should be an error', async () => {
         await testStack.testPost({
             path:'/foo',
-            body:{ xoo: 'boo' },
+            body:{ xoo: 'xoo' },
             expectedResponseCode: 400
         })
     })
