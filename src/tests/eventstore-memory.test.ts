@@ -59,7 +59,7 @@ describe('when recording an event', () => {
 
     it('there should be two events in the database when two are recorded', async () => {
         eventStore.subscribe('type', () => {})
-        await eventStore.recordEvent('streamid', 'type', { data: 'blah' }, meta)
+        await eventStore.recordEvent<{data: string}>('streamid', 'type', { data: 'blah' }, meta)
         await eventStore.recordEvent('streamid', 'type', { data: 'blah' }, meta)
         const allEvents = await eventStore.getAllEvents()
 

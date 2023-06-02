@@ -227,21 +227,42 @@ describe('when calling an end point of the wrong type ', () => {
 
 describe('when calling /whoami', () => {
     it('the current user should be returned', async () => {
-        const response = await testStack.testGet({path:'/whoami'})
+        const response = await testStack.testGet({ path: '/whoami' })
         expect(response.body.me).toBe('shimmie')
         expect(testStack.recordEvent).toBeCalledTimes(1)
     })
 })
 
+describe('when calling /whoami', () => {
+    it('there should be two events in the database when two are recorded', async () => {
+        testStack.subscribe('type', () => {
+        })
+        await testStack.recordEvents<{ data: string }>([{
+            streamId: 'streamid',
+            eventName: 'type',
+            eventData: { data: 'blah' },
+            meta,
+        }, {
+            streamId: 'streamid',
+            eventName: 'type',
+            eventData: { data: 'blah2' },
+            meta,
+        }])
+        const allEvents = await eventStore.getAllEvents()
+
+        expect(allEvents.length).toEqual(2)
+    })
+})
+
 describe('when posting to /foo ', () => {
     it('the request body parameter should be returned', async () => {
-        const response = await testStack.testPost({path:'/foo', body:{ foo: 'boo' }})
+        const response = await testStack.testPost({ path: '/foo', body: { foo: 'boo' } })
         expect(response.body.foo).toBe('boo')
     })
 
     it('without a parameter there should be an error', async () => {
         await testStack.testPost({
-            path:'/foo',
+            path: '/foo',
             body:{ xoo: 'xoo' },
             expectedResponseCode: 400
         })

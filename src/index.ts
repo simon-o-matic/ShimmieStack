@@ -77,15 +77,15 @@ export interface StreamHistory {
 export type StackType = {
     setApiVersion: (version: string) => StackType
     getRouter: () => Router
-    recordEvent: (
+    recordEvent: <T = any>(
         streamId: StreamId,
         eventName: EventName,
-        eventData: EventData,
+        eventData: T,
         meta: Meta,
         piiFields?: PiiFields,
     ) => Promise<void>
-    recordEvents: (
-        events: RecordEventType[],
+    recordEvents: <T = any>(
+        events: RecordEventType<T>[],
         executionOrder?: ExecutionOrder,
     ) => Promise<void>
     startup: () => void
@@ -292,8 +292,8 @@ export default function ShimmieStack(
             eventStore.subscribe(eventName, handler)
             Logger.info(`ShimmieStack >>>> Registered event handler: ${eventName}` )
         },
-        recordEvents: async (
-            events: RecordEventType[],
+        recordEvents: async <T = any>(
+            events: RecordEventType<T>[],
             executionOrder?: ExecutionOrder
         ) => {
             const executeConcurrently =
@@ -342,15 +342,14 @@ export default function ShimmieStack(
                 }
             }
         },
-        recordEvent: (
+        recordEvent: <T = any>(
             streamdId: StreamId,
             eventName: EventName,
-            eventData: EventData,
+            eventData: T,
             meta: Meta,
             piiFields?: PiiFields,
         ): Promise<void> =>
-            // todo get these types right
-            eventStore.recordEvent(
+            eventStore.recordEvent<T>(
                 streamdId,
                 eventName,
                 eventData,

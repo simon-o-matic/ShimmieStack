@@ -22,10 +22,10 @@ class EventStoreEmitter extends EventEmitter {
 
 export interface EventStoreType {
     replayAllEvents: () => Promise<number>
-    recordEvent: (
+    recordEvent: <T = any>(
         streamId: string,
         eventName: string,
-        data: object,
+        data: T,
         meta: Meta,
         pii?: PiiFields
     ) => Promise<any>
@@ -35,10 +35,10 @@ export interface EventStoreType {
     getAllEvents: (withPii?: boolean) => Promise<any>
 }
 
-export interface RecordEventType {
+export interface RecordEventType<T = any> {
     streamId: StreamId
     eventName: EventName
-    eventData: EventData
+    eventData: T
     meta: Meta
     piiFields?: PiiFields
 }
@@ -51,10 +51,10 @@ export default function EventStore(
     const eventStoreEmitter = new EventStoreEmitter()
     const allSubscriptions = new Map<string, boolean>()
 
-    const recordEvent = async (
+    const recordEvent = async <T = any>(
         streamId: string,
         eventName: string,
-        data: object,
+        data: T,
         userMeta: UserMeta,
         piiFields?: PiiFields
     ) => {
@@ -90,7 +90,7 @@ export default function EventStore(
                 }
             })
         } else {
-            nonPiiData = data
+            nonPiiData = data as Record<string, any>
         }
 
         const newEvent: Event = {
