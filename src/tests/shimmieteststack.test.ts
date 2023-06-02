@@ -1,6 +1,7 @@
 import { StackType } from '../index'
 import ShimmieTestStack from '../shimmieteststack'
 import { expect, jest } from '@jest/globals'
+import { Meta } from '../event'
 
 const testStack = ShimmieTestStack()
 
@@ -237,6 +238,12 @@ describe('when calling /whoami', () => {
     it('there should be two events in the database when two are recorded', async () => {
         testStack.subscribe('type', () => {
         })
+        const meta: Meta = {
+            user: {},
+            replay: false,
+            date: 123,
+            userAgent: 'test agent',
+        }
         await testStack.recordEvents<{ data: string }>([{
             streamId: 'streamid',
             eventName: 'type',
@@ -248,9 +255,8 @@ describe('when calling /whoami', () => {
             eventData: { data: 'blah2' },
             meta,
         }])
-        const allEvents = await eventStore.getAllEvents()
 
-        expect(allEvents.length).toEqual(2)
+        expect(testStack.getHistory('streamid')?.history.length).toEqual(2)
     })
 })
 
