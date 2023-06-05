@@ -5,15 +5,14 @@ import { Logger } from '../logger'
 let eventStoreOptions = { initialised: true }
 const eventBase = EventBase()
 import { expect, jest } from '@jest/globals'
-import ShimmieTestStack from '../shimmieteststack'
 
 
-type CommandEventModels = {
+type EventModels = {
     AN_EVENT_NAME: { data: string }
     ANOTHER_EVENT_NAME: { data: number }
 }
 
-const eventStore = EventStore<CommandEventModels, any>(eventBase,undefined,eventStoreOptions)
+const eventStore = EventStore<EventModels, EventModels>(eventBase,undefined,eventStoreOptions)
 
 // ignore event meta data
 const meta: Meta = {
@@ -44,7 +43,7 @@ describe('when creating the eventstore', () => {
 
 describe('when recording an event', () => {
     it('there should be one event in the database if one is recorded', async () => {
-        eventStore.subscribe('type', () => {})
+        eventStore.subscribe('AN_EVENT_NAME', () => {})
         await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'blah' }, meta)
         const numEvents = await eventStore.getAllEvents()
 

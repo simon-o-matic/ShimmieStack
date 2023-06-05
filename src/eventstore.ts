@@ -11,8 +11,7 @@ import {
     PiiBaseType,
     PiiFields,
     StreamId,
-    TypedEvent,
-    TypedEventHandler,
+    TypedEvent, TypedEventHandler,
 } from './event'
 import { Logger } from './logger'
 
@@ -30,8 +29,8 @@ export interface EventStoreType<CommandEventModels, QueryEventModels> {
         pii?: PiiFields,
     ) => Promise<any>
     subscribe: (
-        type: string,
-        callback: EventHandler | TypedEventHandler<any>,
+        type: keyof QueryEventModels,
+        callback: TypedEventHandler<QueryEventModels>
     ) => void
     deleteEvent: (sequenceNumber: number) => void
     updateEventData: (sequenceNumber: number, data: object) => void
@@ -46,6 +45,8 @@ export interface RecordEventType<CommandEventModels> {
     piiFields?: PiiFields
 }
 
+
+
 export default function EventStore<CommandEventModels, QueryEventModels>(
     eventbase: EventBaseType,
     piiBase?: PiiBaseType,
@@ -53,6 +54,10 @@ export default function EventStore<CommandEventModels, QueryEventModels>(
 ): EventStoreType<CommandEventModels, QueryEventModels> {
     const eventStoreEmitter = new EventEmitter()
     const allSubscriptions = new Map<string, boolean>()
+
+
+    // type UseCommandEventModels<T> = T extends CommandEventModels ? T : any;
+    // type UseQueryEventModels<T> = T extends QueryEventModels ? T : any;
 
     const recordEvent = async (
         streamId: string,
@@ -136,23 +141,25 @@ export default function EventStore<CommandEventModels, QueryEventModels>(
     }
 
     const subscribe = (
-        type: string,
-        callback: EventHandler | TypedEventHandler<any>
+        type: keyof QueryEventModels,
+        callback: (event: TypedEvent<QueryEventModels>) => void
     ): void => {
         // wrap the handler in a try catch so we don't crash the server with unhandled exceptions.
-        const tryCatchCallback: EventHandler | TypedEventHandler<any> = (eventModel: Event | TypedEvent<any>): void => {
+        const tryCatchCallback: (event: TypedEvent<QueryEventModels>) => void = (
+            eventModel: TypedEvent<QueryEventModels>
+        ): void => {
             try {
                 return callback(eventModel)
             } catch (e) {
-                Logger.error(`Unable to handle event subscription. Error when handling "${type}": ${e}`)
+                Logger.error(`Unable to handle event subscription. Error when handling "${String(eventModel.type)}": ${e}`)
                 if(options?.initialised === false){
                     throw e
                 }
             }
         }
 
-        allSubscriptions.set(type, true) // record for later
-        eventStoreEmitter.on(type, tryCatchCallback)
+        allSubscriptions.set(String(type), true) // record for later
+        eventStoreEmitter.on(String(type), tryCatchCallback)
     }
 
     const getAllEvents = async (withPii = true) => {

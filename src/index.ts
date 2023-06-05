@@ -10,7 +10,6 @@ import {
     Event,
     EventBaseType,
     EventData,
-    EventHandler,
     Meta,
     PiiBaseType,
     PiiFields,
@@ -59,16 +58,16 @@ export enum ExecutionOrder {
     CONCURRENT = 'concurrent',
 }
 
-export interface EventHistory {
+export interface EventHistory<QueryEventModels> {
     streamId: string
-    type: string
+    type: keyof QueryEventModels
     date: number
     user: any
-    data: EventData
+    data: QueryEventModels[keyof QueryEventModels]
 }
 
-export interface StreamHistory {
-    history: EventHistory[]
+export interface StreamHistory<T> {
+    history: EventHistory<T>[]
     updatedAt?: number
     createdAt?: number
 }
@@ -120,11 +119,11 @@ export type StackType<
         router: Router,
     ) => StackType<CommandEventModels, QueryEventModels>
     subscribe: (
-        eventName: string,
-        handler: EventHandler | TypedEventHandler<any>,
+        eventName: keyof QueryEventModels,
+        handler: TypedEventHandler<QueryEventModels>,
     ) => void
     use: (a: any) => any
-    getHistory: (ids: string | string[]) => StreamHistory | undefined
+    getHistory: (ids: string | string[]) => StreamHistory<QueryEventModels> | undefined
     registerPreInitFn: (fn: () => void | Promise<void>) => StackType<CommandEventModels, QueryEventModels>
     registerPostInitFn: (fn: () => void | Promise<void>) => StackType<CommandEventModels, QueryEventModels>
 }
@@ -212,7 +211,19 @@ export default function ShimmieStack<
 
     // noinspection TypeScriptValidateTypes
     /** set up our history listener, this breaks types */
-    eventStore.subscribe('*', historyBuilder)
+    eventStore.subscribe(
+        '*' as keyof QueryEventModels,
+        (e: TypedEvent<QueryEventModels>) => {
+            const historyArray: EventHistory<QueryEventModels>[] = eventHistory.get(e.streamId) || []
+            historyArray.push({
+                streamId: e.streamId,
+                data: e.data,
+                type: e.type,
+                date: e.meta.date,
+                user: e.meta.user,
+            })
+            eventHistory.set(e.streamId, historyArray)
+        })
 
     let errorHandler: ErrorRequestHandler = catchAllErrorHandler
 
@@ -237,6 +248,9 @@ export default function ShimmieStack<
     // store the references to functions to execute post startup
     const postInitFns: (() => void | Promise<void>)[] = []
     const preInitFns: (() => void | Promise<void>)[] = []
+
+    // do we need a way to reset this?
+    let eventHistory = new Map<string, EventHistory<QueryEventModels>[]>()
 
     const funcs: StackType<CommandEventModels, QueryEventModels> = {
         startup: async () => {
@@ -311,8 +325,8 @@ export default function ShimmieStack<
         },
 
         subscribe(
-            eventName: string,
-            handler: EventHandler | TypedEventHandler<any>,
+            eventName: keyof QueryEventModels,
+            handler: TypedEventHandler<QueryEventModels>,
         ) {
             eventStore.subscribe(eventName, handler)
             Logger.info(`ShimmieStack >>>> Registered event handler: ${String(eventName)}`)
@@ -394,8 +408,8 @@ export default function ShimmieStack<
          * Up to the caller to collate list of related IDs, getHistory doesn't
          * know or care if they're related events
          */
-        getHistory: (ids: string | string[]): StreamHistory | undefined => {
-            let history: EventHistory[] | undefined
+        getHistory: (ids: string | string[]): StreamHistory<QueryEventModels> | undefined => {
+            let history: EventHistory<QueryEventModels>[] | undefined
             if (typeof ids === 'string') {
                 history = eventHistory.get(ids)
             } else {
@@ -403,7 +417,7 @@ export default function ShimmieStack<
                     .flatMap((id) => {
                         return eventHistory.get(id)
                     })
-                    .filter((el): el is EventHistory => !!el)
+                    .filter((el): el is EventHistory<QueryEventModels> => !!el)
                     .sort((a, b) => (a.date > b.date ? 1 : -1)) // oldest first
             }
 
@@ -439,19 +453,4 @@ export default function ShimmieStack<
     }
 
     return funcs
-}
-
-// do we need a way to reset this?
-let eventHistory = new Map<string, EventHistory[]>()
-
-function historyBuilder(e: Event) {
-    const historyArray: EventHistory[] = eventHistory.get(e.streamId) || []
-    historyArray.push({
-        streamId: e.streamId,
-        data: e.data,
-        type: e.type,
-        date: e.meta.date,
-        user: e.meta.user,
-    })
-    eventHistory.set(e.streamId, historyArray)
 }

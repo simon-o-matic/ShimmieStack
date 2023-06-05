@@ -1,4 +1,4 @@
-import { StackType } from '../index'
+import { EventHistory, StackType } from '../index'
 import ShimmieTestStack from '../shimmieteststack'
 import { expect, jest } from '@jest/globals'
 import { Meta } from '../event'
@@ -142,7 +142,7 @@ describe('when merging histories of multiple source ids', () => {
 
         const history = testStack.getHistory(['333', '444', '555'])?.history
         if (history) {
-            const types = history.map((histEl) => {
+            const types = history.map((histEl: EventHistory<any>) => {
                 return histEl.type
             })
             expect(types).toEqual([

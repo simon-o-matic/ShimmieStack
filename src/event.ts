@@ -15,6 +15,7 @@ export interface Meta extends UserMeta {
 export type PiiFields = string[]
 // todo fix this type??
 // export type TypedEventHandler<Model, key extends keyof Model> = (event: TypedEvent<Model, key extends keyof Model>) => void
+// export type QueryModelsEventHandler<T> = (event: TypedEvent<T>) => void
 export type TypedEventHandler<T> = (event: TypedEvent<T>) => void
 export type EventHandler = (event: Event) => void
 export type EventName = string
@@ -33,15 +34,15 @@ export type Event = BaseEvent & {
     type: string
 }
 
-// export type TypedEvent<Model, key extends keyof Model> = BaseEvent & {
-//     data: Model[key],
-//     type: key
-// }
-
-export type TypedEvent<T> = BaseEvent & {
-    data: EventData,
-    type: T
+export type TypedEvent<Model> = BaseEvent & {
+    type: keyof Model
+    data: Model[keyof Model],
 }
+
+// export type TypedEvent<T> = BaseEvent & {
+//     data: EventData,
+//     type: T
+// }
 
 /** What comes back after adding a new event to the event log */
 export interface StoredEventResponse {

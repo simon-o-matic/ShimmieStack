@@ -74,8 +74,10 @@ interface ShimmieTestStackType<CommandEventModels,
 // allow indexed function lookup by name
 type SuperTester = supertest.SuperTest<supertest.Test> & Record<string, any>
 
-export default function ShimmieTestStack<CommandEventModels = Record<string, any>,
-    QueryEventModels = Record<string, any>>(
+export default function ShimmieTestStack<
+    CommandEventModels = Record<string, any>,
+    QueryEventModels = Record<string, any>
+    >(
     defaultAuthHeaderValue?: string,
     usePiiBase: boolean = false,
 ): ShimmieTestStackType<CommandEventModels,
