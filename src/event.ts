@@ -13,6 +13,8 @@ export interface Meta extends UserMeta {
 }
 
 export type PiiFields = string[]
+// todo fix this type??
+// export type TypedEventHandler<Model, key extends keyof Model> = (event: TypedEvent<Model, key extends keyof Model>) => void
 export type TypedEventHandler<T> = (event: TypedEvent<T>) => void
 export type EventHandler = (event: Event) => void
 export type EventName = string
@@ -21,18 +23,24 @@ export type EventData = object
 
 type BaseEvent = {
     streamId: StreamId
-    type: string
     meta: Meta
     sequencenum?: number
     logdate?: string
 }
 
 export type Event = BaseEvent & {
-    data: EventData
+    data: EventData,
+    type: string
 }
 
+// export type TypedEvent<Model, key extends keyof Model> = BaseEvent & {
+//     data: Model[key],
+//     type: key
+// }
+
 export type TypedEvent<T> = BaseEvent & {
-    data: T
+    data: EventData,
+    type: T
 }
 
 /** What comes back after adding a new event to the event log */

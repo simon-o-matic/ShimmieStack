@@ -6,70 +6,73 @@ import { EventEmitter } from 'events'
 import {
     Event,
     EventBaseType,
-    EventData,
     EventHandler,
-    EventName,
     Meta,
     PiiBaseType,
     PiiFields,
-    StreamId, TypedEvent, TypedEventHandler,
-    UserMeta,
+    StreamId,
+    TypedEvent,
+    TypedEventHandler,
 } from './event'
 import { Logger } from './logger'
 
-class EventStoreEmitter extends EventEmitter {
-}
+// Some TS error here, seems to work fine just not able to work out emitter type?
+// noinspection TypeScriptValidateTypes
 
-export interface EventStoreType {
+
+export interface EventStoreType<CommandEventModels, QueryEventModels> {
     replayAllEvents: () => Promise<number>
-    recordEvent: <T = any>(
+    recordEvent: (
         streamId: string,
-        eventName: string,
-        data: T,
+        eventName: keyof CommandEventModels,
+        data: CommandEventModels[keyof CommandEventModels],
         meta: Meta,
-        pii?: PiiFields
+        pii?: PiiFields,
     ) => Promise<any>
-    subscribe: (type: string, callback: EventHandler | TypedEventHandler<any>) => void
+    subscribe: (
+        type: string,
+        callback: EventHandler | TypedEventHandler<any>,
+    ) => void
     deleteEvent: (sequenceNumber: number) => void
     updateEventData: (sequenceNumber: number, data: object) => void
     getAllEvents: (withPii?: boolean) => Promise<any>
 }
 
-export interface RecordEventType<T = any> {
+export interface RecordEventType<CommandEventModels> {
     streamId: StreamId
-    eventName: EventName
-    eventData: T
+    eventName: keyof CommandEventModels
+    eventData: CommandEventModels[keyof CommandEventModels]
     meta: Meta
     piiFields?: PiiFields
 }
 
-export default function EventStore(
+export default function EventStore<CommandEventModels, QueryEventModels>(
     eventbase: EventBaseType,
     piiBase?: PiiBaseType,
-    options?: {initialised: boolean }
-): EventStoreType {
-    const eventStoreEmitter = new EventStoreEmitter()
+    options?: { initialised: boolean },
+): EventStoreType<CommandEventModels, QueryEventModels> {
+    const eventStoreEmitter = new EventEmitter()
     const allSubscriptions = new Map<string, boolean>()
 
-    const recordEvent = async <T = any>(
+    const recordEvent = async (
         streamId: string,
-        eventName: string,
-        data: T,
-        userMeta: UserMeta,
-        piiFields?: PiiFields
+        eventName: keyof CommandEventModels,
+        data: CommandEventModels[keyof CommandEventModels],
+        meta: Meta,
+        pii?: PiiFields,
     ) => {
-        if (!streamId || !eventName || !userMeta) {
+        if (!streamId || !eventName || !meta) {
             Logger.error(
                 `EventStore::recordEvent::missing values ${{
                     streamId,
                     eventName,
-                    userMeta,
+                    meta,
                 }}`,
             )
             throw new Error('Attempt to record bad event data')
         }
         // if we have any pii, make a pii key
-        const hasPii: boolean = !!piiFields
+        const hasPii: boolean = !!pii
 
         if (hasPii && !piiBase) {
             Logger.warn('Pii key provided without a PiiBase defined')
@@ -83,7 +86,7 @@ export default function EventStore(
 
         if (hasPii && data) {
             Object.keys(data).map((key) => {
-                if (piiFields?.includes(key)) {
+                if (pii?.includes(key)) {
                     piiData[key] = (data as any)[key] // collect PII into an object,
                 } else {
                     nonPiiData[key] = (data as any)[key] // collect non PII into an object,
@@ -97,12 +100,12 @@ export default function EventStore(
             data: nonPiiData, // make sure if we have marked any data as pii, its not stored in the event stream
             streamId: streamId,
             meta: {
-                ...userMeta,
+                ...meta,
                 replay: false,
                 hasPii,
-                date: userMeta.date || Date.now(), // should be calculated here. Sometimes passed in so let that be
+                date: meta.date || Date.now(), // should be calculated here. Sometimes passed in so let that be
             },
-            type: eventName,
+            type: String(eventName),
         }
 
         // need to await here to confirm before emitting just in case
@@ -122,10 +125,10 @@ export default function EventStore(
             } // make sure the emited events contain the PII
         }
 
-        if (!allSubscriptions.get(eventName))
-            Logger.warn(`ShimmieStack >>>> Event ${eventName} has no listeners`)
+        if (!allSubscriptions.get(String(eventName)))
+            Logger.warn(`ShimmieStack >>>> Event ${String(eventName)} has no listeners`)
 
-        eventStoreEmitter.emit(eventName, newEvent)
+        eventStoreEmitter.emit(String(eventName), newEvent)
         eventStoreEmitter.emit('*', {
             ...newEvent,
         })

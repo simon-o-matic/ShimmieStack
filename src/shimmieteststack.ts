@@ -28,7 +28,11 @@ export type TestRequestWithBodyParams<T = any> = TestRequestParams & {
     body?: T,
 }
 
-interface ShimmieTestStackType extends StackType {
+
+interface ShimmieTestStackType<CommandEventModels,
+    QueryEventModels>
+    extends StackType<CommandEventModels,
+        QueryEventModels> {
     mountTest: (router: Router, mountpoint?: string) => void
     testGet: (
         params: TestRequestParams,
@@ -70,10 +74,12 @@ interface ShimmieTestStackType extends StackType {
 // allow indexed function lookup by name
 type SuperTester = supertest.SuperTest<supertest.Test> & Record<string, any>
 
-export default function ShimmieTestStack(
+export default function ShimmieTestStack<CommandEventModels = Record<string, any>,
+    QueryEventModels = Record<string, any>>(
     defaultAuthHeaderValue?: string,
     usePiiBase: boolean = false,
-): ShimmieTestStackType {
+): ShimmieTestStackType<CommandEventModels,
+    QueryEventModels> {
     const authHeaderValue = defaultAuthHeaderValue
     const app = express()
     app.use(express.json())
@@ -111,14 +117,15 @@ export default function ShimmieTestStack(
     const piiBase = usePiiBase ? PiiBase() : undefined
 
     /** our inner actual shimmie stack that we control access to for tests */
-    const testStack = ShimmieStack(
+    const testStack = ShimmieStack<CommandEventModels,
+        QueryEventModels>(
         {
             ServerPort: 9999 /* ignored because the express server is never started */,
-            enforceAuthorization: false
+            enforceAuthorization: false,
         },
         memoryBase,
         authorizeApi(noAuthorization), // authorize admin apis with no auth for the test
-        piiBase
+        piiBase,
     )
 
     // Mount al the test processors at the root for ease of local testing.

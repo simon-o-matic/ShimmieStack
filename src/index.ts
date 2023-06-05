@@ -11,7 +11,6 @@ import {
     EventBaseType,
     EventData,
     EventHandler,
-    EventName,
     Meta,
     PiiBaseType,
     PiiFields,
@@ -74,18 +73,39 @@ export interface StreamHistory {
     createdAt?: number
 }
 
-export type StackType = {
-    setApiVersion: (version: string) => StackType
+/**
+ * Stacktype is the base shimmiestack stack object. It handles the event sourcing
+ * and CQRS magic. Register you CommandEventModels and QueryEventModels at definition time.
+ * These are Record<EventNameString, EventPayloadType>
+ * This will ensure any recordEvent will make sure the payload matches the defined definition for that event name.
+ *
+ * EG:
+ *
+ * type QueryEventModel = {
+ *     MY_EVENT_TYPE_NAME: {
+ *         myField1: string,
+ *         myField2: number,
+ *         myFIeld3: SomeComplexType
+ *     }
+ * }
+ *
+ * This will ensure when you recordEvent for a 'MY_EVENT_TYPE_NAME' the object data conforms to the defined type.
+ */
+export type StackType<
+    CommandEventModels,
+    QueryEventModels
+> = {
+    setApiVersion: (version: string) => StackType<CommandEventModels, QueryEventModels>
     getRouter: () => Router
-    recordEvent: <T = any>(
+    recordEvent: (
         streamId: StreamId,
-        eventName: EventName,
-        eventData: T,
+        eventName: keyof CommandEventModels,
+        eventData: CommandEventModels[keyof CommandEventModels],
         meta: Meta,
         piiFields?: PiiFields,
     ) => Promise<void>
-    recordEvents: <T = any>(
-        events: RecordEventType<T>[],
+    recordEvents: (
+        events: RecordEventType<CommandEventModels>[],
         executionOrder?: ExecutionOrder,
     ) => Promise<void>
     startup: () => void
@@ -93,20 +113,20 @@ export type StackType = {
     shutdown: () => void
     registerModel<T>(name: string, model: T): void
     getModel<T>(name: string): T
-    setErrorHandler(fn: ErrorRequestHandler): StackType
+    setErrorHandler(fn: ErrorRequestHandler): StackType<CommandEventModels, QueryEventModels>
     mountProcessor: (
         name: string,
         mountPoint: string,
-        router: Router
-    ) => StackType
+        router: Router,
+    ) => StackType<CommandEventModels, QueryEventModels>
     subscribe: (
-        eventName: EventName,
+        eventName: string,
         handler: EventHandler | TypedEventHandler<any>,
     ) => void
     use: (a: any) => any
     getHistory: (ids: string | string[]) => StreamHistory | undefined
-    registerPreInitFn: (fn: () => void | Promise<void>) => StackType
-    registerPostInitFn: (fn: () => void | Promise<void>) => StackType
+    registerPreInitFn: (fn: () => void | Promise<void>) => StackType<CommandEventModels, QueryEventModels>
+    registerPostInitFn: (fn: () => void | Promise<void>) => StackType<CommandEventModels, QueryEventModels>
 }
 
 
@@ -115,11 +135,11 @@ const startApiListener = async (app: Application, port: number) => {
     Logger.info(`ShimmieStack >>>> API Server listening on ${port}!`)
 }
 
-const initializeShimmieStack = async (
+const initializeShimmieStack = async <CommandEventModels, QueryEventModels>(
     config: ShimmieConfig,
     errorHandler: ErrorRequestHandler,
     eventBase: EventBaseType,
-    eventStore: EventStoreType,
+    eventStore: EventStoreType<CommandEventModels, QueryEventModels>,
     piiBase?: PiiBaseType,
     logger?: StackLogger,
 ) => {
@@ -169,13 +189,17 @@ export const catchAllErrorHandler: ErrorRequestHandler = (
     return res.status(status).json({ error: 'Something went wrong' })
 }
 
-export default function ShimmieStack(
+export default function ShimmieStack<
+    CommandEventModels,
+    QueryEventModels
+    >
+(
     config: ShimmieConfig,
     eventBase: EventBaseType,
     adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
     piiBase?: PiiBaseType,
     appLogger?: StackLogger
-): StackType {
+): StackType<CommandEventModels, QueryEventModels> {
     // if the caller provided a custom logger, use it
     configureLogger(appLogger)
 
@@ -184,9 +208,10 @@ export default function ShimmieStack(
     }
 
     /** initialise the event store service by giving it an event database (db, memory, file ) */
-    const eventStore = EventStore(eventBase, piiBase, eventStoreFlags)
+    const eventStore = EventStore<CommandEventModels, QueryEventModels>(eventBase, piiBase, eventStoreFlags)
 
-    /** set up our history listener */
+    // noinspection TypeScriptValidateTypes
+    /** set up our history listener, this breaks types */
     eventStore.subscribe('*', historyBuilder)
 
     let errorHandler: ErrorRequestHandler = catchAllErrorHandler
@@ -213,7 +238,7 @@ export default function ShimmieStack(
     const postInitFns: (() => void | Promise<void>)[] = []
     const preInitFns: (() => void | Promise<void>)[] = []
 
-    const funcs: StackType = {
+    const funcs: StackType<CommandEventModels, QueryEventModels> = {
         startup: async () => {
             // if there are any post init fns registered execute them
             if (preInitFns.length) {
@@ -253,7 +278,7 @@ export default function ShimmieStack(
             Logger.info('TODO: HOW DO YOU STOP THIS THING!!!!')
         },
 
-        setApiVersion: (version: string) => {
+        setApiVersion: (version: string): StackType<CommandEventModels, QueryEventModels> => {
             routes.setApiVersion(version)
             return funcs
         },
@@ -267,13 +292,13 @@ export default function ShimmieStack(
             if (!model) throw new Error('No registered model found: ' + name)
             return modelStore[name]
         },
-        setErrorHandler: (handler: ErrorRequestHandler) => {
+        setErrorHandler: (handler: ErrorRequestHandler): StackType<CommandEventModels, QueryEventModels> => {
             errorHandler = handler
             Logger.info('ShimmieStack >>>> Overridden default error handler')
             return funcs
         },
 
-        mountProcessor: (name: string, mountPoint: string, router: Router) => {
+        mountProcessor: (name: string, mountPoint: string, router: Router): StackType<CommandEventModels, QueryEventModels> => {
             const url = routes.mountApi(
                 app,
                 name,
@@ -285,16 +310,16 @@ export default function ShimmieStack(
             return funcs
         },
 
-        subscribe: (
-            eventName: EventName,
-            handler: EventHandler | TypedEventHandler<any>
-        ) => {
+        subscribe(
+            eventName: string,
+            handler: EventHandler | TypedEventHandler<any>,
+        ) {
             eventStore.subscribe(eventName, handler)
-            Logger.info(`ShimmieStack >>>> Registered event handler: ${eventName}` )
+            Logger.info(`ShimmieStack >>>> Registered event handler: ${String(eventName)}`)
         },
-        recordEvents: async <T = any>(
-            events: RecordEventType<T>[],
-            executionOrder?: ExecutionOrder
+        recordEvents: async (
+            events: RecordEventType<CommandEventModels>[],
+            executionOrder?: ExecutionOrder,
         ) => {
             const executeConcurrently =
                 executionOrder === ExecutionOrder.CONCURRENT
@@ -342,21 +367,22 @@ export default function ShimmieStack(
                 }
             }
         },
-        recordEvent: <T = any>(
-            streamdId: StreamId,
-            eventName: EventName,
-            eventData: T,
+        recordEvent: (
+            streamId: string,
+            eventName: keyof CommandEventModels,
+            eventData: CommandEventModels[keyof CommandEventModels],
             meta: Meta,
             piiFields?: PiiFields,
         ): Promise<void> =>
-            eventStore.recordEvent<T>(
-                streamdId,
+            eventStore.recordEvent(
+                streamId,
                 eventName,
                 eventData,
                 meta,
                 piiFields,
             ),
 
+        
         // Make a new Express router
         getRouter: () => express.Router(),
 
@@ -400,13 +426,13 @@ export default function ShimmieStack(
             }
         },
         // add a function to be run before initialize
-        registerPreInitFn: (fn: () => void | Promise<void>): StackType => {
+        registerPreInitFn: (fn: () => void | Promise<void>): StackType<CommandEventModels, QueryEventModels> => {
             preInitFns.push(fn)
             return funcs
         },
 
         // add a function to be run after initialize
-        registerPostInitFn: (fn: () => void | Promise<void>): StackType => {
+        registerPostInitFn: (fn: () => void | Promise<void>): StackType<CommandEventModels, QueryEventModels> => {
             postInitFns.push(fn)
             return funcs
         },
