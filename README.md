@@ -133,3 +133,9 @@ So very quickly you can have a flexible working event sourced server that is all
 
 -   `stack.startUp()`
 -   `stack.X()`
+
+
+### todo
+- Update this readme
+- Make meta acceopt generic at stack creation time, default it to Meta defined here.
+- Make piiFields be typesafe. Maybe a wrapper type for pii fields?
