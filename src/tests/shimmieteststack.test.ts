@@ -8,45 +8,12 @@ type ExampleEventV2 = { data: string, meta: any, min: number }
 type SimpleExampleEvent = { data: string}
 type ExampleEvent = ExampleEventV2
 
-/**
- * The type used to define EventName-EventType pairs for use in commands by the stack.
- * These keys are exposed as the options for the event name on recordEvent(s), and the types are used to ensure
- * recordEvent(s) payloads conform to the object expected for that event name.
- *
- * In the case below. Record event looks up the type defined next to "EXAMPLE_EVENT"
- * and checks eventData against that type definition
- *
- * stack.recordEvent(
- * 'streamid',
- * 'EXAMPLE_EVENT',
- *  { data: 'blah' },
- *  meta,
- *  })
- *
- *  If we tried to write EXAMPLE_EVENT_2, it would error as that isn't a key in the CommandEventModels,
- *  and if we changed the event data to be { payload: 'blah' } it would complain, as data is missing,
- *  and payload is not defined in the Example event type
- *
- *  This can be set to any if you're a cowboy that doesn't want to to use the type safety
- */
 type CommandEventModels = {
     EXAMPLE_EVENT: ExampleEvent,
     SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent,
     WHO_AM_I_EVENT: { elvis: string },
 }
 
-/**
- *  Query event models behaves very similarly to CommandEventModels.
- *  You define the event names and types that the subscribe() method checks against.
- *  The difference that Query handlers need to handle potentially outdated events,
- *  so they should have a union type for the old and new models.,
- *
- *  so in the case of Example Event, it needs to handle V1, and V2 as we have written both types to the stream at some
- *  point in the past.
- *
- *  This can be set to any if you're a cowboy that doesn't want to to use the type safety
- *  This can be set to any if you're a cowboy that doesn't want to to use the type safety
- */
 type QueryEventModels = {
     EXAMPLE_EVENT: ExampleEventV1 | ExampleEventV2,
     SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent,

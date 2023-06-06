@@ -76,20 +76,51 @@ export interface StreamHistory<T> {
 /**
  * Stacktype is the base shimmiestack stack object. It handles the event sourcing
  * and CQRS magic. Register you CommandEventModels and QueryEventModels at definition time.
- * These are Record<EventNameString, EventPayloadType>
- * This will ensure any recordEvent will make sure the payload matches the defined definition for that event name.
  *
- * EG:
+ * These Object keys are exposed as the options for the event name on recordEvent(s), and the types are used to ensure
+ * recordEvent(s) payloads conform to the object expected for that event name.
  *
- * type QueryEventModel = {
- *     MY_EVENT_TYPE_NAME: {
- *         myField1: string,
- *         myField2: number,
- *         myFIeld3: SomeComplexType
- *     }
- * }
+ * In the case below. Record event looks up the type defined next to "EXAMPLE_EVENT"
+ * and checks eventData against that type definition
  *
- * This will ensure when you recordEvent for a 'MY_EVENT_TYPE_NAME' the object data conforms to the defined type.
+ * stack.recordEvent(
+ *     'streamid',
+ *     'EXAMPLE_EVENT',
+ *      { data: 'blah' },
+ *      meta,
+ * })
+ *
+ *  If we tried to input 'EXAMPLE_EVENT_2' as the type, it would error as that isn't a key in the CommandEventModels,
+ *  and if we changed the event data to be { payload: 'blah' } it would complain, as data is missing,
+ *  and payload is not defined in the Example event type
+ *
+ *  CommandEventModels (or any of the types defined inside it) can be set to any if you're a cowboy that doesn't
+ *  want to to use any type safety
+ *
+ *  type CommandEventModels = {
+ *     EXAMPLE_EVENT: ExampleEvent,
+ *     SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent,
+ *     WHO_AM_I_EVENT: { elvis: string },
+ *     SOME_EVENT_WITHOUT_A_DEFINED_TYPE: any,
+ *  }
+ *
+ *  Query event models behaves very similarly to CommandEventModels.
+ *  You define the event names and types that the subscribe() method checks against.
+ *  The difference that Query handlers need to handle historical events, with data objects that may change with time,
+ *  They can have a union type for the old and new models.
+ *
+ *  so in the case of Example Event, it needs to handle V1, and V2 as we have written both types to the stream at some
+ *  point in the past.
+ *
+ *  QueryEventModels (or any of the types defined inside it) can be set to any if you're a cowboy that doesn't
+ *  want to to use any type safety
+ *
+ *  type QueryEventModels = {
+ *     EXAMPLE_EVENT: ExampleEventV1 | ExampleEventV2,
+ *     SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent,
+ *     WHO_AM_I_EVENT: { elvis: string },
+ *     SOME_EVENT_WITHOUT_A_DEFINED_TYPE: any,
+ *  }
  */
 export type StackType<
     CommandEventModels,
