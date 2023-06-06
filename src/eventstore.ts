@@ -130,8 +130,9 @@ export default function EventStore<CommandEventModels, QueryEventModels>(
             } // make sure the emited events contain the PII
         }
 
-        if (!allSubscriptions.get(String(eventName)))
+        if (!allSubscriptions.get(String(eventName))) {
             Logger.warn(`ShimmieStack >>>> Event ${String(eventName)} has no listeners`)
+        }
 
         eventStoreEmitter.emit(String(eventName), newEvent)
         eventStoreEmitter.emit('*', {

@@ -6,13 +6,22 @@ let eventStoreOptions = { initialised: true }
 const eventBase = EventBase()
 import { expect, jest } from '@jest/globals'
 
+interface AnEventName {
+    data: string
+}
 
-type EventModels = {
+type CommandEventModels = {
+    AN_EVENT_NAME: AnEventName
+    AN_EVENT_WITH_NO_LISTENERS_NAME: { data: string }
+    ANOTHER_EVENT_NAME: { data: number }
+}
+
+type QueryEventModels = {
     AN_EVENT_NAME: { data: string }
     ANOTHER_EVENT_NAME: { data: number }
 }
 
-const eventStore = EventStore<EventModels, EventModels>(eventBase,undefined,eventStoreOptions)
+const eventStore = EventStore<CommandEventModels, QueryEventModels>(eventBase,undefined,eventStoreOptions)
 
 // ignore event meta data
 const meta: Meta = {
@@ -50,23 +59,7 @@ describe('when recording an event', () => {
         expect(numEvents.length).toEqual(1)
     })
 
-    it('no listener should produce a warning', async () => {
-        Logger.warn = jest.fn()
-
-        await eventStore.recordEvent(
-            'streamid',
-            'AN_EVENT_NAME',
-            { data: 'blah' },
-            meta
-        )
-
-        expect(Logger.warn).toHaveBeenCalledWith(
-            'ShimmieStack >>>> Event AN_EVENT_NAME has no listeners'
-        )
-    })
-
     it('there should be two events in the database when two are recorded', async () => {
-        eventStore.subscribe('type', () => {})
         await eventStore.recordEvent('streamid', 'ANOTHER_EVENT_NAME', { data: 123 }, meta)
         await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'blah' }, meta)
         const allEvents = await eventStore.getAllEvents()
@@ -87,6 +80,21 @@ describe('when recording an event', () => {
         )
 
         expect(mockReceiver).toHaveBeenCalledTimes(1)
+    })
+
+    it('no listener should produce a warning', async () => {
+        Logger.warn = jest.fn()
+        // theres a race condition here somewhere..
+        await eventStore.recordEvent(
+            'streamid',
+            'AN_EVENT_WITH_NO_LISTENERS_NAME',
+            { data: 'blah' },
+            meta
+        )
+
+        expect(Logger.warn).toHaveBeenCalledWith(
+            'ShimmieStack >>>> Event AN_EVENT_WITH_NO_LISTENERS_NAME has no listeners'
+        )
     })
 })
 
