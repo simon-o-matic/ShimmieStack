@@ -10,7 +10,7 @@ import {
     PiiBaseType,
     PiiFields,
     StreamId,
-    TypedEvent, TypedEventHandler,
+    TypedEvent, TypedEventHandler, UserMeta,
 } from './event'
 import { Logger } from './logger'
 
@@ -50,23 +50,19 @@ export default function EventStore<CommandEventModels, QueryEventModels>(
     const eventStoreEmitter = new EventEmitter()
     const allSubscriptions = new Map<string, boolean>()
 
-
-    // type UseCommandEventModels<T> = T extends CommandEventModels ? T : any;
-    // type UseQueryEventModels<T> = T extends QueryEventModels ? T : any;
-
     const recordEvent = async (
         streamId: string,
         eventName: keyof CommandEventModels,
         data: CommandEventModels[keyof CommandEventModels],
-        meta: Meta,
+        userMeta: UserMeta,
         pii?: PiiFields,
     ) => {
-        if (!streamId || !eventName || !meta) {
+        if (!streamId || !eventName || !userMeta) {
             Logger.error(
                 `EventStore::recordEvent::missing values ${{
                     streamId,
                     eventName,
-                    meta,
+                    meta: userMeta,
                 }}`,
             )
             throw new Error('Attempt to record bad event data')
@@ -100,10 +96,10 @@ export default function EventStore<CommandEventModels, QueryEventModels>(
             data: nonPiiData, // make sure if we have marked any data as pii, its not stored in the event stream
             streamId: streamId,
             meta: {
-                ...meta,
+                ...userMeta,
                 replay: false,
                 hasPii,
-                date: meta.date || Date.now(), // should be calculated here. Sometimes passed in so let that be
+                date: userMeta.date || Date.now(), // should be calculated here. Sometimes passed in so let that be
             },
             type: String(eventName),
         }
