@@ -16,7 +16,7 @@ export type PiiFields = string[]
 // todo fix this type??
 // export type TypedEventHandler<Model, key extends keyof Model> = (event: TypedEvent<Model, key extends keyof Model>) => void
 // export type QueryModelsEventHandler<T> = (event: TypedEvent<T>) => void
-export type TypedEventHandler<T> = (event: TypedEvent<T>) => void
+export type TypedEventHandler<EventName, EventType> = (event: TypedEvent<EventName, EventType>) => void
 export type EventHandler = (event: Event) => void
 export type EventName = string
 export type StreamId = string
@@ -34,9 +34,9 @@ export type Event = BaseEvent & {
     type: string
 }
 
-export type TypedEvent<Model> = BaseEvent & {
-    type: keyof Model
-    data: Model[keyof Model],
+export type TypedEvent<EventName, EventType> = BaseEvent & {
+    type: EventName
+    data: EventType,
 }
 
 // export type TypedEvent<T> = BaseEvent & {

@@ -6,7 +6,6 @@ import { EventEmitter } from 'events'
 import {
     Event,
     EventBaseType,
-    EventHandler,
     Meta,
     PiiBaseType,
     PiiFields,
@@ -14,10 +13,6 @@ import {
     TypedEvent, TypedEventHandler,
 } from './event'
 import { Logger } from './logger'
-
-// Some TS error here, seems to work fine just not able to work out emitter type?
-// noinspection TypeScriptValidateTypes
-
 
 export interface EventStoreType<CommandEventModels, QueryEventModels> {
     replayAllEvents: () => Promise<number>
@@ -28,9 +23,9 @@ export interface EventStoreType<CommandEventModels, QueryEventModels> {
         meta: Meta,
         pii?: PiiFields,
     ) => Promise<any>
-    subscribe: (
-        type: keyof QueryEventModels,
-        callback: TypedEventHandler<QueryEventModels>
+    subscribe:<EventName extends keyof QueryEventModels> (
+        type: EventName ,
+        callback: TypedEventHandler<EventName,QueryEventModels[EventName]>
     ) => void
     deleteEvent: (sequenceNumber: number) => void
     updateEventData: (sequenceNumber: number, data: object) => void
@@ -141,13 +136,14 @@ export default function EventStore<CommandEventModels, QueryEventModels>(
         return rows[0]
     }
 
-    const subscribe = (
-        type: keyof QueryEventModels,
-        callback: (event: TypedEvent<QueryEventModels>) => void
+    // event name needs to be an input and a generic here as we use the event name as a type index and as a string value
+    const subscribe = <EventName extends keyof QueryEventModels>(
+        type: EventName,
+        callback: (event: TypedEvent<EventName, QueryEventModels[EventName]>) => void
     ): void => {
         // wrap the handler in a try catch so we don't crash the server with unhandled exceptions.
-        const tryCatchCallback: (event: TypedEvent<QueryEventModels>) => void = (
-            eventModel: TypedEvent<QueryEventModels>
+        const tryCatchCallback: (event: TypedEvent<EventName, QueryEventModels[EventName]>) => void = (
+            eventModel: TypedEvent<EventName, QueryEventModels[EventName]>
         ): void => {
             try {
                 return callback(eventModel)

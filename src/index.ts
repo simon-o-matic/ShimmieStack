@@ -51,7 +51,8 @@ export interface ShimmieConfig {
 // testing a new naming scheme. Replace IEvent if we like this one better. Easier
 // for users to not be confused with their own event types (eg an event sourced system!)
 export type ShimmieEvent = Event
-export type ShimmieTypedEvent<T> = TypedEvent<T>
+// defaulted to any for when no type is provided.
+export type ShimmieTypedEvent<EventName, EventType=any> = TypedEvent<EventName, EventType>
 
 export enum ExecutionOrder {
     SEQUENTIAL = 'sequential',
@@ -118,9 +119,9 @@ export type StackType<
         mountPoint: string,
         router: Router,
     ) => StackType<CommandEventModels, QueryEventModels>
-    subscribe: (
-        eventName: keyof QueryEventModels,
-        handler: TypedEventHandler<QueryEventModels>,
+    subscribe: <EventName extends keyof QueryEventModels>(
+        type: EventName,
+        handler: TypedEventHandler<EventName,QueryEventModels[EventName]>,
     ) => void
     use: (a: any) => any
     getHistory: (ids: string | string[]) => StreamHistory<QueryEventModels> | undefined
@@ -188,6 +189,8 @@ export const catchAllErrorHandler: ErrorRequestHandler = (
     return res.status(status).json({ error: 'Something went wrong' })
 }
 
+
+
 export default function ShimmieStack<
     CommandEventModels,
     QueryEventModels
@@ -209,11 +212,10 @@ export default function ShimmieStack<
     /** initialise the event store service by giving it an event database (db, memory, file ) */
     const eventStore = EventStore<CommandEventModels, QueryEventModels>(eventBase, piiBase, eventStoreFlags)
 
-    // noinspection TypeScriptValidateTypes
     /** set up our history listener, this breaks types */
-    eventStore.subscribe(
-        '*' as keyof QueryEventModels,
-        (e: TypedEvent<QueryEventModels>) => {
+    eventStore.subscribe<any>(
+        '*',
+        (e: TypedEvent<any, any>) => {
             const historyArray: EventHistory<QueryEventModels>[] = eventHistory.get(e.streamId) || []
             historyArray.push({
                 streamId: e.streamId,
@@ -324,12 +326,12 @@ export default function ShimmieStack<
             return funcs
         },
 
-        subscribe(
-            eventName: keyof QueryEventModels,
-            handler: TypedEventHandler<QueryEventModels>,
+        subscribe<EventName extends keyof QueryEventModels>(
+            type: EventName,
+            handler: TypedEventHandler<EventName,QueryEventModels[EventName]>,
         ) {
-            eventStore.subscribe(eventName, handler)
-            Logger.info(`ShimmieStack >>>> Registered event handler: ${String(eventName)}`)
+            eventStore.subscribe(type, handler)
+            Logger.info(`ShimmieStack >>>> Registered event handler: ${String(type)}`)
         },
         recordEvents: async (
             events: RecordEventType<CommandEventModels>[],
