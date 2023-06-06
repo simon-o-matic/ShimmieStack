@@ -13,9 +13,6 @@ export interface Meta extends UserMeta {
 }
 
 export type PiiFields = string[]
-// todo fix this type??
-// export type TypedEventHandler<Model, key extends keyof Model> = (event: TypedEvent<Model, key extends keyof Model>) => void
-// export type QueryModelsEventHandler<T> = (event: TypedEvent<T>) => void
 export type TypedEventHandler<EventName, EventType> = (event: TypedEvent<EventName, EventType>) => void
 export type EventHandler = (event: Event) => void
 export type EventName = string
