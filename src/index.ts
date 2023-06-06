@@ -14,7 +14,7 @@ import {
     PiiBaseType,
     PiiFields,
     StreamId,
-    TypedEvent,
+    TypedEvent, TypedEventDep,
     TypedEventHandler,
 } from './event'
 import { AuthorizerFunc } from './authorizers'
@@ -51,8 +51,10 @@ export interface ShimmieConfig {
 // testing a new naming scheme. Replace IEvent if we like this one better. Easier
 // for users to not be confused with their own event types (eg an event sourced system!)
 export type ShimmieEvent = Event
-// defaulted to any for when no type is provided.
-export type ShimmieTypedEvent<EventName, EventType=any> = TypedEvent<EventName, EventType>
+// #Deprecated: defaulted to any for when no type is provided.
+export type ShimmieTypedEventDep<EventType> = TypedEventDep<EventType>
+
+export type ShimmieTypedEvent<EventName, EventType> = TypedEvent<EventName, EventType>
 
 export enum ExecutionOrder {
     SEQUENTIAL = 'sequential',

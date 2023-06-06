@@ -36,6 +36,12 @@ export type TypedEvent<EventName, EventType> = BaseEvent & {
     data: EventType,
 }
 
+/**
+ * Deprecated type definition without event name -> event type checks for
+ * backwards compatibility.
+ */
+export type TypedEventDep<EventType> = TypedEvent<string, EventType>
+
 // export type TypedEvent<T> = BaseEvent & {
 //     data: EventData,
 //     type: T
