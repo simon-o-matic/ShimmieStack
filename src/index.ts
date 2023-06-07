@@ -9,12 +9,12 @@ import EventStore, { EventStoreType, RecordEventType } from './eventstore'
 import {
     Event,
     EventBaseType,
-    EventData,
     Meta,
     PiiBaseType,
     PiiFields,
     StreamId,
-    TypedEvent, TypedEventDep,
+    TypedEvent,
+    TypedEventDep,
     TypedEventHandler,
 } from './event'
 import { AuthorizerFunc } from './authorizers'
@@ -61,7 +61,7 @@ export enum ExecutionOrder {
     CONCURRENT = 'concurrent',
 }
 
-export interface EventHistory<QueryEventModels> {
+export interface EventHistory<QueryEventModels extends Record<string, any> = Record<string, any>> {
     streamId: string
     type: keyof QueryEventModels
     date: number
@@ -69,15 +69,17 @@ export interface EventHistory<QueryEventModels> {
     data: QueryEventModels[keyof QueryEventModels]
 }
 
-export interface StreamHistory<T> {
-    history: EventHistory<T>[]
+export interface StreamHistory<QueryEventModels extends Record<string, any>> {
+    history: EventHistory<QueryEventModels>[]
     updatedAt?: number
     createdAt?: number
 }
 
 /**
  * Stacktype is the base shimmiestack stack object. It handles the event sourcing
- * and CQRS magic. Register you CommandEventModels and QueryEventModels at definition time.
+ * and CQRS magic.
+ *
+ * Register you CommandEventModels and QueryEventModels at definition time.
  *
  * These Object keys are exposed as the options for the event name on recordEvent(s), and the types are used to ensure
  * recordEvent(s) payloads conform to the object expected for that event name.
@@ -125,8 +127,8 @@ export interface StreamHistory<T> {
  *  }
  */
 export type StackType<
-    CommandEventModels,
-    QueryEventModels
+    CommandEventModels extends Record<string, any> = Record<string, any>,
+    QueryEventModels extends Record<string, any> = Record<string, any>
 > = {
     setApiVersion: (version: string) => StackType<CommandEventModels, QueryEventModels>
     getRouter: () => Router
@@ -168,7 +170,10 @@ const startApiListener = async (app: Application, port: number) => {
     Logger.info(`ShimmieStack >>>> API Server listening on ${port}!`)
 }
 
-const initializeShimmieStack = async <CommandEventModels, QueryEventModels>(
+const initializeShimmieStack = async <
+    CommandEventModels extends Record<string, any>,
+    QueryEventModels extends Record<string, any>
+>(
     config: ShimmieConfig,
     errorHandler: ErrorRequestHandler,
     eventBase: EventBaseType,
@@ -223,17 +228,15 @@ export const catchAllErrorHandler: ErrorRequestHandler = (
 }
 
 
-
 export default function ShimmieStack<
-    CommandEventModels,
-    QueryEventModels
-    >
-(
+    CommandEventModels extends Record<string, any> = Record<string, any>,
+    QueryEventModels extends Record<string, any> = Record<string, any>
+>(
     config: ShimmieConfig,
     eventBase: EventBaseType,
     adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
     piiBase?: PiiBaseType,
-    appLogger?: StackLogger
+    appLogger?: StackLogger,
 ): StackType<CommandEventModels, QueryEventModels> {
     // if the caller provided a custom logger, use it
     configureLogger(appLogger)

@@ -22,7 +22,7 @@ type QueryEventModels = {
 
 const testStack = ShimmieTestStack<CommandEventModels, QueryEventModels>()
 
-const TestProcessor = (testStack: StackType<CommandEventModels, any>) => {
+const TestProcessor = (testStack: StackType<CommandEventModels, QueryEventModels>) => {
     const router = testStack.getRouter()
 
     router.get('/whoami', (req, res) => {

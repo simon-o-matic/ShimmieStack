@@ -10,11 +10,13 @@ import {
     PiiBaseType,
     PiiFields,
     StreamId,
-    TypedEvent, TypedEventHandler, UserMeta,
+    TypedEvent,
+    TypedEventHandler,
+    UserMeta,
 } from './event'
 import { Logger } from './logger'
 
-export interface EventStoreType<CommandEventModels, QueryEventModels> {
+export interface EventStoreType<CommandEventModels extends Record<string, any>, QueryEventModels extends Record<string, any>> {
     replayAllEvents: () => Promise<number>
     recordEvent: (
         streamId: string,
@@ -23,16 +25,16 @@ export interface EventStoreType<CommandEventModels, QueryEventModels> {
         meta: Meta,
         pii?: PiiFields,
     ) => Promise<any>
-    subscribe:<EventName extends keyof QueryEventModels> (
-        type: EventName ,
-        callback: TypedEventHandler<EventName,QueryEventModels[EventName]>
+    subscribe: <EventName extends keyof QueryEventModels> (
+        type: EventName,
+        callback: TypedEventHandler<EventName, QueryEventModels[EventName]>,
     ) => void
     deleteEvent: (sequenceNumber: number) => void
     updateEventData: (sequenceNumber: number, data: object) => void
     getAllEvents: (withPii?: boolean) => Promise<any>
 }
 
-export interface RecordEventType<CommandEventModels> {
+export interface RecordEventType<CommandEventModels extends Record<string, any>> {
     streamId: StreamId
     eventName: keyof CommandEventModels
     eventData: CommandEventModels[keyof CommandEventModels]
@@ -41,8 +43,7 @@ export interface RecordEventType<CommandEventModels> {
 }
 
 
-
-export default function EventStore<CommandEventModels, QueryEventModels>(
+export default function EventStore<CommandEventModels extends Record<string, any>, QueryEventModels extends Record<string, any>>(
     eventbase: EventBaseType,
     piiBase?: PiiBaseType,
     options?: { initialised: boolean },

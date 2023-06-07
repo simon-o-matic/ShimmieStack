@@ -29,8 +29,8 @@ export type TestRequestWithBodyParams<T = any> = TestRequestParams & {
 }
 
 
-interface ShimmieTestStackType<CommandEventModels,
-    QueryEventModels>
+interface ShimmieTestStackType<CommandEventModels extends Record<string, any>,
+    QueryEventModels extends Record<string, any> >
     extends StackType<CommandEventModels,
         QueryEventModels> {
     mountTest: (router: Router, mountpoint?: string) => void
@@ -75,8 +75,8 @@ interface ShimmieTestStackType<CommandEventModels,
 type SuperTester = supertest.SuperTest<supertest.Test> & Record<string, any>
 
 export default function ShimmieTestStack<
-    CommandEventModels = Record<string, any>,
-    QueryEventModels = Record<string, any>
+    CommandEventModels extends Record<string, any>,
+    QueryEventModels extends Record<string, any>
     >(
     defaultAuthHeaderValue?: string,
     usePiiBase: boolean = false,
