@@ -69,7 +69,7 @@ export interface EventHistory<QueryEventModels extends Record<string, any> = Rec
     data: QueryEventModels[keyof QueryEventModels]
 }
 
-export interface StreamHistory<QueryEventModels extends Record<string, any>> {
+export interface StreamHistory<QueryEventModels extends Record<string, any> = Record<string,any>> {
     history: EventHistory<QueryEventModels>[]
     updatedAt?: number
     createdAt?: number
