@@ -42,11 +42,6 @@ export type TypedEvent<EventName, EventType> = BaseEvent & {
  */
 export type TypedEventDep<EventType> = TypedEvent<string, EventType>
 
-// export type TypedEvent<T> = BaseEvent & {
-//     data: EventData,
-//     type: T
-// }
-
 /** What comes back after adding a new event to the event log */
 export interface StoredEventResponse {
     sequencenum: number
