@@ -56,12 +56,14 @@ export type ShimmieTypedEventDep<EventType> = TypedEventDep<EventType>
 
 export type ShimmieTypedEvent<EventName, EventType> = TypedEvent<EventName, EventType>
 
+export type ShimmieTypedEventHandler<EventName,EventType> = TypedEventHandler<EventName,EventType>
+
 export enum ExecutionOrder {
     SEQUENTIAL = 'sequential',
     CONCURRENT = 'concurrent',
 }
 
-export interface EventHistory<QueryEventModels extends Record<string, any> = Record<string, any>> {
+export interface EventHistory<QueryEventModels> {
     streamId: string
     type: keyof QueryEventModels
     date: number
@@ -69,7 +71,7 @@ export interface EventHistory<QueryEventModels extends Record<string, any> = Rec
     data: QueryEventModels[keyof QueryEventModels]
 }
 
-export interface StreamHistory<QueryEventModels extends Record<string, any> = Record<string,any>> {
+export interface StreamHistory<QueryEventModels> {
     history: EventHistory<QueryEventModels>[]
     updatedAt?: number
     createdAt?: number
@@ -132,10 +134,10 @@ export type StackType<
 > = {
     setApiVersion: (version: string) => StackType<CommandEventModels, QueryEventModels>
     getRouter: () => Router
-    recordEvent: (
+    recordEvent: <EventName extends keyof CommandEventModels>(
         streamId: StreamId,
-        eventName: keyof CommandEventModels,
-        eventData: CommandEventModels[keyof CommandEventModels],
+        eventName: EventName,
+        eventData: CommandEventModels[EventName],
         meta: Meta,
         piiFields?: PiiFields,
     ) => Promise<void>
@@ -249,9 +251,9 @@ export default function ShimmieStack<
     const eventStore = EventStore<CommandEventModels, QueryEventModels>(eventBase, piiBase, eventStoreFlags)
 
     /** set up our history listener, this breaks types */
-    eventStore.subscribe<any>(
+    eventStore.subscribe(
         '*',
-        (e: TypedEvent<any, any>) => {
+        <EventName extends keyof QueryEventModels>(e: TypedEvent<EventName, QueryEventModels[EventName]>) => {
             const historyArray: EventHistory<QueryEventModels>[] = eventHistory.get(e.streamId) || []
             historyArray.push({
                 streamId: e.streamId,
@@ -419,10 +421,10 @@ export default function ShimmieStack<
                 }
             }
         },
-        recordEvent: (
+        recordEvent: <EventName extends keyof CommandEventModels>(
             streamId: string,
-            eventName: keyof CommandEventModels,
-            eventData: CommandEventModels[keyof CommandEventModels],
+            eventName: EventName,
+            eventData: CommandEventModels[EventName],
             meta: Meta,
             piiFields?: PiiFields,
         ): Promise<void> =>

@@ -253,9 +253,10 @@ describe('when calling /whoami', () => {
 
 describe('when calling /whoami', () => {
     it('there should be two events in the database when two are recorded', async () => {
-        testStack.subscribe<'SIMPLE_EXAMPLE_EVENT'>(
+        testStack.subscribe(
             'SIMPLE_EXAMPLE_EVENT',
-            (e) => {}
+            (e) => {
+            }
         )
         const meta: Meta = {
             user: {},

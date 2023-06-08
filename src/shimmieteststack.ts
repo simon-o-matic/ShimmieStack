@@ -29,7 +29,7 @@ export type TestRequestWithBodyParams<T = any> = TestRequestParams & {
 }
 
 
-interface ShimmieTestStackType<CommandEventModels extends Record<string, any>,
+export interface ShimmieTestStackType<CommandEventModels extends Record<string, any>,
     QueryEventModels extends Record<string, any> >
     extends StackType<CommandEventModels,
         QueryEventModels> {

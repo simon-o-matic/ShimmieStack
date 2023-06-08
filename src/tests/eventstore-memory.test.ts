@@ -147,7 +147,7 @@ describe('when subscribing to an event', () => {
             })
             await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'blah' }, meta)
             expect(valueSet).toBe(true)
-            await eventStore.recordEvent('streamid', 'ANOTHER_EVENT_NAME', { data: 'blah' }, meta)
+            await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'blah' }, meta)
 
             const numEvents = await eventStore.getAllEvents()
 

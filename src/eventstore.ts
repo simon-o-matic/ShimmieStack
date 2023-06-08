@@ -18,10 +18,10 @@ import { Logger } from './logger'
 
 export interface EventStoreType<CommandEventModels extends Record<string, any>, QueryEventModels extends Record<string, any>> {
     replayAllEvents: () => Promise<number>
-    recordEvent: (
+    recordEvent: <EventName extends keyof CommandEventModels>(
         streamId: string,
-        eventName: keyof CommandEventModels,
-        data: CommandEventModels[keyof CommandEventModels],
+        eventName: EventName,
+        data: CommandEventModels[EventName],
         meta: Meta,
         pii?: PiiFields,
     ) => Promise<any>
@@ -34,16 +34,19 @@ export interface EventStoreType<CommandEventModels extends Record<string, any>, 
     getAllEvents: (withPii?: boolean) => Promise<any>
 }
 
-export interface RecordEventType<CommandEventModels extends Record<string, any> = Record<string, any>> {
+export interface RecordEventType<QueryEventModels> {
     streamId: StreamId
-    eventName: keyof CommandEventModels
-    eventData: CommandEventModels[keyof CommandEventModels]
+    eventName: keyof QueryEventModels
+    eventData: QueryEventModels[keyof QueryEventModels]
     meta: Meta
     piiFields?: PiiFields
 }
 
 
-export default function EventStore<CommandEventModels extends Record<string, any> = Record<string, any>, QueryEventModels extends Record<string, any> = Record<string, any>>(
+export default function EventStore<
+    CommandEventModels extends Record<string, any>,
+    QueryEventModels extends Record<string, any>
+>(
     eventbase: EventBaseType,
     piiBase?: PiiBaseType,
     options?: { initialised: boolean },
@@ -51,10 +54,10 @@ export default function EventStore<CommandEventModels extends Record<string, any
     const eventStoreEmitter = new EventEmitter()
     const allSubscriptions = new Map<string, boolean>()
 
-    const recordEvent = async (
+    const recordEvent = async <EventName extends keyof CommandEventModels>(
         streamId: string,
-        eventName: keyof CommandEventModels,
-        data: CommandEventModels[keyof CommandEventModels],
+        eventName: EventName,
+        data: CommandEventModels[EventName],
         userMeta: UserMeta,
         pii?: PiiFields,
     ) => {
