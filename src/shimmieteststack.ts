@@ -143,7 +143,11 @@ export default function ShimmieTestStack<
             expectedResponseCode,
         }: TestRequestParams
     ): Promise<supertest.Response> => {
-        return methods.get(path, headers).expect(expectedResponseCode ?? 200).send()
+        return new Promise<supertest.Response>((resolve, reject) => {
+            methods.get(path, headers).expect(expectedResponseCode ?? 200).end((err: any, res: supertest.Response) => {
+                resolve(res)
+            })
+        })
     }
 
     /** Post helper that uses supertest to hook into the express route to make the actual call */
@@ -155,7 +159,11 @@ export default function ShimmieTestStack<
             body,
         }: TestRequestWithBodyParams
     ): Promise<supertest.Response> => {
-        return methods.post(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {})
+        return new Promise<supertest.Response>((resolve, reject) => {
+            methods.post(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {}).end((err: any, res: supertest.Response) => {
+                resolve(res)
+            })
+        })
     }
 
     /** Put helper that uses supertest to hook into the express route to make the actual call */
@@ -167,7 +175,11 @@ export default function ShimmieTestStack<
             body,
         }: TestRequestWithBodyParams
     ): Promise<supertest.Response> => {
-        return methods.put(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {})
+        return new Promise<supertest.Response>((resolve, reject) => {
+            methods.put(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {}).end((err: any, res: supertest.Response) => {
+                resolve(res)
+            })
+        })
     }
 
     /** Delete helper that uses supertest to hook into the express route to make the actual call */
@@ -178,7 +190,11 @@ export default function ShimmieTestStack<
             expectedResponseCode,
         }: TestRequestParams
     ): Promise<supertest.Response> => {
-        return methods.delete(path, headers).expect(expectedResponseCode ?? 200).send()
+        return new Promise<supertest.Response>((resolve, reject) => {
+            return methods.delete(path, headers).expect(expectedResponseCode ?? 200).end((err: any, res: supertest.Response) => {
+                resolve(res)
+            })
+        })
     }
 
 
