@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals'
 import cookieParser from 'cookie-parser'
 import express, { Router } from 'express'
 import supertest from 'supertest'

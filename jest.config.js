@@ -9,6 +9,9 @@ const jestConfig = {
             useESM: true,
         }],
     },
+    setupFiles: [
+        "<rootDir>/jest.setup.ts"
+    ],
     extensionsToTreatAsEsm: ['.ts'],
 }
 
