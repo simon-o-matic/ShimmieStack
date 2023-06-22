@@ -12,7 +12,6 @@ import {
     Meta,
     PiiBaseType,
     PiiFields,
-    StreamId,
     TypedEvent,
     TypedEventDep,
     TypedEventHandler,
@@ -77,7 +76,7 @@ export interface StreamHistory<QueryEventModels> {
 }
 
 export interface RecordEventType<QueryEventModels, EventName extends keyof QueryEventModels> {
-    streamId: StreamId
+    streamId: string
     eventName: EventName
     eventData: QueryEventModels[EventName]
     meta: Meta
@@ -142,7 +141,7 @@ export type StackType<
     setApiVersion: (version: string) => StackType<CommandEventModels, QueryEventModels>
     getRouter: () => Router
     recordEvent: <EventName extends keyof CommandEventModels>(
-        streamId: StreamId,
+        streamId: string,
         eventName: EventName,
         eventData: CommandEventModels[EventName],
         meta: Meta,

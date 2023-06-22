@@ -15,19 +15,19 @@ export interface Meta extends UserMeta {
 export type PiiFields = string[]
 export type TypedEventHandler<EventName, EventType> = (event: TypedEvent<EventName, EventType>) => void
 export type EventHandler = (event: Event) => void
-export type EventName = string
-export type StreamId = string
-export type EventData = object
 
 type BaseEvent = {
-    streamId: StreamId
-    meta: Meta
-    sequencenum?: number
-    logdate?: string
+    streamId: string // a unique identifier for all related events
+    streamVersionId: string // a version id for the object the stream represents
+    meta: Meta // the metadata associated with this event
+    sequencenum: number // the ordered event number
+    logdate?: string // when was the event logged
 }
 
+export type EventToRecord = Omit<Event, 'sequencenum'>
+
 export type Event = BaseEvent & {
-    data: EventData,
+    data: object,
     type: string
 }
 
@@ -43,15 +43,11 @@ export type TypedEvent<EventName, EventType> = BaseEvent & {
 export type TypedEventDep<EventType> = TypedEvent<string, EventType>
 
 /** What comes back after adding a new event to the event log */
-export interface StoredEventResponse {
-    sequencenum: number
-    logdate: number
-    type: string
-}
+export type StoredEventResponse<EventName = string, EventType = any> = TypedEvent<EventName, EventType> | Event
 
 export interface EventBaseType {
     /**  put a new event on the event stream */
-    addEvent: (event: Event) => Promise<any>
+    addEvent: (event: EventToRecord) => Promise<any>
     /** get all the events from the start to the end (for replay) */
     getAllEventsInOrder: () => Promise<Event[]>
     /** update a single event with new data (no other fields). Protect this in production */

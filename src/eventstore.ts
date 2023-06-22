@@ -5,16 +5,16 @@
 import { EventEmitter } from 'events'
 import {
     Event,
-    EventBaseType,
+    EventBaseType, EventToRecord,
     Meta,
     PiiBaseType,
     PiiFields,
-    StreamId,
     TypedEvent,
     TypedEventHandler,
     UserMeta,
 } from './event'
 import { Logger } from './logger'
+import { v4 as uuid } from 'uuid'
 
 export interface EventStoreType<CommandEventModels extends Record<string, any>, QueryEventModels extends Record<string, any>> {
     replayAllEvents: () => Promise<number>
@@ -87,9 +87,10 @@ export default function EventStore<
             nonPiiData = data as Record<string, any>
         }
 
-        const newEvent: Event = {
+        const newEvent: EventToRecord = {
             data: nonPiiData, // make sure if we have marked any data as pii, its not stored in the event stream
             streamId: streamId,
+            streamVersionId: uuid(),
             meta: {
                 ...userMeta,
                 replay: false,
@@ -214,9 +215,11 @@ export default function EventStore<
             // WARNING: These are field names from the database and hence are all LOWERCASE
             const event: Event = {
                 data,
-                streamId: e.streamId || (e as any).streamid,
+                streamId: e.streamId, //|| (e as any).streamid,
                 meta,
                 type: e.type,
+                streamVersionId: e.streamVersionId,
+                sequencenum: e.sequencenum
             }
             eventStoreEmitter.emit(event.type, {
                 ...event,

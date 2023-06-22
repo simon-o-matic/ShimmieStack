@@ -7,7 +7,7 @@ import MemoryEventBase from '../eventbase-memory'
 import { authorizeApi, noAuthorization } from '../authorizers'
 import { Logger } from '../logger'
 import { expect } from '@jest/globals'
-//import Eventbase from '../eventbase-memory'
+import { v4 as uuid } from 'uuid'
 
 const testStack = ShimmieTestStack()
 const memoryEventBase = MemoryEventBase()
@@ -43,6 +43,7 @@ const event = {
     data: { one: 'two' },
     streamId: '33ee',
     meta,
+    streamVersionId: uuid(),
     type: 'sometype',
 }
 

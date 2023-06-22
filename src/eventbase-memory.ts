@@ -2,7 +2,7 @@
 // An in-memory version of the event base. This is used for testing. No
 // events survive a restart of the server.
 //
-import { Event, EventBaseType, StoredEventResponse } from './event'
+import { Event, EventBaseType, EventToRecord, StoredEventResponse } from './event'
 
 export default function Eventbase(): EventBaseType {
     const events: Array<Event> = []
@@ -30,16 +30,23 @@ export default function Eventbase(): EventBaseType {
         return Promise.resolve()
     }
 
-    const addEvent = async (event: Event): Promise<StoredEventResponse[]> => {
-        // TODO: deal with meta?
-        event.sequencenum = events.length
-        events.push(event)
+    const addEvent = async (event: EventToRecord): Promise<StoredEventResponse[]> => {
+        const newEvent: Event = {
+            ...event,
+            sequencenum: events.length
+        }
+
+        events.push(newEvent)
 
         return Promise.resolve([
             {
-                sequencenum: event.sequencenum,
-                logdate: Date.now(),
-                type: event.type,
+                streamId: newEvent.streamId,
+                sequencenum: newEvent.sequencenum,
+                logdate: new Date(newEvent.meta.date).toISOString(),
+                type: newEvent.type,
+                streamVersionId: newEvent.streamVersionId,
+                data: newEvent.data,
+                meta: newEvent.meta
             },
         ])
     }

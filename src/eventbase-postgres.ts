@@ -3,7 +3,7 @@
 //
 import pg from 'pg'
 const { Pool } = pg
-import { Event, EventBaseType } from './event'
+import { Event, EventBaseType, EventToRecord } from './event'
 import { Logger } from './logger'
 
 export interface EventConfig {
@@ -37,7 +37,8 @@ export default function Eventbase(config: EventConfig): EventBaseType {
         return
     }
 
-    const addEvent = async (event: Event) => {
+    const addEvent = async (event: EventToRecord) => {
+        // todo add version number here
         const query =
             'INSERT into eventlist(StreamId, Data, Type, Meta) VALUES($1, $2, $3, $4) RETURNING SequenceNum, streamId, logdate, type'
         const values: string[] = [
