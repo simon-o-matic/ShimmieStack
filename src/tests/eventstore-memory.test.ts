@@ -141,7 +141,7 @@ describe('when subscribing to an event', () => {
     describe('an error in the subscription', () => {
         it('should be caught and handled', async () => {
             let valueSet = false
-            eventStore.subscribe("AN_EVENT_NAME", (event: unknown) => {
+            eventStore.subscribe("AN_EVENT_NAME", (event) => {
                 valueSet = true
                 throw new Error("Something happened and should stop the app launching")
             })

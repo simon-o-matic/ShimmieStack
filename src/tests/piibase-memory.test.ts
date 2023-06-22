@@ -80,7 +80,7 @@ describe('when recording an event', () => {
             })
 
         it('there should be two events in the database when two are recorded', async () => {
-            eventStore.subscribe('type', () => {
+            eventStore.subscribe('type', (event) => {
             })
 
             await eventStore.recordEvent(
