@@ -34,15 +34,6 @@ export interface EventStoreType<CommandEventModels extends Record<string, any>, 
     getAllEvents: (withPii?: boolean) => Promise<any>
 }
 
-export interface RecordEventType<QueryEventModels> {
-    streamId: StreamId
-    eventName: keyof QueryEventModels
-    eventData: QueryEventModels[keyof QueryEventModels]
-    meta: Meta
-    piiFields?: PiiFields
-}
-
-
 export default function EventStore<
     CommandEventModels extends Record<string, any>,
     QueryEventModels extends Record<string, any>

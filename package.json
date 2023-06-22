@@ -8,6 +8,7 @@
     "type": "module",
     "scripts": {
         "build": "tsc",
+        "dev": "tsc -w",
         "build:check": "tsc --noEmit",
         "test": "npx jest",
         "publish": "cp README.md  dist && cp package-publish.json dist/package.json && npm run build && cd dist && npm publish"

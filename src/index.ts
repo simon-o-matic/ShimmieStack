@@ -5,7 +5,7 @@ import express, { Application, ErrorRequestHandler, NextFunction, Request, Respo
 import cors, { CorsOptions } from 'cors'
 import cookieParser from 'cookie-parser'
 import * as routes from './routes'
-import EventStore, { EventStoreType, RecordEventType } from './eventstore'
+import EventStore, { EventStoreType } from './eventstore'
 import {
     Event,
     EventBaseType,
@@ -39,10 +39,9 @@ process.on('unhandledRejection', (err) => {
 app.use(express.json())
 app.use(cookieParser())
 
-export { Request, Response, Router }
+export { Request, Response, Router, ErrorRequestHandler, NextFunction }
 
 export interface ShimmieConfig {
-    mode?: string
     ServerPort: number
     CORS?: CorsOptions
     enforceAuthorization: boolean
@@ -75,6 +74,14 @@ export interface StreamHistory<QueryEventModels> {
     history: EventHistory<QueryEventModels>[]
     updatedAt?: number
     createdAt?: number
+}
+
+export interface RecordEventType<QueryEventModels, EventName extends keyof QueryEventModels> {
+    streamId: StreamId
+    eventName: EventName
+    eventData: QueryEventModels[EventName]
+    meta: Meta
+    piiFields?: PiiFields
 }
 
 /**
@@ -141,8 +148,8 @@ export type StackType<
         meta: Meta,
         piiFields?: PiiFields,
     ) => Promise<void>
-    recordEvents: (
-        events: RecordEventType<CommandEventModels>[],
+    recordEvents: <EventName extends keyof CommandEventModels>(
+        events: RecordEventType<CommandEventModels, EventName>[],
         executionOrder?: ExecutionOrder,
     ) => Promise<void>
     startup: () => void
@@ -371,8 +378,8 @@ export default function ShimmieStack<
             eventStore.subscribe(type, handler)
             Logger.info(`ShimmieStack >>>> Registered event handler: ${String(type)}`)
         },
-        recordEvents: async (
-            events: RecordEventType<CommandEventModels>[],
+        recordEvents: async <EventName extends keyof CommandEventModels>(
+            events: RecordEventType<CommandEventModels, EventName>[],
             executionOrder?: ExecutionOrder,
         ) => {
             const executeConcurrently =

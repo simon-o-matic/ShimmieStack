@@ -25,8 +25,6 @@ The stack does the following:
 # Future Architecture Ideas
 
 -   replay of events
-    -   models and commands should be notified when replay starts so they can kill their state and/or ignore things as needed. Eg. analytics
-    -   they should provide pre and post hooks which the stack will call when that happens
     -   the stack should maintain the list of the models/commands to iterate though them before and after replay
     -   Router will need to be wrapped an part of bigger object that also contains the hooks
     -   replay flag should be REMOVED from the meta data of an event
@@ -35,12 +33,11 @@ The stack does the following:
 -   validation need to be added to processors at the stack level
 -   X testing of all mount points needs to be part of the stack for correctness
 -   X testing of event processors should also have first class testing ability
--   add more typing (remove ANY's) to enable better type checking at design time (will require more generics)
 -   testing - consider using the internal App rather than creating a fake one, which will change the admin tests to be more real too
 
 # How to use
 
-There is an example project here, but here is a basic over view of the files:
+There is an example project here, but here is a basic overview of the files:
 
 This is the `index.js` file where you would configure the stack and register your handlers. In this example its a song database:
 
