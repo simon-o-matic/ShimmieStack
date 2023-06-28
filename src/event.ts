@@ -59,6 +59,17 @@ export class StreamVersionError extends Error {
     }
 }
 
+/**  The error type thrown when object versions don't match */
+export class ObjectLockedError extends Error {
+    constructor(
+        msg: string,
+    ) {
+        super(msg)
+        // Set the prototype explicitly.
+        Object.setPrototypeOf(this, ObjectLockedError.prototype)
+    }
+}
+
 /**  The details of a stream version mismatch */
 export interface StreamVersionMismatch {
     streamId: string,

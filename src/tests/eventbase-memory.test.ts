@@ -10,7 +10,7 @@ const meta: Meta = {
 }
 
 describe('Eventbase', () => {
-    beforeAll(async () => {
+    beforeEach(async () => {
         await eventBase.reset()
         await eventBase.addEvent({
             streamId: 'EXAMPLE_STREAM_1',
@@ -104,6 +104,4 @@ describe('Eventbase', () => {
                 }
             })
     })
-
-
 })

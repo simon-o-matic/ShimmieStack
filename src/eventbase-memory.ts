@@ -10,10 +10,12 @@ import {
     StreamVersionError,
     StreamVersionMismatch,
 } from './event'
+import { withObjectLock } from './utils'
 
 export default function Eventbase(): EventBaseType {
     const events: Array<Event> = []
     let streamVersionIndex: Map<string, string> = new Map()
+    let objectLocks: Set<string> = new Set()
 
     const init = () => {
         return Promise.resolve()
@@ -24,6 +26,7 @@ export default function Eventbase(): EventBaseType {
     const reset = () => {
         events.length = 0
         streamVersionIndex = new Map()
+        objectLocks = new Set()
         return Promise.resolve()
     }
 
@@ -45,34 +48,39 @@ export default function Eventbase(): EventBaseType {
             sequencenum: events.length,
         }
 
+
         // if a stream versions are provided, check they matches the current version for the referenced stream
         if (streamVersionIds && Object.keys(streamVersionIds).length > 0) {
-            const mismatchedVersions = Object.entries(streamVersionIds).reduce<StreamVersionMismatch[]>(
-                (mistmatched, [streamId, versionId]) => {
-                    const currentObjectVersionId = streamVersionIndex.get(streamId)
+            await withObjectLock(objectLocks, Object.keys(streamVersionIds), async () => {
+                const mismatchedVersions = Object.entries(streamVersionIds).reduce<StreamVersionMismatch[]>(
+                    (mistmatched, [streamId, versionId]) => {
+                        const currentObjectVersionId = streamVersionIndex.get(streamId)
 
-                    if (currentObjectVersionId && currentObjectVersionId !== versionId) {
-                        mistmatched.push({
-                            streamId,
-                            expectedVersionId: versionId,
-                            actualVersionId: currentObjectVersionId,
-                        })
-                    }
-                    return mistmatched
-                },
-                [],
-            )
+                        if (currentObjectVersionId && currentObjectVersionId !== versionId) {
+                            mistmatched.push({
+                                streamId,
+                                expectedVersionId: versionId,
+                                actualVersionId: currentObjectVersionId,
+                            })
+                        }
+                        return mistmatched
+                    },
+                    [],
+                )
 
-            // Do we have any stream version mismatches?
-            if (mismatchedVersions.length > 0) {
-                throw new StreamVersionError('Version mismatch detected', mismatchedVersions)
-            }
+                // Do we have any stream version mismatches?
+                if (mismatchedVersions.length > 0) {
+                    throw new StreamVersionError('Version mismatch detected', mismatchedVersions)
+                }
+            })
+
         }
+
+        streamVersionIndex.set(newEvent.streamId, newEvent.streamVersionId)
+        events.push(newEvent)
 
 
         // when we update, we don't need to update all the referenced stream versions. Just this one.
-        streamVersionIndex.set(newEvent.streamId, newEvent.streamVersionId)
-        events.push(newEvent)
 
         return Promise.resolve([
             {
