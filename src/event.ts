@@ -45,9 +45,30 @@ export type TypedEventDep<EventType> = TypedEvent<string, EventType>
 /** What comes back after adding a new event to the event log */
 export type StoredEventResponse<EventName = string, EventType = any> = TypedEvent<EventName, EventType> | Event
 
+/**  The error type thrown when object versions don't match */
+export class StreamVersionError extends Error {
+    public details: StreamVersionMismatch[]
+    constructor(
+        msg: string,
+        details: StreamVersionMismatch[]
+    ) {
+        super(msg)
+        this.details = details
+        // Set the prototype explicitly.
+        Object.setPrototypeOf(this, StreamVersionError.prototype)
+    }
+}
+
+/**  The details of a stream version mismatch */
+export interface StreamVersionMismatch {
+    streamId: string,
+    expectedVersionId: string,
+    actualVersionId: string
+}
+
 export interface EventBaseType {
     /**  put a new event on the event stream */
-    addEvent: (event: EventToRecord) => Promise<any>
+    addEvent: (event: EventToRecord, streamVersionIds?: Record<string, string>) => Promise<any>
     /** get all the events from the start to the end (for replay) */
     getAllEventsInOrder: () => Promise<Event[]>
     /** update a single event with new data (no other fields). Protect this in production */

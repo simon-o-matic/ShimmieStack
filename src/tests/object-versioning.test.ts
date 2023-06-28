@@ -19,7 +19,7 @@ const meta: Meta = {
 }
 
 describe('Object Versioning', () => {
-    it('should generate a unique object version on each recordevent call', async () => {
+    it('should generate a unique object version on each recordEvent call', async () => {
         let recordedEvents: TypedEvent<'EXAMPLE_EVENT',CommandEventModels['EXAMPLE_EVENT']>[] = []
         testStack.subscribe('EXAMPLE_EVENT', (event) => {
             recordedEvents.push(event)
