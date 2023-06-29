@@ -3,27 +3,15 @@
 //
 
 import { EventEmitter } from 'events'
-import {
-    Event,
-    EventBaseType, EventToRecord,
-    Meta,
-    PiiBaseType,
-    PiiFields,
-    TypedEvent,
-    TypedEventHandler,
-    UserMeta,
-} from './event'
+import { Event, EventBaseType, EventToRecord, PiiBaseType, TypedEvent, TypedEventHandler } from './event'
 import { Logger } from './logger'
 import { v4 as uuid } from 'uuid'
+import { RecordEventType } from './index'
 
 export interface EventStoreType<CommandEventModels extends Record<string, any>, QueryEventModels extends Record<string, any>> {
     replayAllEvents: () => Promise<number>
     recordEvent: <EventName extends keyof CommandEventModels>(
-        streamId: string,
-        eventName: EventName,
-        data: CommandEventModels[EventName],
-        meta: Meta,
-        pii?: PiiFields,
+        event: RecordEventType<CommandEventModels, EventName>,
     ) => Promise<any>
     subscribe: <EventName extends keyof QueryEventModels> (
         type: EventName,
@@ -46,45 +34,47 @@ export default function EventStore<
     const allSubscriptions = new Map<string, boolean>()
 
     const recordEvent = async <EventName extends keyof CommandEventModels>(
-        streamId: string,
-        eventName: EventName,
-        data: CommandEventModels[EventName],
-        userMeta: UserMeta,
-        pii?: PiiFields,
-    ) => {
-        if (!streamId || !eventName || !userMeta) {
+        {
+            streamId,
+            eventName,
+            eventData,
+            meta,
+            piiFields,
+        }: RecordEventType<CommandEventModels, EventName>) => {
+        if (!streamId || !eventName || !meta) {
             Logger.error(
                 `EventStore::recordEvent::missing values ${{
                     streamId,
                     eventName,
-                    meta: userMeta,
+                    meta: meta,
                 }}`,
             )
             throw new Error('Attempt to record bad event data')
         }
+
         // if we have any pii, make a pii key
-        const hasPii: boolean = !!pii
+        const hasPii: boolean = !!piiFields
 
         if (hasPii && !piiBase) {
             Logger.warn('Pii key provided without a PiiBase defined')
             throw new Error(
-                'You must configure a PII base to store PII outside the event stream'
+                'You must configure a PII base to store PII outside the event stream',
             )
         }
 
         let piiData: Record<string, any> = {}
         let nonPiiData: Record<string, any> = {}
 
-        if (hasPii && data) {
-            Object.keys(data).map((key) => {
-                if (pii?.includes(key)) {
-                    piiData[key] = (data as any)[key] // collect PII into an object,
+        if (hasPii && eventData) {
+            Object.keys(eventData).map((key) => {
+                if (piiFields?.includes(key)) {
+                    piiData[key] = (eventData as any)[key] // collect PII into an object,
                 } else {
-                    nonPiiData[key] = (data as any)[key] // collect non PII into an object,
+                    nonPiiData[key] = (eventData as any)[key] // collect non PII into an object,
                 }
             })
         } else {
-            nonPiiData = data as Record<string, any>
+            nonPiiData = eventData as Record<string, any>
         }
 
         const newEvent: EventToRecord = {
@@ -92,10 +82,10 @@ export default function EventStore<
             streamId: streamId,
             streamVersionId: uuid(),
             meta: {
-                ...userMeta,
+                ...meta,
                 replay: false,
                 hasPii,
-                date: userMeta.date || Date.now(), // should be calculated here. Sometimes passed in so let that be
+                date: meta.date || Date.now(), // should be calculated here. Sometimes passed in so let that be
             },
             type: String(eventName),
         }
@@ -183,7 +173,7 @@ export default function EventStore<
         const allEvents: Event[] = await getAllEvents(false) // get all the events WITHOUT Pii, so we don't iterate them twice.
         let piiLookup: Record<string, any> | undefined
 
-        // if we have a pii db, get all the pii for re-populating the emited events
+        // if we have a pii db, get all the pii for re-populating the emitted events
         if (piiBase) {
             piiLookup = await piiBase.getPiiLookup()
         }

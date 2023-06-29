@@ -59,13 +59,13 @@ describe('when recording an event', () => {
 
                 eventStore.subscribe('piiTest', () => {
                 })
-                await eventStore.recordEvent(
-                    'streamid',
-                    'piiTest',
-                    piiTestData,
+                await eventStore.recordEvent({
+                    streamId:'streamid',
+                    eventName:'piiTest',
+                    eventData:piiTestData,
                     meta,
-                    ['piiField'],
-                )
+                    piiFields: ['piiField'],
+                })
 
                 // check that the eventbase does not have pii in it, and does have the other data
                 const nonPii = (await eventStore.getAllEvents(false))[0]
@@ -83,19 +83,19 @@ describe('when recording an event', () => {
             eventStore.subscribe('type', (event) => {
             })
 
-            await eventStore.recordEvent(
-                'streamid',
-                'piiTest',
-                piiTestData,
+            await eventStore.recordEvent({
+                streamId:'streamid',
+                eventName:'piiTest',
+                eventData:piiTestData,
                 meta,
-                ['piiField'],
-            )
-            await eventStore.recordEvent(
-                'streamid',
-                'nonPiiTestData',
-                nonPiiTestData,
+                piiFields: ['piiField'],
+            })
+            await eventStore.recordEvent({
+                streamId:'streamid',
+                eventName:'nonPiiTestData',
+                eventData:nonPiiTestData,
                 meta,
-            )
+            })
             const allEvents = await eventStore.getAllEvents()
 
             // are both events saved?
@@ -118,13 +118,13 @@ describe('when recording an event', () => {
             noPiiEventStore.subscribe('type', () => {
             })
             try {
-                await noPiiEventStore.recordEvent(
-                    'streamid',
-                    'piiTest',
-                    piiTestData,
+                await noPiiEventStore.recordEvent({
+                    streamId:'streamid',
+                    eventName:'piiTest',
+                    eventData:piiTestData,
                     meta,
-                    ['piiField'],
-                )
+                    piiFields: ['piiField'],
+                })
                 fail("Should have thrown when no piibase is configured and pii is provided");
             } catch (err: any) {
                 expect(err.message).toEqual('You must configure a PII base to store PII outside the event stream')
@@ -135,12 +135,12 @@ describe('when recording an event', () => {
         it('Should store the event when no pii is present', async () => {
             noPiiEventStore.subscribe('type', () => {
             })
-            await noPiiEventStore.recordEvent(
-                'streamid',
-                'piiTest',
-                piiTestData, // you can still store pii in here, but it will be added to the event stream, rather than the pii db
+            await noPiiEventStore.recordEvent({
+                streamId:'streamid',
+                eventName:'piiTest',
+                eventData:piiTestData,
                 meta,
-            )
+            })
 
             // check that the eventbase does not have pii in it, and does have the other data
             const event = (await noPiiEventStore.getAllEvents(false))[0]

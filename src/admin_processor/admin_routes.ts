@@ -4,7 +4,7 @@
 
 // TODO: CHECK FOR ADMIN PERMISSIONS?
 
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Request, Response } from 'express'
 import { AdminCommandsType } from './admin_commands'
 import { authorizeApi, AuthorizerFunc, noAuthorization } from '../authorizers'
 
@@ -36,7 +36,7 @@ export default function (
         }
     })
 
-    router.delete('/events/:sequenceNumber', authorizer, async (req, res) => {
+    router.delete('/events/:sequenceNumber', authorizer, async (req: Request, res) => {
         if (process.env.NODE_ENV === 'production') {
             return res.status(403).send()
         } else {
@@ -50,7 +50,7 @@ export default function (
         }
     })
 
-    router.put('/events/:sequenceNumber', authorizer, async (req, res) => {
+    router.put('/events/:sequenceNumber', authorizer, async (req: Request, res) => {
         if (process.env.NODE_ENV === 'production') {
             return res.status(403).send()
         } else {

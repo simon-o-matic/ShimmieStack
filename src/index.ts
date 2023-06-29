@@ -435,11 +435,13 @@ export default function ShimmieStack<
             piiFields?: PiiFields,
         ): Promise<void> =>
             eventStore.recordEvent(
-                streamId,
-                eventName,
-                eventData,
-                meta,
-                piiFields,
+                {
+                    streamId,
+                    eventName,
+                    eventData,
+                    meta,
+                    piiFields,
+                },
             ),
 
         

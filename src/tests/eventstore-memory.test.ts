@@ -53,15 +53,30 @@ describe('when creating the eventstore', () => {
 describe('when recording an event', () => {
     it('there should be one event in the database if one is recorded', async () => {
         eventStore.subscribe('AN_EVENT_NAME', () => {})
-        await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'blah' }, meta)
+        await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_NAME',
+            eventData:{ data: 'blah' },
+            meta:meta,
+        })
         const numEvents = await eventStore.getAllEvents()
 
         expect(numEvents.length).toEqual(1)
     })
 
     it('there should be two events in the database when two are recorded', async () => {
-        await eventStore.recordEvent('streamid', 'ANOTHER_EVENT_NAME', { data: 123 }, meta)
-        await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'blah' }, meta)
+        await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'ANOTHER_EVENT_NAME',
+            eventData:{ data: 123 },
+            meta,
+        })
+        await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_NAME',
+            eventData:{ data: 'blah' },
+            meta:meta,
+        })
         const allEvents = await eventStore.getAllEvents()
 
         expect(allEvents.length).toEqual(2)
@@ -72,12 +87,12 @@ describe('when recording an event', () => {
 
         eventStore.subscribe('AN_EVENT_NAME', mockReceiver)
 
-        await eventStore.recordEvent(
-            'streamid',
-            'AN_EVENT_NAME',
-            { data: 'blah' },
-            meta
-        )
+        await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_NAME',
+            eventData:{ data: 'blah' },
+            meta:meta,
+        })
 
         expect(mockReceiver).toHaveBeenCalledTimes(1)
     })
@@ -85,12 +100,12 @@ describe('when recording an event', () => {
     it('no listener should produce a warning', async () => {
         Logger.warn = jest.fn()
         // theres a race condition here somewhere..
-        await eventStore.recordEvent(
-            'streamid',
-            'AN_EVENT_WITH_NO_LISTENERS_NAME',
-            { data: 'blah' },
-            meta
-        )
+        await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_WITH_NO_LISTENERS_NAME',
+            eventData:{ data: 'blah' },
+            meta:meta,
+        })
 
         expect(Logger.warn).toHaveBeenCalledWith(
             'ShimmieStack >>>> Event AN_EVENT_WITH_NO_LISTENERS_NAME has no listeners'
@@ -100,9 +115,18 @@ describe('when recording an event', () => {
 
 describe('when deleting an event', () => {
     it('should remove the event', async () => {
-        await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'blah' }, meta)
-        await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'foo' }, meta)
-
+        await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_NAME',
+            eventData:{ data: 'blah' },
+            meta:meta,
+        })
+        await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_NAME',
+            eventData:{ data: 'foo' },
+            meta:meta,
+        })
         const allEvents = await eventStore.getAllEvents()
         Logger.log(`EVENTS, ${allEvents} `)
         expect(allEvents.length).toEqual(2)
@@ -123,9 +147,18 @@ describe('when deleting an event', () => {
 
 describe('when updating data', () => {
     it('the data should be updated', async () => {
-        await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'glue' }, meta)
-        await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'foo' }, meta)
-
+        await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_NAME',
+            eventData:{ data: 'glue' },
+            meta:meta,
+        })
+        await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_NAME',
+            eventData:{ data: 'foo' },
+            meta:meta,
+        })
         await eventStore.updateEventData(0, { bar: 'goo' })
         await eventStore.updateEventData(1, { bar: 'boo' })
 
@@ -145,9 +178,19 @@ describe('when subscribing to an event', () => {
                 valueSet = true
                 throw new Error("Something happened and should stop the app launching")
             })
-            await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'blah' }, meta)
+            await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_NAME',
+            eventData:{ data: 'blah' },
+            meta:meta,
+        })
             expect(valueSet).toBe(true)
-            await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'blah' }, meta)
+            await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_NAME',
+            eventData:{ data: 'blah' },
+            meta:meta,
+        })
 
             const numEvents = await eventStore.getAllEvents()
 
@@ -156,7 +199,12 @@ describe('when subscribing to an event', () => {
 
             eventStoreOptions.initialised = false
             try {
-                await eventStore.recordEvent('streamid', 'AN_EVENT_NAME', { data: 'blah' }, meta)
+                await eventStore.recordEvent({
+            streamId:'streamid',
+            eventName:'AN_EVENT_NAME',
+            eventData:{ data: 'blah' },
+            meta:meta,
+        })
             } catch (err: any) {
                 expect(err).toBeDefined()
                 expect(err.message).toEqual("Something happened and should stop the app launching")
