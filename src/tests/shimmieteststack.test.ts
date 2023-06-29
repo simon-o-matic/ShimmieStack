@@ -26,10 +26,13 @@ const TestProcessor = (testStack: StackType<CommandEventModels, QueryEventModels
     const router = testStack.getRouter()
 
     router.get('/whoami', async (req, res) => {
+
+        // todo shorthand
         await testStack.recordEvent({
                 streamId: '1',
                 eventName: 'WHO_AM_I_EVENT',
                 eventData: { elvis: 'costello' },
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                 meta: {
                     user: { id: 'johnny-come-lately' }, // this can be any
                     userAgent: 'agent-johnny:GECKO-9.0',
@@ -41,10 +44,12 @@ const TestProcessor = (testStack: StackType<CommandEventModels, QueryEventModels
     })
 
     router.post('/:sid/golden-girls', (req, res) => {
+        // todo shorthand
         testStack.recordEvent({
             streamId: req.params.sid,
             eventName: req.body.type,
             eventData: req.body.data,
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta: {
                 user: { id: 'johnny-come-lately' }, // this can be any
                 userAgent: 'agent-johnny:GECKO-9.0',
@@ -281,11 +286,13 @@ describe('when calling /whoami', () => {
             streamId: 'streamid',
             eventName: 'SIMPLE_EXAMPLE_EVENT',
             eventData: { data: 'blah' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta,
         }, {
             streamId: 'streamid',
             eventName: 'SIMPLE_EXAMPLE_EVENT',
             eventData: { data: 'blah2' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta,
         }])
 

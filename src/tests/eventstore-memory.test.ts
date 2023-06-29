@@ -1,6 +1,6 @@
 import EventBase from '../eventbase-memory'
 import EventStore from '../eventstore'
-import { Meta } from '../event'
+import { Meta, TypedEvent } from '../event'
 import { Logger } from '../logger'
 let eventStoreOptions = { initialised: true }
 const eventBase = EventBase()
@@ -57,6 +57,7 @@ describe('when recording an event', () => {
             streamId:'streamid',
             eventName:'AN_EVENT_NAME',
             eventData:{ data: 'blah' },
+            streamVersionIds: {'streamId': undefined},
             meta:meta,
         })
         const numEvents = await eventStore.getAllEvents()
@@ -69,12 +70,14 @@ describe('when recording an event', () => {
             streamId:'streamid',
             eventName:'ANOTHER_EVENT_NAME',
             eventData:{ data: 123 },
+            streamVersionIds: {'streamId': undefined},
             meta,
         })
         await eventStore.recordEvent({
             streamId:'streamid',
             eventName:'AN_EVENT_NAME',
             eventData:{ data: 'blah' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta:meta,
         })
         const allEvents = await eventStore.getAllEvents()
@@ -91,6 +94,7 @@ describe('when recording an event', () => {
             streamId:'streamid',
             eventName:'AN_EVENT_NAME',
             eventData:{ data: 'blah' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta:meta,
         })
 
@@ -104,6 +108,7 @@ describe('when recording an event', () => {
             streamId:'streamid',
             eventName:'AN_EVENT_WITH_NO_LISTENERS_NAME',
             eventData:{ data: 'blah' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta:meta,
         })
 
@@ -119,12 +124,14 @@ describe('when deleting an event', () => {
             streamId:'streamid',
             eventName:'AN_EVENT_NAME',
             eventData:{ data: 'blah' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta:meta,
         })
         await eventStore.recordEvent({
             streamId:'streamid',
             eventName:'AN_EVENT_NAME',
             eventData:{ data: 'foo' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta:meta,
         })
         const allEvents = await eventStore.getAllEvents()
@@ -151,12 +158,14 @@ describe('when updating data', () => {
             streamId:'streamid',
             eventName:'AN_EVENT_NAME',
             eventData:{ data: 'glue' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta:meta,
         })
         await eventStore.recordEvent({
             streamId:'streamid',
             eventName:'AN_EVENT_NAME',
             eventData:{ data: 'foo' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta:meta,
         })
         await eventStore.updateEventData(0, { bar: 'goo' })
@@ -182,6 +191,7 @@ describe('when subscribing to an event', () => {
             streamId:'streamid',
             eventName:'AN_EVENT_NAME',
             eventData:{ data: 'blah' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta:meta,
         })
             expect(valueSet).toBe(true)
@@ -189,6 +199,7 @@ describe('when subscribing to an event', () => {
             streamId:'streamid',
             eventName:'AN_EVENT_NAME',
             eventData:{ data: 'blah' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta:meta,
         })
 
@@ -203,6 +214,7 @@ describe('when subscribing to an event', () => {
             streamId:'streamid',
             eventName:'AN_EVENT_NAME',
             eventData:{ data: 'blah' },
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta:meta,
         })
             } catch (err: any) {

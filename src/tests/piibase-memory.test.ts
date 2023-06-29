@@ -63,6 +63,7 @@ describe('when recording an event', () => {
                     streamId:'streamid',
                     eventName:'piiTest',
                     eventData:piiTestData,
+                    streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                     meta,
                     piiFields: ['piiField'],
                 })
@@ -88,12 +89,14 @@ describe('when recording an event', () => {
                 eventName:'piiTest',
                 eventData:piiTestData,
                 meta,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                 piiFields: ['piiField'],
             })
             await eventStore.recordEvent({
                 streamId:'streamid',
                 eventName:'nonPiiTestData',
                 eventData:nonPiiTestData,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                 meta,
             })
             const allEvents = await eventStore.getAllEvents()
@@ -123,6 +126,7 @@ describe('when recording an event', () => {
                     eventName:'piiTest',
                     eventData:piiTestData,
                     meta,
+                    streamVersionIds: {'streamId': undefined},
                     piiFields: ['piiField'],
                 })
                 fail("Should have thrown when no piibase is configured and pii is provided");
@@ -139,6 +143,7 @@ describe('when recording an event', () => {
                 streamId:'streamid',
                 eventName:'piiTest',
                 eventData:piiTestData,
+                streamVersionIds: {'streamId': undefined},
                 meta,
             })
 

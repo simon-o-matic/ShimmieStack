@@ -39,6 +39,7 @@ export default function EventStore<
             eventName,
             eventData,
             meta,
+            streamVersionIds,
             piiFields,
         }: RecordEventType<CommandEventModels, EventName>) => {
         if (!streamId || !eventName || !meta) {
@@ -90,9 +91,12 @@ export default function EventStore<
             type: String(eventName),
         }
 
+        // if explicitly passed 'STREAM_VERSIONING_DISABLED' dont check versions, otherwise compare to the passed in values.
+        const streamVersionsToCheck: Record<string, string|undefined> | undefined = streamVersionIds !== 'STREAM_VERSIONING_DISABLED' ? streamVersionIds : undefined
+
         // need to await here to confirm before emitting just in case
         // todo handle event success and pii failure 2 phase write
-        let rows = await eventbase.addEvent({ ...newEvent }) // destructing object for deep copy
+        let rows = await eventbase.addEvent({ ...newEvent }, streamVersionsToCheck) // destructing object for deep copy
 
         if (hasPii && piiBase) {
             // get the stringified sequenceNum from the event stream and use it as the key for the pii row

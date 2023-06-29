@@ -80,6 +80,7 @@ export interface RecordEventType<CommandEventModels, EventName extends keyof Com
     eventName: EventName
     eventData: CommandEventModels[EventName]
     meta: Meta
+    streamVersionIds: Record<string,string|undefined> | 'STREAM_VERSIONING_DISABLED'
     piiFields?: PiiFields
 }
 
@@ -387,13 +388,7 @@ export default function ShimmieStack<
                     const eventPromises: Promise<void>[] = []
                     for (let i = 0; i < events.length; i++) {
                         const event = events[i]
-                        eventPromises.push(funcs.recordEvent({
-                            streamId: event.streamId,
-                            eventName: event.eventName,
-                            eventData: event.eventData,
-                            meta: event.meta,
-                            piiFields: event.piiFields,
-                        }))
+                        eventPromises.push(funcs.recordEvent(event))
                     }
                     await Promise.all(eventPromises)
                 } catch (err) {
@@ -406,17 +401,10 @@ export default function ShimmieStack<
                  */
                 for (const event of events) {
                     try {
-                        await funcs.recordEvent({
-                            streamId: event.streamId,
-                            eventName: event.eventName,
-                            eventData: event.eventData,
-                            meta: event.meta,
-                            piiFields: event.piiFields,
-                        })
+                        await funcs.recordEvent(event)
                     } catch (err) {
                         Logger.info('Unable to record event: ' + event)
                         Logger.error(err)
-
                     }
                 }
             }

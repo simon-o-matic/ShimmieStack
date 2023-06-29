@@ -29,6 +29,7 @@ describe('Object Versioning', () => {
             streamId: 'exampleStreamId',
             eventName: 'EXAMPLE_EVENT',
             eventData: { data: 'something' },
+            streamVersionIds: {'streamId': undefined},
             meta,
         })
 
@@ -36,6 +37,7 @@ describe('Object Versioning', () => {
             streamId: 'exampleStreamId',
             eventName: 'EXAMPLE_EVENT',
             eventData: { data: 'something else' },
+            streamVersionIds: {'streamId': recordedEvents[0]?.streamVersionId},
             meta,
         })
 

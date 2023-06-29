@@ -42,7 +42,7 @@ export default function Eventbase(): EventBaseType {
         return Promise.resolve()
     }
 
-    const addEvent = async (event: EventToRecord, streamVersionIds?: Record<string, string>): Promise<StoredEventResponse[]> => {
+    const addEvent = async (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>): Promise<StoredEventResponse[]> => {
         const newEvent: Event = {
             ...event,
             sequencenum: events.length,

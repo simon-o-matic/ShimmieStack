@@ -73,13 +73,13 @@ export class ObjectLockedError extends Error {
 /**  The details of a stream version mismatch */
 export interface StreamVersionMismatch {
     streamId: string,
-    expectedVersionId: string,
+    expectedVersionId: string|undefined,
     actualVersionId: string
 }
 
 export interface EventBaseType {
     /**  put a new event on the event stream */
-    addEvent: (event: EventToRecord, streamVersionIds?: Record<string, string>) => Promise<any>
+    addEvent: (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>) => Promise<any>
     /** get all the events from the start to the end (for replay) */
     getAllEventsInOrder: () => Promise<Event[]>
     /** update a single event with new data (no other fields). Protect this in production */
