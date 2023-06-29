@@ -75,17 +75,19 @@ export interface StreamHistory<QueryEventModels> {
     createdAt?: number
 }
 
-export type RecordUnversionedEventType<CommandEventModels, EventName extends keyof CommandEventModels> = {
+export type RecordUnversionedEventType<CommandEventModels, EventName extends keyof CommandEventModels> = Omit<
+    RecordEventType<CommandEventModels, EventName>,
+    'streamVersionIds'
+>
+
+export type RecordEventType <CommandEventModels, EventName extends keyof CommandEventModels> = {
     streamId: string
     eventName: EventName
     eventData: CommandEventModels[EventName]
     meta: Meta
     piiFields?: PiiFields
-}
-
-export type RecordEventType <CommandEventModels, EventName extends keyof CommandEventModels> = {
     streamVersionIds: Record<string,string|undefined> | 'STREAM_VERSIONING_DISABLED'
-} & RecordUnversionedEventType<CommandEventModels, EventName>
+}
 
 
 
