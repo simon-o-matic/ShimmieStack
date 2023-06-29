@@ -1,6 +1,6 @@
 import ShimmieTestStack from '../shimmieteststack'
 import { Meta, TypedEvent } from '../event'
-import { expect, describe, it } from '@jest/globals'
+import { describe, expect, it } from '@jest/globals'
 
 type CommandEventModels = {
     EXAMPLE_EVENT: {
@@ -25,19 +25,20 @@ describe('Object Versioning', () => {
             recordedEvents.push(event)
         })
 
-        await testStack.recordEvent(
-            'exampleStreamId',
-            'EXAMPLE_EVENT',
-            { data: 'something' },
-            meta
-        )
+        await testStack.recordEvent({
+            streamId: 'exampleStreamId',
+            eventName: 'EXAMPLE_EVENT',
+            eventData: { data: 'something' },
+            meta,
+        })
 
-        await testStack.recordEvent(
-            'exampleStreamId',
-            'EXAMPLE_EVENT',
-            { data: 'something else' },
-            meta
-        )
+        await testStack.recordEvent({
+            streamId: 'exampleStreamId',
+            eventName: 'EXAMPLE_EVENT',
+            eventData: { data: 'something else' },
+            meta,
+        })
+
 
         expect(recordedEvents.length).toEqual(2)
 

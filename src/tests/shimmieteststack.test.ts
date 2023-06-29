@@ -25,19 +25,32 @@ const testStack = ShimmieTestStack<CommandEventModels, QueryEventModels>()
 const TestProcessor = (testStack: StackType<CommandEventModels, QueryEventModels>) => {
     const router = testStack.getRouter()
 
-    router.get('/whoami', (req, res) => {
-        testStack.recordEvent('1', 'WHO_AM_I_EVENT', { elvis: 'costello' }, {
-            user: { id: 'johnny-come-lately' }, // this can be any
-            userAgent: 'agent-johnny:GECKO-9.0',
-        } as any)
+    router.get('/whoami', async (req, res) => {
+        await testStack.recordEvent({
+                streamId: '1',
+                eventName: 'WHO_AM_I_EVENT',
+                eventData: { elvis: 'costello' },
+                meta: {
+                    user: { id: 'johnny-come-lately' }, // this can be any
+                    userAgent: 'agent-johnny:GECKO-9.0',
+                    date: Date.now(),
+                },
+            },
+        )
         res.status(200).send({ me: 'shimmie' })
     })
 
     router.post('/:sid/golden-girls', (req, res) => {
-        testStack.recordEvent(req.params.sid, req.body.type, req.body.data, {
-            user: { id: 'johnny-come-lately' }, // this can be any
-            userAgent: 'agent-johnny:GECKO-9.0',
-        } as any)
+        testStack.recordEvent({
+            streamId: req.params.sid,
+            eventName: req.body.type,
+            eventData: req.body.data,
+            meta: {
+                user: { id: 'johnny-come-lately' }, // this can be any
+                userAgent: 'agent-johnny:GECKO-9.0',
+                date: Date.now(),
+            },
+        })
         res.status(200).send({ me: 'shimmie' })
     })
 

@@ -75,10 +75,10 @@ export interface StreamHistory<QueryEventModels> {
     createdAt?: number
 }
 
-export interface RecordEventType<QueryEventModels, EventName extends keyof QueryEventModels> {
+export interface RecordEventType<CommandEventModels, EventName extends keyof CommandEventModels> {
     streamId: string
     eventName: EventName
-    eventData: QueryEventModels[EventName]
+    eventData: CommandEventModels[EventName]
     meta: Meta
     piiFields?: PiiFields
 }
@@ -140,13 +140,7 @@ export type StackType<
 > = {
     setApiVersion: (version: string) => StackType<CommandEventModels, QueryEventModels>
     getRouter: () => Router
-    recordEvent: <EventName extends keyof CommandEventModels>(
-        streamId: string,
-        eventName: EventName,
-        eventData: CommandEventModels[EventName],
-        meta: Meta,
-        piiFields?: PiiFields,
-    ) => Promise<void>
+    recordEvent: <EventName extends keyof CommandEventModels>(event: RecordEventType<CommandEventModels, EventName>) => Promise<void>
     recordEvents: <EventName extends keyof CommandEventModels>(
         events: RecordEventType<CommandEventModels, EventName>[],
         executionOrder?: ExecutionOrder,
@@ -393,13 +387,13 @@ export default function ShimmieStack<
                     const eventPromises: Promise<void>[] = []
                     for (let i = 0; i < events.length; i++) {
                         const event = events[i]
-                        eventPromises.push(funcs.recordEvent(
-                            event.streamId,
-                            event.eventName,
-                            event.eventData,
-                            event.meta,
-                            event.piiFields,
-                        ))
+                        eventPromises.push(funcs.recordEvent({
+                            streamId: event.streamId,
+                            eventName: event.eventName,
+                            eventData: event.eventData,
+                            meta: event.meta,
+                            piiFields: event.piiFields,
+                        }))
                     }
                     await Promise.all(eventPromises)
                 } catch (err) {
@@ -412,13 +406,13 @@ export default function ShimmieStack<
                  */
                 for (const event of events) {
                     try {
-                        await funcs.recordEvent(
-                            event.streamId,
-                            event.eventName,
-                            event.eventData,
-                            event.meta,
-                            event.piiFields
-                        )
+                        await funcs.recordEvent({
+                            streamId: event.streamId,
+                            eventName: event.eventName,
+                            eventData: event.eventData,
+                            meta: event.meta,
+                            piiFields: event.piiFields,
+                        })
                     } catch (err) {
                         Logger.info('Unable to record event: ' + event)
                         Logger.error(err)
@@ -428,21 +422,9 @@ export default function ShimmieStack<
             }
         },
         recordEvent: <EventName extends keyof CommandEventModels>(
-            streamId: string,
-            eventName: EventName,
-            eventData: CommandEventModels[EventName],
-            meta: Meta,
-            piiFields?: PiiFields,
+            event: RecordEventType<CommandEventModels, EventName>
         ): Promise<void> =>
-            eventStore.recordEvent(
-                {
-                    streamId,
-                    eventName,
-                    eventData,
-                    meta,
-                    piiFields,
-                },
-            ),
+            eventStore.recordEvent(event),
 
         
         // Make a new Express router
