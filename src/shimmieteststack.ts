@@ -249,9 +249,15 @@ export default function ShimmieTestStack<
     }
 
     // Allow passthrough to the actal function, but also let testers count calls
-    // Disable Webstorm inspection for this line as Jest does weird shit with generics
+    // Disable Webstorm inspection for this line as it doesnt recognise the 2 input version of spyon
     // noinspection TypeScriptValidateTypes
     jest.spyOn(testStack, 'recordEvent')
+    // noinspection TypeScriptValidateTypes
+    jest.spyOn(testStack, 'recordEvents')
+    // noinspection TypeScriptValidateTypes
+    jest.spyOn(testStack, 'recordUnversionedEvent')
+    // noinspection TypeScriptValidateTypes
+    jest.spyOn(testStack, 'recordUnversionedEvents')
 
     // the actual shimmie stack, plus our extras. User overrides the one in the underlying
     // ShimmieStack

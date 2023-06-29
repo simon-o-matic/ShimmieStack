@@ -75,14 +75,19 @@ export interface StreamHistory<QueryEventModels> {
     createdAt?: number
 }
 
-export interface RecordEventType<CommandEventModels, EventName extends keyof CommandEventModels> {
+export type RecordUnversionedEventType<CommandEventModels, EventName extends keyof CommandEventModels> = {
     streamId: string
     eventName: EventName
     eventData: CommandEventModels[EventName]
     meta: Meta
-    streamVersionIds: Record<string,string|undefined> | 'STREAM_VERSIONING_DISABLED'
     piiFields?: PiiFields
 }
+
+export type RecordEventType <CommandEventModels, EventName extends keyof CommandEventModels> = {
+    streamVersionIds: Record<string,string|undefined> | 'STREAM_VERSIONING_DISABLED'
+} & RecordUnversionedEventType<CommandEventModels, EventName>
+
+
 
 /**
  * Stacktype is the base shimmiestack stack object. It handles the event sourcing
@@ -142,8 +147,13 @@ export type StackType<
     setApiVersion: (version: string) => StackType<CommandEventModels, QueryEventModels>
     getRouter: () => Router
     recordEvent: <EventName extends keyof CommandEventModels>(event: RecordEventType<CommandEventModels, EventName>) => Promise<void>
+    recordUnversionedEvent: <EventName extends keyof CommandEventModels>(event: RecordUnversionedEventType<CommandEventModels, EventName>) => Promise<void>
     recordEvents: <EventName extends keyof CommandEventModels>(
         events: RecordEventType<CommandEventModels, EventName>[],
+        executionOrder?: ExecutionOrder,
+    ) => Promise<void>
+    recordUnversionedEvents: <EventName extends keyof CommandEventModels>(
+        events: RecordUnversionedEventType<CommandEventModels, EventName>[],
         executionOrder?: ExecutionOrder,
     ) => Promise<void>
     startup: () => void
@@ -372,6 +382,15 @@ export default function ShimmieStack<
             eventStore.subscribe(type, handler)
             Logger.info(`ShimmieStack >>>> Registered event handler: ${String(type)}`)
         },
+        recordUnversionedEvents: <EventName extends keyof CommandEventModels>(
+            events: RecordUnversionedEventType<CommandEventModels, EventName>[],
+            executionOrder?: ExecutionOrder,
+        ): Promise<void> => {
+            return funcs.recordEvents(
+                events.map(e => ({...e, streamVersionIds: 'STREAM_VERSIONING_DISABLED'})),
+                executionOrder
+            )
+        },
         recordEvents: async <EventName extends keyof CommandEventModels>(
             events: RecordEventType<CommandEventModels, EventName>[],
             executionOrder?: ExecutionOrder,
@@ -409,12 +428,17 @@ export default function ShimmieStack<
                 }
             }
         },
+        // shorthand for disabling versionIds
+        recordUnversionedEvent: <EventName extends keyof CommandEventModels>(
+            event: RecordUnversionedEventType<CommandEventModels, EventName>,
+        ): Promise<void> =>
+            eventStore.recordEvent({ ...event, streamVersionIds: 'STREAM_VERSIONING_DISABLED' }),
         recordEvent: <EventName extends keyof CommandEventModels>(
-            event: RecordEventType<CommandEventModels, EventName>
+            event: RecordEventType<CommandEventModels, EventName>,
         ): Promise<void> =>
             eventStore.recordEvent(event),
 
-        
+
         // Make a new Express router
         getRouter: () => express.Router(),
 

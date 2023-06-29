@@ -26,37 +26,32 @@ const TestProcessor = (testStack: StackType<CommandEventModels, QueryEventModels
     const router = testStack.getRouter()
 
     router.get('/whoami', async (req, res) => {
-
-        // todo shorthand
-        await testStack.recordEvent({
+        await testStack.recordUnversionedEvent({
                 streamId: '1',
                 eventName: 'WHO_AM_I_EVENT',
                 eventData: { elvis: 'costello' },
-                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                 meta: {
                     user: { id: 'johnny-come-lately' }, // this can be any
                     userAgent: 'agent-johnny:GECKO-9.0',
                     date: Date.now(),
-                },
+                }
             },
         )
-        res.status(200).send({ me: 'shimmie' })
+        return res.status(200).send({ me: 'shimmie' })
     })
 
-    router.post('/:sid/golden-girls', (req, res) => {
-        // todo shorthand
-        testStack.recordEvent({
+    router.post('/:sid/golden-girls', async (req, res) => {
+        await testStack.recordUnversionedEvent({
             streamId: req.params.sid,
             eventName: req.body.type,
             eventData: req.body.data,
-            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta: {
                 user: { id: 'johnny-come-lately' }, // this can be any
                 userAgent: 'agent-johnny:GECKO-9.0',
                 date: Date.now(),
             },
         })
-        res.status(200).send({ me: 'shimmie' })
+        return res.status(200).send({ me: 'shimmie' })
     })
 
     router.post('/foo', (req, res) => {
@@ -66,7 +61,7 @@ const TestProcessor = (testStack: StackType<CommandEventModels, QueryEventModels
     })
 
     const returnHeaders = (req: any, res: any) => {
-        res.status(200).json({ headers: req.headers, body: req.body })
+        return res.status(200).json({ headers: req.headers, body: req.body })
     }
     router.post('/postonly-nobodyrequired', returnHeaders)
 
@@ -265,7 +260,7 @@ describe('when calling /whoami', () => {
     it('the current user should be returned', async () => {
         const response = await testStack.testGet({ path: '/whoami' })
         expect(response.body.me).toBe('shimmie')
-        expect(testStack.recordEvent).toBeCalledTimes(1)
+        expect(testStack.recordUnversionedEvent).toBeCalledTimes(1)
     })
 })
 
@@ -282,17 +277,15 @@ describe('when calling /whoami', () => {
             date: 123,
             userAgent: 'test agent',
         }
-        await testStack.recordEvents([{
+        await testStack.recordUnversionedEvents([{
             streamId: 'streamid',
             eventName: 'SIMPLE_EXAMPLE_EVENT',
             eventData: { data: 'blah' },
-            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta,
         }, {
             streamId: 'streamid',
             eventName: 'SIMPLE_EXAMPLE_EVENT',
             eventData: { data: 'blah2' },
-            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             meta,
         }])
 
