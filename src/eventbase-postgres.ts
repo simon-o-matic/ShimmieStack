@@ -70,8 +70,9 @@ export default function Eventbase(config: EventConfig): EventBaseType {
     }
 
     const reset = async () => {
-        await dropTables()
-        await createTables()
+        throw new Error("Not implemented")
+        // await dropTables()
+        // await createTables()
     }
 
     const runQuery = async (

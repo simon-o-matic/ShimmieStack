@@ -7,6 +7,7 @@ import PiiBase from './piibase-memory'
 import ShimmieStack, { StackType } from './index'
 import { authorizeApi, noAuthorization } from './authorizers'
 import 'express-async-errors'
+import { EventBaseType } from './event'
 
 /** Some extra convenience functions for ease testing */
 
@@ -273,5 +274,10 @@ export default function ShimmieTestStack<
         testPutDep,
         testDeleteDep,
         use: (a: any) => app.use(a),
+        restart: async () => {
+            await memoryBase.reset()
+            jest.clearAllMocks()
+            jest.clearAllTimers()
+        }
     }
 }
