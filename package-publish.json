@@ -1,6 +1,6 @@
 {
     "name": "shimmiestack",
-    "version": "1.6.0-beta2",
+    "version": "1.6.0-beta3",
     "description": "A simple event sourced in-memory server framework.",
     "main": "index.js",
     "types": "index.d.ts",
