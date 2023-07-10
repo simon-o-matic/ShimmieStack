@@ -143,9 +143,9 @@ export default function ShimmieTestStack<
         }: TestRequestParams
     ): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            methods.get(path, headers).expect(expectedResponseCode ?? 200).end((err: any, res: supertest.Response) => {
-                resolve(res)
-            })
+            methods.get(path, headers).expect(expectedResponseCode ?? 200).end((err: any, res: supertest.Response) =>
+                err ? reject(res) : resolve(res)
+            )
         })
     }
 
@@ -159,9 +159,9 @@ export default function ShimmieTestStack<
         }: TestRequestWithBodyParams
     ): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            methods.post(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {}).end((err: any, res: supertest.Response) => {
-                resolve(res)
-            })
+            methods.post(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {}).end((err: any, res: supertest.Response) =>
+                err ? reject(res) : resolve(res),
+            )
         })
     }
 
@@ -175,9 +175,9 @@ export default function ShimmieTestStack<
         }: TestRequestWithBodyParams
     ): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            methods.put(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {}).end((err: any, res: supertest.Response) => {
-                resolve(res)
-            })
+            methods.put(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {}).end((err: any, res: supertest.Response) =>
+                err ? reject(res) : resolve(res)
+            )
         })
     }
 
@@ -190,9 +190,9 @@ export default function ShimmieTestStack<
         }: TestRequestParams
     ): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            return methods.delete(path, headers).expect(expectedResponseCode ?? 200).end((err: any, res: supertest.Response) => {
-                resolve(res)
-            })
+            return methods.delete(path, headers).expect(expectedResponseCode ?? 200).end((err: any, res: supertest.Response) =>
+                err ? reject(res) : resolve(res)
+            )
         })
     }
 

@@ -1,4 +1,4 @@
-import { EventHistory, StackType } from '../index'
+import { catchAllErrorHandler, EventHistory, StackType } from '../index'
 import ShimmieTestStack from '../shimmieteststack'
 import { expect, jest } from '@jest/globals'
 import { Meta } from '../event'
@@ -40,6 +40,15 @@ const TestProcessor = (testStack: StackType<CommandEventModels, QueryEventModels
         return res.status(200).send({ me: 'shimmie' })
     })
 
+    const throw500 = async () => {
+        throw new Error('something went wrong (correctly) have a 500')
+    }
+
+    router.get('/throw-500', throw500)
+    router.put('/throw-500', throw500)
+    router.post('/throw-500', throw500)
+    router.delete('/throw-500', throw500)
+
     router.post('/:sid/golden-girls', async (req, res) => {
         await testStack.recordUnversionedEvent({
             streamId: req.params.sid,
@@ -74,6 +83,8 @@ const TestProcessor = (testStack: StackType<CommandEventModels, QueryEventModels
 }
 
 testStack.mountTest(TestProcessor(testStack))
+
+testStack.use(catchAllErrorHandler)
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -304,6 +315,137 @@ describe('when posting to /foo ', () => {
             path: '/foo',
             body: { xoo: 'xoo' },
             expectedResponseCode: 400,
+        })
+    })
+})
+
+
+describe('When an API returns a 500', () => {
+    describe('GET', () => {
+        it('the response should contain an error object, and not throw if expected response code is 500', async () => {
+            const response = await testStack.testGet(
+                { path: '/throw-500', expectedResponseCode: 500 },
+            )
+            expect(response.body).toEqual({ 'error': 'Something went wrong' })
+            expect(response.status).toEqual(500)
+        })
+
+        it('the response should throw on mismatched http status code', async () => {
+            try {
+                await testStack.testGet(
+                    { path: '/throw-500', expectedResponseCode: 200 },
+                )
+                expect(fail('Should throw on the call above due to incorrect response code'))
+            } catch (e: any) {
+                expect(e.body).toEqual({ 'error': 'Something went wrong' })
+                expect(e.status).toEqual(500)
+            }
+        })
+    })
+
+    describe('PUT', () => {
+
+        it('the response should contain an error object, and not throw if expected response code is 500', async () => {
+            const response = await testStack.testPut(
+                { path: '/throw-500', expectedResponseCode: 500 },
+            )
+            expect(response.body).toEqual({ 'error': 'Something went wrong' })
+            expect(response.status).toEqual(500)
+        })
+
+        it('the response should throw on mismatched http status code', async () => {
+            try {
+                await testStack.testPut(
+                    { path: '/throw-500', expectedResponseCode: 200 },
+                )
+                expect(fail('Should throw on the call above due to incorrect response code'))
+            } catch (e: any) {
+                expect(e.body).toEqual({ 'error': 'Something went wrong' })
+                expect(e.status).toEqual(500)
+            }
+        })
+    })
+
+    describe('POST', () => {
+
+        it('the response should contain an error object, and not throw if expected response code is 500', async () => {
+            const response = await testStack.testPost(
+                { path: '/throw-500', expectedResponseCode: 500 },
+            )
+            expect(response.body).toEqual({ 'error': 'Something went wrong' })
+            expect(response.status).toEqual(500)
+        })
+
+        it('the response should throw on mismatched http status code', async () => {
+            try {
+                await testStack.testPost(
+                    { path: '/throw-500', expectedResponseCode: 200 },
+                )
+                expect(fail('Should throw on the call above due to incorrect response code'))
+            } catch (e: any) {
+                expect(e.body).toEqual({ 'error': 'Something went wrong' })
+                expect(e.status).toEqual(500)
+            }
+        })
+    })
+
+    describe('DELETE', () => {
+
+        it('the response should contain an error object, and not throw if expected response code is 500', async () => {
+            const response = await testStack.testDelete(
+                { path: '/throw-500', expectedResponseCode: 500 },
+            )
+            expect(response.body).toEqual({ 'error': 'Something went wrong' })
+            expect(response.status).toEqual(500)
+        })
+
+        it('the response should throw on mismatched http status code', async () => {
+            try {
+                await testStack.testDelete(
+                    { path: '/throw-500', expectedResponseCode: 200 },
+                )
+                expect(fail('Should throw on the call above due to incorrect response code'))
+            } catch (e: any) {
+                expect(e.body).toEqual({ 'error': 'Something went wrong' })
+                expect(e.status).toEqual(500)
+            }
+        })
+    })
+
+    describe('depricated syntax', () => {
+        describe('GET', () => {
+            it('the response should contain an error object, and not throw if expected response code is 500', async () => {
+                const response = await testStack.testGetDep('/throw-500')
+                expect(response.body).toEqual({ 'error': 'Something went wrong' })
+                expect(response.status).toEqual(500)
+            })
+        })
+
+        describe('PUT', () => {
+
+            it('the response should contain an error object, and not throw if expected response code is 500', async () => {
+                const response = await testStack.testPutDep('/throw-500', {})
+                expect(response.body).toEqual({ 'error': 'Something went wrong' })
+                expect(response.status).toEqual(500)
+            })
+        })
+
+        describe('POST', () => {
+
+            it('the response should contain an error object, and not throw if expected response code is 500', async () => {
+                const response = await testStack.testPostDep('/throw-500', {})
+                expect(response.body).toEqual({ 'error': 'Something went wrong' })
+                expect(response.status).toEqual(500)
+            })
+        })
+
+        describe('DELETE', () => {
+
+            it('the response should contain an error object, and not throw if expected response code is 500', async () => {
+                const response = await testStack.testDeleteDep('/throw-500')
+                expect(response.body).toEqual({ 'error': 'Something went wrong' })
+                expect(response.status).toEqual(500)
+            })
         })
     })
 })
