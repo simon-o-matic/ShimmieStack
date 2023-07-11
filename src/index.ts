@@ -61,29 +61,29 @@ export enum ExecutionOrder {
     CONCURRENT = 'concurrent',
 }
 
-export interface EventHistory<QueryEventModels> {
+export interface EventHistory<SubscribeModels> {
     streamId: string
-    type: keyof QueryEventModels
+    type: keyof SubscribeModels
     date: number
     user: any
-    data: QueryEventModels[keyof QueryEventModels]
+    data: SubscribeModels[keyof SubscribeModels]
 }
 
-export interface StreamHistory<QueryEventModels> {
-    history: EventHistory<QueryEventModels>[]
+export interface StreamHistory<SubscribeModels> {
+    history: EventHistory<SubscribeModels>[]
     updatedAt?: number
     createdAt?: number
 }
 
-export type RecordUnversionedEventType<CommandEventModels, EventName extends keyof CommandEventModels> = Omit<
-    RecordEventType<CommandEventModels, EventName>,
+export type RecordUncheckedEventType<RecordModels, EventName extends keyof RecordModels> = Omit<
+    RecordEventType<RecordModels, EventName>,
     'streamVersionIds'
 >
 
-export type RecordEventType <CommandEventModels, EventName extends keyof CommandEventModels> = {
+export type RecordEventType <RecordModels, EventName extends keyof RecordModels> = {
     streamId: string
     eventName: EventName
-    eventData: CommandEventModels[EventName]
+    eventData: RecordModels[EventName]
     meta: Meta
     piiFields?: PiiFields
     streamVersionIds: Record<string,string|undefined> | 'STREAM_VERSIONING_DISABLED'
@@ -95,7 +95,7 @@ export type RecordEventType <CommandEventModels, EventName extends keyof Command
  * Stacktype is the base shimmiestack stack object. It handles the event sourcing
  * and CQRS magic.
  *
- * Register you CommandEventModels and QueryEventModels at definition time.
+ * Register you RecordModels and SubscribeModels at definition time.
  *
  * These Object keys are exposed as the options for the event name on recordEvent(s), and the types are used to ensure
  * recordEvent(s) payloads conform to the object expected for that event name.
@@ -110,21 +110,21 @@ export type RecordEventType <CommandEventModels, EventName extends keyof Command
  *      meta,
  * })
  *
- *  If we tried to input 'EXAMPLE_EVENT_2' as the type, it would error as that isn't a key in the CommandEventModels,
+ *  If we tried to input 'EXAMPLE_EVENT_2' as the type, it would error as that isn't a key in the RecordModels,
  *  and if we changed the event data to be { payload: 'blah' } it would complain, as data is missing,
  *  and payload is not defined in the Example event type
  *
- *  CommandEventModels (or any of the types defined inside it) can be set to any if you're a cowboy that doesn't
+ *  RecordModels (or any of the types defined inside it) can be set to any if you're a cowboy that doesn't
  *  want to to use any type safety
  *
- *  type CommandEventModels = {
+ *  type RecordModels = {
  *     EXAMPLE_EVENT: ExampleEvent,
  *     SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent,
  *     WHO_AM_I_EVENT: { elvis: string },
  *     SOME_EVENT_WITHOUT_A_DEFINED_TYPE: any,
  *  }
  *
- *  Query event models behaves very similarly to CommandEventModels.
+ *  Query event models behaves very similarly to RecordModels.
  *  You define the event names and types that the subscribe() method checks against.
  *  The difference that Query handlers need to handle historical events, with data objects that may change with time,
  *  They can have a union type for the old and new models.
@@ -132,10 +132,10 @@ export type RecordEventType <CommandEventModels, EventName extends keyof Command
  *  so in the case of Example Event, it needs to handle V1, and V2 as we have written both types to the stream at some
  *  point in the past.
  *
- *  QueryEventModels (or any of the types defined inside it) can be set to any if you're a cowboy that doesn't
+ *  SubscribeModels (or any of the types defined inside it) can be set to any if you're a cowboy that doesn't
  *  want to to use any type safety
  *
- *  type QueryEventModels = {
+ *  type SubscribeModels = {
  *     EXAMPLE_EVENT: ExampleEventV1 | ExampleEventV2,
  *     SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent,
  *     WHO_AM_I_EVENT: { elvis: string },
@@ -143,19 +143,19 @@ export type RecordEventType <CommandEventModels, EventName extends keyof Command
  *  }
  */
 export type StackType<
-    CommandEventModels extends Record<string, any> = Record<string, any>,
-    QueryEventModels extends Record<string, any> = Record<string, any>
+    RecordModels extends Record<string, any> = Record<string, any>,
+    SubscribeModels extends Record<string, any> = Record<string, any>
 > = {
-    setApiVersion: (version: string) => StackType<CommandEventModels, QueryEventModels>
+    setApiVersion: (version: string) => StackType<RecordModels, SubscribeModels>
     getRouter: () => Router
-    recordEvent: <EventName extends keyof CommandEventModels>(event: RecordEventType<CommandEventModels, EventName>) => Promise<void>
-    recordUnversionedEvent: <EventName extends keyof CommandEventModels>(event: RecordUnversionedEventType<CommandEventModels, EventName>) => Promise<void>
-    recordEvents: <EventName extends keyof CommandEventModels>(
-        events: RecordEventType<CommandEventModels, EventName>[],
+    recordEvent: <EventName extends keyof RecordModels>(event: RecordEventType<RecordModels, EventName>) => Promise<void>
+    recordUncheckedEvent: <EventName extends keyof RecordModels>(event: RecordUncheckedEventType<RecordModels, EventName>) => Promise<void>
+    recordEvents: <EventName extends keyof RecordModels>(
+        events: RecordEventType<RecordModels, EventName>[],
         executionOrder?: ExecutionOrder,
     ) => Promise<void>
-    recordUnversionedEvents: <EventName extends keyof CommandEventModels>(
-        events: RecordUnversionedEventType<CommandEventModels, EventName>[],
+    recordUncheckedEvents: <EventName extends keyof RecordModels>(
+        events: RecordUncheckedEventType<RecordModels, EventName>[],
         executionOrder?: ExecutionOrder,
     ) => Promise<void>
     startup: () => void
@@ -163,20 +163,20 @@ export type StackType<
     shutdown: () => void
     registerModel<T>(name: string, model: T): void
     getModel<T>(name: string): T
-    setErrorHandler(fn: ErrorRequestHandler): StackType<CommandEventModels, QueryEventModels>
+    setErrorHandler(fn: ErrorRequestHandler): StackType<RecordModels, SubscribeModels>
     mountProcessor: (
         name: string,
         mountPoint: string,
         router: Router,
-    ) => StackType<CommandEventModels, QueryEventModels>
-    subscribe: <EventName extends keyof QueryEventModels>(
+    ) => StackType<RecordModels, SubscribeModels>
+    subscribe: <EventName extends keyof SubscribeModels>(
         type: EventName,
-        handler: TypedEventHandler<EventName,QueryEventModels[EventName]>,
+        handler: TypedEventHandler<EventName,SubscribeModels[EventName]>,
     ) => void
     use: (a: any) => any
-    getHistory: (ids: string | string[]) => StreamHistory<QueryEventModels> | undefined
-    registerPreInitFn: (fn: () => void | Promise<void>) => StackType<CommandEventModels, QueryEventModels>
-    registerPostInitFn: (fn: () => void | Promise<void>) => StackType<CommandEventModels, QueryEventModels>
+    getHistory: (ids: string | string[]) => StreamHistory<SubscribeModels> | undefined
+    registerPreInitFn: (fn: () => void | Promise<void>) => StackType<RecordModels, SubscribeModels>
+    registerPostInitFn: (fn: () => void | Promise<void>) => StackType<RecordModels, SubscribeModels>
 }
 
 
@@ -186,13 +186,13 @@ const startApiListener = async (app: Application, port: number) => {
 }
 
 const initializeShimmieStack = async <
-    CommandEventModels extends Record<string, any>,
-    QueryEventModels extends Record<string, any>
+    RecordModels extends Record<string, any>,
+    SubscribeModels extends Record<string, any>
 >(
     config: ShimmieConfig,
     errorHandler: ErrorRequestHandler,
     eventBase: EventBaseType,
-    eventStore: EventStoreType<CommandEventModels, QueryEventModels>,
+    eventStore: EventStoreType<RecordModels, SubscribeModels>,
     piiBase?: PiiBaseType,
     logger?: StackLogger,
 ) => {
@@ -244,15 +244,15 @@ export const catchAllErrorHandler: ErrorRequestHandler = (
 
 
 export default function ShimmieStack<
-    CommandEventModels extends Record<string, any> = Record<string, any>,
-    QueryEventModels extends Record<string, any> = Record<string, any>
+    RecordModels extends Record<string, any> = Record<string, any>,
+    SubscribeModels extends Record<string, any> = Record<string, any>
 >(
     config: ShimmieConfig,
     eventBase: EventBaseType,
     adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
     piiBase?: PiiBaseType,
     appLogger?: StackLogger,
-): StackType<CommandEventModels, QueryEventModels> {
+): StackType<RecordModels, SubscribeModels> {
     // if the caller provided a custom logger, use it
     configureLogger(appLogger)
 
@@ -261,13 +261,13 @@ export default function ShimmieStack<
     }
 
     /** initialise the event store service by giving it an event database (db, memory, file ) */
-    const eventStore = EventStore<CommandEventModels, QueryEventModels>(eventBase, piiBase, eventStoreFlags)
+    const eventStore = EventStore<RecordModels, SubscribeModels>(eventBase, piiBase, eventStoreFlags)
 
     /** set up our history listener, this breaks types */
     eventStore.subscribe(
         '*',
-        <EventName extends keyof QueryEventModels>(e: TypedEvent<EventName, QueryEventModels[EventName]>) => {
-            const historyArray: EventHistory<QueryEventModels>[] = eventHistory.get(e.streamId) || []
+        <EventName extends keyof SubscribeModels>(e: TypedEvent<EventName, SubscribeModels[EventName]>) => {
+            const historyArray: EventHistory<SubscribeModels>[] = eventHistory.get(e.streamId) || []
             historyArray.push({
                 streamId: e.streamId,
                 data: e.data,
@@ -303,9 +303,9 @@ export default function ShimmieStack<
     const preInitFns: (() => void | Promise<void>)[] = []
 
     // do we need a way to reset this?
-    let eventHistory = new Map<string, EventHistory<QueryEventModels>[]>()
+    let eventHistory = new Map<string, EventHistory<SubscribeModels>[]>()
 
-    const funcs: StackType<CommandEventModels, QueryEventModels> = {
+    const funcs: StackType<RecordModels, SubscribeModels> = {
         startup: async () => {
             // if there are any post init fns registered execute them
             if (preInitFns.length) {
@@ -345,7 +345,7 @@ export default function ShimmieStack<
             Logger.info('TODO: HOW DO YOU STOP THIS THING!!!!')
         },
 
-        setApiVersion: (version: string): StackType<CommandEventModels, QueryEventModels> => {
+        setApiVersion: (version: string): StackType<RecordModels, SubscribeModels> => {
             routes.setApiVersion(version)
             return funcs
         },
@@ -359,13 +359,13 @@ export default function ShimmieStack<
             if (!model) throw new Error('No registered model found: ' + name)
             return modelStore[name]
         },
-        setErrorHandler: (handler: ErrorRequestHandler): StackType<CommandEventModels, QueryEventModels> => {
+        setErrorHandler: (handler: ErrorRequestHandler): StackType<RecordModels, SubscribeModels> => {
             errorHandler = handler
             Logger.info('ShimmieStack >>>> Overridden default error handler')
             return funcs
         },
 
-        mountProcessor: (name: string, mountPoint: string, router: Router): StackType<CommandEventModels, QueryEventModels> => {
+        mountProcessor: (name: string, mountPoint: string, router: Router): StackType<RecordModels, SubscribeModels> => {
             const url = routes.mountApi(
                 app,
                 name,
@@ -377,15 +377,15 @@ export default function ShimmieStack<
             return funcs
         },
 
-        subscribe<EventName extends keyof QueryEventModels>(
+        subscribe<EventName extends keyof SubscribeModels>(
             type: EventName,
-            handler: TypedEventHandler<EventName,QueryEventModels[EventName]>,
+            handler: TypedEventHandler<EventName,SubscribeModels[EventName]>,
         ) {
             eventStore.subscribe(type, handler)
             Logger.info(`ShimmieStack >>>> Registered event handler: ${String(type)}`)
         },
-        recordUnversionedEvents: <EventName extends keyof CommandEventModels>(
-            events: RecordUnversionedEventType<CommandEventModels, EventName>[],
+        recordUncheckedEvents: <EventName extends keyof RecordModels>(
+            events: RecordUncheckedEventType<RecordModels, EventName>[],
             executionOrder?: ExecutionOrder,
         ): Promise<void> => {
             return funcs.recordEvents(
@@ -393,8 +393,8 @@ export default function ShimmieStack<
                 executionOrder
             )
         },
-        recordEvents: async <EventName extends keyof CommandEventModels>(
-            events: RecordEventType<CommandEventModels, EventName>[],
+        recordEvents: async <EventName extends keyof RecordModels>(
+            events: RecordEventType<RecordModels, EventName>[],
             executionOrder?: ExecutionOrder,
         ) => {
             const executeConcurrently =
@@ -431,12 +431,12 @@ export default function ShimmieStack<
             }
         },
         // shorthand for disabling versionIds
-        recordUnversionedEvent: <EventName extends keyof CommandEventModels>(
-            event: RecordUnversionedEventType<CommandEventModels, EventName>,
+        recordUncheckedEvent: <EventName extends keyof RecordModels>(
+            event: RecordUncheckedEventType<RecordModels, EventName>,
         ): Promise<void> =>
             eventStore.recordEvent({ ...event, streamVersionIds: 'STREAM_VERSIONING_DISABLED' }),
-        recordEvent: <EventName extends keyof CommandEventModels>(
-            event: RecordEventType<CommandEventModels, EventName>,
+        recordEvent: <EventName extends keyof RecordModels>(
+            event: RecordEventType<RecordModels, EventName>,
         ): Promise<void> =>
             eventStore.recordEvent(event),
 
@@ -452,8 +452,8 @@ export default function ShimmieStack<
          * Up to the caller to collate list of related IDs, getHistory doesn't
          * know or care if they're related events
          */
-        getHistory: (ids: string | string[]): StreamHistory<QueryEventModels> | undefined => {
-            let history: EventHistory<QueryEventModels>[] | undefined
+        getHistory: (ids: string | string[]): StreamHistory<SubscribeModels> | undefined => {
+            let history: EventHistory<SubscribeModels>[] | undefined
             if (typeof ids === 'string') {
                 history = eventHistory.get(ids)
             } else {
@@ -461,7 +461,7 @@ export default function ShimmieStack<
                     .flatMap((id) => {
                         return eventHistory.get(id)
                     })
-                    .filter((el): el is EventHistory<QueryEventModels> => !!el)
+                    .filter((el): el is EventHistory<SubscribeModels> => !!el)
                     .sort((a, b) => (a.date > b.date ? 1 : -1)) // oldest first
             }
 
@@ -484,13 +484,13 @@ export default function ShimmieStack<
             }
         },
         // add a function to be run before initialize
-        registerPreInitFn: (fn: () => void | Promise<void>): StackType<CommandEventModels, QueryEventModels> => {
+        registerPreInitFn: (fn: () => void | Promise<void>): StackType<RecordModels, SubscribeModels> => {
             preInitFns.push(fn)
             return funcs
         },
 
         // add a function to be run after initialize
-        registerPostInitFn: (fn: () => void | Promise<void>): StackType<CommandEventModels, QueryEventModels> => {
+        registerPostInitFn: (fn: () => void | Promise<void>): StackType<RecordModels, SubscribeModels> => {
             postInitFns.push(fn)
             return funcs
         },

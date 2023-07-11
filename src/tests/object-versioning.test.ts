@@ -2,15 +2,15 @@ import ShimmieTestStack from '../shimmieteststack'
 import { Meta, TypedEvent } from '../event'
 import { describe, expect, it } from '@jest/globals'
 
-type CommandEventModels = {
+type RecordModels = {
     EXAMPLE_EVENT: {
         data: string
     },
 }
 
-type QueryEventModels = CommandEventModels
+type SubscribeModels = RecordModels
 
-const testStack = ShimmieTestStack<CommandEventModels, QueryEventModels>()
+const testStack = ShimmieTestStack<RecordModels, SubscribeModels>()
 
 const meta: Meta = {
     user: 'testguy',
@@ -20,7 +20,7 @@ const meta: Meta = {
 
 describe('Object Versioning', () => {
     it('should generate a unique object version on each recordEvent call', async () => {
-        let recordedEvents: TypedEvent<'EXAMPLE_EVENT',CommandEventModels['EXAMPLE_EVENT']>[] = []
+        let recordedEvents: TypedEvent<'EXAMPLE_EVENT',RecordModels['EXAMPLE_EVENT']>[] = []
         testStack.subscribe('EXAMPLE_EVENT', (event) => {
             recordedEvents.push(event)
         })

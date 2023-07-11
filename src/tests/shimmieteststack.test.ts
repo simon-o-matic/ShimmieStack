@@ -8,25 +8,25 @@ type ExampleEventV2 = { data: string, meta: any, min: number }
 type SimpleExampleEvent = { data: string}
 type ExampleEvent = ExampleEventV2
 
-type CommandEventModels = {
+type RecordModels = {
     EXAMPLE_EVENT: ExampleEvent,
     SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent,
     WHO_AM_I_EVENT: { elvis: string },
 }
 
-type QueryEventModels = {
+type SubscribeModels = {
     EXAMPLE_EVENT: ExampleEventV1 | ExampleEventV2,
     SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent,
     WHO_AM_I_EVENT: { elvis: string },
 }
 
-const testStack = ShimmieTestStack<CommandEventModels, QueryEventModels>()
+const testStack = ShimmieTestStack<RecordModels, SubscribeModels>()
 
-const TestProcessor = (testStack: StackType<CommandEventModels, QueryEventModels>) => {
+const TestProcessor = (testStack: StackType<RecordModels, SubscribeModels>) => {
     const router = testStack.getRouter()
 
     router.get('/whoami', async (req, res) => {
-        await testStack.recordUnversionedEvent({
+        await testStack.recordUncheckedEvent({
                 streamId: '1',
                 eventName: 'WHO_AM_I_EVENT',
                 eventData: { elvis: 'costello' },
@@ -50,7 +50,7 @@ const TestProcessor = (testStack: StackType<CommandEventModels, QueryEventModels
     router.delete('/throw-500', throw500)
 
     router.post('/:sid/golden-girls', async (req, res) => {
-        await testStack.recordUnversionedEvent({
+        await testStack.recordUncheckedEvent({
             streamId: req.params.sid,
             eventName: req.body.type,
             eventData: req.body.data,
@@ -177,7 +177,7 @@ describe('when merging histories of multiple source ids', () => {
 
         const history = testStack.getHistory(['333', '444', '555'])?.history
         if (history) {
-            const types = history.map((histEl: EventHistory<QueryEventModels>) => {
+            const types = history.map((histEl: EventHistory<SubscribeModels>) => {
                 return histEl.type
             })
             expect(types).toEqual([
@@ -271,7 +271,7 @@ describe('when calling /whoami', () => {
     it('the current user should be returned', async () => {
         const response = await testStack.testGet({ path: '/whoami' })
         expect(response.body.me).toBe('shimmie')
-        expect(testStack.recordUnversionedEvent).toBeCalledTimes(1)
+        expect(testStack.recordUncheckedEvent).toBeCalledTimes(1)
     })
 })
 
@@ -288,7 +288,7 @@ describe('when calling /whoami', () => {
             date: 123,
             userAgent: 'test agent',
         }
-        await testStack.recordUnversionedEvents([{
+        await testStack.recordUncheckedEvents([{
             streamId: 'streamid',
             eventName: 'SIMPLE_EXAMPLE_EVENT',
             eventData: { data: 'blah' },

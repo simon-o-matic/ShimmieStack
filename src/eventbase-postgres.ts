@@ -3,7 +3,7 @@
 //
 import pg from 'pg'
 const { Pool } = pg
-import { Event, EventBaseType, EventToRecord } from './event'
+import { EventBaseType, EventToRecord } from './event'
 import { Logger } from './logger'
 
 export interface EventConfig {

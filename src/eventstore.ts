@@ -8,14 +8,14 @@ import { Logger } from './logger'
 import { v4 as uuid } from 'uuid'
 import { RecordEventType } from './index'
 
-export interface EventStoreType<CommandEventModels extends Record<string, any>, QueryEventModels extends Record<string, any>> {
+export interface EventStoreType<RecordModels extends Record<string, any>, SubscribeModels extends Record<string, any>> {
     replayAllEvents: () => Promise<number>
-    recordEvent: <EventName extends keyof CommandEventModels>(
-        event: RecordEventType<CommandEventModels, EventName>,
+    recordEvent: <EventName extends keyof RecordModels>(
+        event: RecordEventType<RecordModels, EventName>,
     ) => Promise<any>
-    subscribe: <EventName extends keyof QueryEventModels> (
+    subscribe: <EventName extends keyof SubscribeModels> (
         type: EventName,
-        callback: TypedEventHandler<EventName, QueryEventModels[EventName]>,
+        callback: TypedEventHandler<EventName, SubscribeModels[EventName]>,
     ) => void
     deleteEvent: (sequenceNumber: number) => void
     updateEventData: (sequenceNumber: number, data: object) => void
@@ -23,17 +23,17 @@ export interface EventStoreType<CommandEventModels extends Record<string, any>, 
 }
 
 export default function EventStore<
-    CommandEventModels extends Record<string, any>,
-    QueryEventModels extends Record<string, any>
+    RecordModels extends Record<string, any>,
+    SubscribeModels extends Record<string, any>
 >(
     eventbase: EventBaseType,
     piiBase?: PiiBaseType,
     options?: { initialised: boolean },
-): EventStoreType<CommandEventModels, QueryEventModels> {
+): EventStoreType<RecordModels, SubscribeModels> {
     const eventStoreEmitter = new EventEmitter()
     const allSubscriptions = new Map<string, boolean>()
 
-    const recordEvent = async <EventName extends keyof CommandEventModels>(
+    const recordEvent = async <EventName extends keyof RecordModels>(
         {
             streamId,
             eventName,
@@ -41,7 +41,7 @@ export default function EventStore<
             meta,
             streamVersionIds,
             piiFields,
-        }: RecordEventType<CommandEventModels, EventName>) => {
+        }: RecordEventType<RecordModels, EventName>) => {
         if (!streamId || !eventName || !meta) {
             Logger.error(
                 `EventStore::recordEvent::missing values ${{
@@ -123,13 +123,13 @@ export default function EventStore<
     }
 
     // event name needs to be an input and a generic here as we use the event name as a type index and as a string value
-    const subscribe = <EventName extends keyof QueryEventModels>(
+    const subscribe = <EventName extends keyof SubscribeModels>(
         type: EventName,
-        callback: (event: TypedEvent<EventName, QueryEventModels[EventName]>) => void
+        callback: (event: TypedEvent<EventName, SubscribeModels[EventName]>) => void
     ): void => {
         // wrap the handler in a try catch so we don't crash the server with unhandled exceptions.
-        const tryCatchCallback: (event: TypedEvent<EventName, QueryEventModels[EventName]>) => void = (
-            eventModel: TypedEvent<EventName, QueryEventModels[EventName]>
+        const tryCatchCallback: (event: TypedEvent<EventName, SubscribeModels[EventName]>) => void = (
+            eventModel: TypedEvent<EventName, SubscribeModels[EventName]>
         ): void => {
             try {
                 return callback(eventModel)

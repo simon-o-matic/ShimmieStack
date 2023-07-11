@@ -7,10 +7,10 @@ import { expect } from '@jest/globals'
 import ShimmieTestStack from '../shimmieteststack'
 const eventBase = EventBase()
 const piiBase = PiiBase()
-const eventStore = EventStore<CommandEventModels, any>(eventBase, piiBase)
+const eventStore = EventStore<RecordModels, any>(eventBase, piiBase)
 
 
-type CommandEventModels = {
+type RecordModels = {
     nonPiiTestData: { data: string },
     piiTest: { piiField: string, nonPiiField: string }
 }
@@ -115,7 +115,7 @@ describe('when recording an event', () => {
         })
     })
     describe('and the piibase is not configured', () => {
-        const noPiiEventStore = EventStore<CommandEventModels, any>(eventBase)
+        const noPiiEventStore = EventStore<RecordModels, any>(eventBase)
 
         it('Should throw an error if provided a pii key', async () => {
             noPiiEventStore.subscribe('type', () => {

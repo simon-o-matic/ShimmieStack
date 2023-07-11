@@ -29,10 +29,10 @@ export type TestRequestWithBodyParams<T = any> = TestRequestParams & {
 }
 
 
-export interface ShimmieTestStackType<CommandEventModels extends Record<string, any>,
-    QueryEventModels extends Record<string, any> >
-    extends StackType<CommandEventModels,
-        QueryEventModels> {
+export interface ShimmieTestStackType<RecordModels extends Record<string, any>,
+    SubscribeModels extends Record<string, any> >
+    extends StackType<RecordModels,
+        SubscribeModels> {
     mountTest: (router: Router, mountpoint?: string) => void
     testGet: (
         params: TestRequestParams,
@@ -75,13 +75,13 @@ export interface ShimmieTestStackType<CommandEventModels extends Record<string, 
 type SuperTester = supertest.SuperTest<supertest.Test> & Record<string, any>
 
 export default function ShimmieTestStack<
-    CommandEventModels extends Record<string, any>,
-    QueryEventModels extends Record<string, any>
+    RecordModels extends Record<string, any>,
+    SubscribeModels extends Record<string, any>
     >(
     defaultAuthHeaderValue?: string,
     usePiiBase: boolean = false,
-): ShimmieTestStackType<CommandEventModels,
-    QueryEventModels> {
+): ShimmieTestStackType<RecordModels,
+    SubscribeModels> {
     const authHeaderValue = defaultAuthHeaderValue
     const app = express()
     app.use(express.json())
@@ -119,8 +119,8 @@ export default function ShimmieTestStack<
     const piiBase = usePiiBase ? PiiBase() : undefined
 
     /** our inner actual shimmie stack that we control access to for tests */
-    const testStack = ShimmieStack<CommandEventModels,
-        QueryEventModels>(
+    const testStack = ShimmieStack<RecordModels,
+        SubscribeModels>(
         {
             ServerPort: 9999 /* ignored because the express server is never started */,
             enforceAuthorization: false,
@@ -256,9 +256,9 @@ export default function ShimmieTestStack<
     // noinspection TypeScriptValidateTypes
     jest.spyOn(testStack, 'recordEvents')
     // noinspection TypeScriptValidateTypes
-    jest.spyOn(testStack, 'recordUnversionedEvent')
+    jest.spyOn(testStack, 'recordUncheckedEvent')
     // noinspection TypeScriptValidateTypes
-    jest.spyOn(testStack, 'recordUnversionedEvents')
+    jest.spyOn(testStack, 'recordUncheckedEvents')
 
     // the actual shimmie stack, plus our extras. User overrides the one in the underlying
     // ShimmieStack

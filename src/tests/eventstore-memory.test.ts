@@ -10,18 +10,18 @@ interface AnEventName {
     data: string
 }
 
-type CommandEventModels = {
+type RecordModels = {
     AN_EVENT_NAME: AnEventName
     AN_EVENT_WITH_NO_LISTENERS_NAME: { data: string }
     ANOTHER_EVENT_NAME: { data: number }
 }
 
-type QueryEventModels = {
+type SubscribeModels = {
     AN_EVENT_NAME: { data: string }
     ANOTHER_EVENT_NAME: { data: number }
 }
 
-const eventStore = EventStore<CommandEventModels, QueryEventModels>(eventBase,undefined,eventStoreOptions)
+const eventStore = EventStore<RecordModels, SubscribeModels>(eventBase,undefined,eventStoreOptions)
 
 // ignore event meta data
 const meta: Meta = {
