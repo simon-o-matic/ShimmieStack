@@ -159,7 +159,7 @@ export type StackType<
         executionOrder?: ExecutionOrder,
     ) => Promise<void>
     startup: () => void
-    restart: () => void
+    restart: () => Promise<void>
     shutdown: () => void
     registerModel<T>(name: string, model: T): void
     getModel<T>(name: string): T
@@ -337,7 +337,7 @@ export default function ShimmieStack<
             eventStoreFlags.initialised = true
         },
 
-        restart: () => {
+        restart: async () => {
             Logger.info('TODO: empty everything and replay results')
         },
 

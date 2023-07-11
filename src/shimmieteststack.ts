@@ -74,12 +74,11 @@ export interface ShimmieTestStackType<RecordModels extends Record<string, any>,
 // allow indexed function lookup by name
 type SuperTester = supertest.SuperTest<supertest.Test> & Record<string, any>
 
-export default function ShimmieTestStack<
-    RecordModels extends Record<string, any>,
-    SubscribeModels extends Record<string, any>
-    >(
+export default function ShimmieTestStack<RecordModels extends Record<string, any>,
+    SubscribeModels extends Record<string, any>>(
     defaultAuthHeaderValue?: string,
     usePiiBase: boolean = false,
+    eventBase?: EventBaseType
 ): ShimmieTestStackType<RecordModels,
     SubscribeModels> {
     const authHeaderValue = defaultAuthHeaderValue
@@ -112,8 +111,8 @@ export default function ShimmieTestStack<
         delete: prepareRequest('delete'),
     }
 
-    /** the test stack usese the in-memory event store */
-    const memoryBase = Eventbase()
+    /** the test stack uses either a provided event base or an in-memory event base */
+    const memoryBase = eventBase ?? Eventbase()
 
     /** the test stack usese the in-memory pii store */
     const piiBase = usePiiBase ? PiiBase() : undefined
@@ -239,15 +238,15 @@ export default function ShimmieTestStack<
     /** Deprecated */
         // todo wrap in a try/catch
     const testDeleteDep = async (
-        path: string,
-        headers?: Record<string, string>
-    ): Promise<supertest.Response> => {
-        return new Promise<supertest.Response>((resolve, reject) => {
-            return methods.delete(path, headers).expect(200).end((err: any, res: supertest.Response) => {
-                resolve(res)
+            path: string,
+            headers?: Record<string, string>
+        ): Promise<supertest.Response> => {
+            return new Promise<supertest.Response>((resolve, reject) => {
+                return methods.delete(path, headers).expect(200).end((err: any, res: supertest.Response) => {
+                    resolve(res)
+                })
             })
-        })
-    }
+        }
 
     // Allow passthrough to the actal function, but also let testers count calls
     // Disable Webstorm inspection for this line as it doesnt recognise the 2 input version of spyon

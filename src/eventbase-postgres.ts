@@ -2,9 +2,10 @@
 // TODO: encapsulate the underlying database elsewhere
 //
 import pg from 'pg'
-const { Pool } = pg
 import { EventBaseType, EventToRecord } from './event'
 import { Logger } from './logger'
+
+const { Pool } = pg
 
 export interface EventConfig {
     connectionString: string
@@ -70,9 +71,12 @@ export default function Eventbase(config: EventConfig): EventBaseType {
     }
 
     const reset = async () => {
-        throw new Error("Not implemented")
-        // await dropTables()
-        // await createTables()
+        const env = process.env.NODE_ENV
+        if (!env || !['development', 'test'].includes(env)) {
+            throw new Error(`Eventbase reset Not implemented for env: ${env}`)
+        }
+        await dropTables()
+        await createTables()
     }
 
     const runQuery = async (
