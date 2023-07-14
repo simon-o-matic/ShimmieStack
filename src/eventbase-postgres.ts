@@ -32,7 +32,7 @@ export default function Eventbase(config: EventConfig): EventBaseType {
     // called during start up to first connect to the database
     // TODO: retry to solve docker start up timing issue
     const init = async () => {
-        await createTables()
+        return await createTables()
     }
 
     const shutdown = async () => {
@@ -100,7 +100,7 @@ export default function Eventbase(config: EventConfig): EventBaseType {
             throw new Error(`Eventbase reset Not implemented for env: ${env}`)
         }
         await dropTables()
-        await createTables()
+        return await createTables()
     }
 
     const runQuery = async (
