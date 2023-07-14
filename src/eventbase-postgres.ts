@@ -2,8 +2,9 @@
 // TODO: encapsulate the underlying database elsewhere
 //
 import pg from 'pg'
-import { EventBaseType, EventToRecord } from './event'
+import { EventBaseType, EventToRecord, StreamVersionError, StreamVersionMismatch } from './event'
 import { Logger } from './logger'
+import { fetchMatchStreamVersionsQuery, prepareAddEventQuery, createEventListTableQuery } from './queries'
 
 const { Pool } = pg
 
@@ -38,17 +39,40 @@ export default function Eventbase(config: EventConfig): EventBaseType {
         return
     }
 
-    const addEvent = async (event: EventToRecord) => {
-        // todo add version number here
-        const query =
-            'INSERT into eventlist(StreamId, Data, Type, Meta) VALUES($1, $2, $3, $4) RETURNING SequenceNum, streamId, logdate, type'
-        const values: string[] = [
-            event.streamId,
-            JSON.stringify(event.data),
-            event.type,
-            JSON.stringify(event.meta),
-        ]
-        return await runQuery(query, values)
+    const addEvent = async (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>) => {
+        // prepare and parameterised the addEvent query based on whether streamVersionIds were provided or not.
+        const query = prepareAddEventQuery(event, streamVersionIds)
+        const results = await runQuery(query)
+
+        // if we get no result we didnt manage to record an event but the query succeeded, this is a version failure
+        if(!results || results.length === 0){
+            if(!streamVersionIds){
+                Logger.error("Something unexpected happened. We shouldn't be in here without checking versions")
+                throw new Error("Unexpcted error occured. Unable to add event to stream.")
+            }
+            // running a second query is bad, but we didnt successfully write anyway so its probably fine
+            const dbStreamVersions = await runQuery(fetchMatchStreamVersionsQuery(Object.keys(streamVersionIds)))
+
+            // lets get some info out about the failure
+            const mismatchedVersions: StreamVersionMismatch[] = dbStreamVersions
+                .reduce((mismatched: StreamVersionMismatch[],version: {
+                        "streamid": string,
+                        "StreamVersionId": string
+                }) => {
+                    if(version.StreamVersionId !== streamVersionIds[version.streamid]){
+                        mismatched.push({
+                            streamId: version.streamid,
+                            expectedVersionId: streamVersionIds[version.streamid] ?? 'Unknown',
+                            actualVersionId: version.streamid,
+                        })
+                    }
+                }, [])
+
+            Logger.error(`Version mismatch detected: ${JSON.stringify(mismatchedVersions)}`)
+            throw new StreamVersionError('Version mismatch detected: ', mismatchedVersions)
+        }
+
+        return results
     }
 
     // Get all events in the correct squence for replay
@@ -87,6 +111,11 @@ export default function Eventbase(config: EventConfig): EventBaseType {
             const res = values
                 ? await pool.query(query, values)
                 : await pool.query(query)
+            // was it a multi statement query?
+            // if so return the last result
+            if(Array.isArray(res)){
+                return res[res.length - 1]?.rows
+            }
             return res.rows
         } catch (err: any) {
             Logger.error(`Query error <${query}> [${values}]: ${err.message}`)
@@ -98,17 +127,7 @@ export default function Eventbase(config: EventConfig): EventBaseType {
     //  Create the tables required for the event store.
     //
     const createTables = async () => {
-        const queryString = `
-        CREATE TABLE IF NOT EXISTS eventlist
-        (
-            SequenceNum bigserial NOT NULL,
-            StreamId text NOT NULL,
-            Data jsonb NOT NULL,
-            Type text NOT NULL,
-            Meta jsonb NOT NULL,
-            LogDate timestamptz NOT NULL DEFAULT now(),
-            PRIMARY KEY (SequenceNum)
-        );`
+        const queryString = createEventListTableQuery
         let retries = 0
         let res
         while (retries < 5) {
