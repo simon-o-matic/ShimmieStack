@@ -126,6 +126,8 @@ export default function (songCommands) {
 
 So very quickly you can have a flexible working event sourced server that is all in-memory to give you the maximum efficiency when building a new system.
 
+See [https://github.com/B0yc3y/ShimmieStackExamples](https://github.com/B0yc3y/ShimmieStackExamples) for example projects
+
 # Stack API
 
 -   `stack.startUp()`
