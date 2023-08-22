@@ -206,15 +206,22 @@ export default function EventStore<
                 meta.date = e.logdate ? new Date(e.logdate).getTime() : 0
             }
 
+            // fix some casing issues
+            const streamId = e.streamId ?? (e as any)?.streamid
+
+            // handle old versionless events
+            const streamVersionId =  e.streamVersionId ?? `${streamId}-${e.sequencenum}`
+
             // WARNING: These are field names from the database and hence are all LOWERCASE
             const event: Event = {
                 data,
-                streamId: e.streamId, //|| (e as any).streamid,
+                streamId,
                 meta,
                 type: e.type,
-                streamVersionId: e.streamVersionId,
+                streamVersionId,
                 sequencenum: e.sequencenum
             }
+
             eventStoreEmitter.emit(event.type, {
                 ...event,
             })

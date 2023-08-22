@@ -1,6 +1,6 @@
 {
     "name": "shimmiestack",
-    "version": "1.6.0",
+    "version": "1.6.2",
     "description": "A simple event sourced in-memory server framework.",
     "main": "index.js",
     "types": "index.d.ts",
@@ -25,6 +25,7 @@
         "@types/jest": "29.2.0",
         "ts-jest": "^29.1.0",
         "pg": "^8.11.0",
+        "pg-format": "^1.0.4",
         "supertest": "^6.3.3",
         "uuid": "^9.0.0"
     }
