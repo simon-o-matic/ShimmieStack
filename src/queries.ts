@@ -19,7 +19,7 @@ export const fetchMatchStreamVersionsQuery = (streamIds: string[]): string => {
 }
 
 const addEventVersionUncheckedQuery = `insert into eventlist (StreamId, StreamVersionId, Data, Type, Meta)
-select '%s', '%s', '%s', '%s', '%s'
+select $$%s$$, $$%s$$, $$%s$$, $$%s$$, $$%s$$
 RETURNING sequenceNum, streamId, StreamVersionId, logdate, type;`
 
 
@@ -46,7 +46,7 @@ with max_db_stream_versions as (
 -- Insert the new event
 insert
 into eventlist (StreamId, StreamVersionId, Data, Type, Meta)
-select '%s', '%s', '%s', '%s', '%s'
+select $$%s$$, $$%s$$, $$%s$$, $$%s$$, $$%s$$
 -- Only if this subquery returns us a result
 where exists(
           -- Select out the count of streamId, and streamVersionIds that match between
