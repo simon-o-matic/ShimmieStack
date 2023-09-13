@@ -13,39 +13,30 @@ import { EventBaseType } from './event'
 
 // A record<string, any> with the Auth key autocomplete/type defined.
 export type TestRequestHeaders = Record<string, any> & {
-    Authorization: string,
+    Authorization?: string
 }
 
 // A base set of inputs for a test request
 export interface TestRequestParams {
-    path: string,
-    headers?: TestRequestHeaders,
+    path: string
+    headers?: TestRequestHeaders
     expectedResponseCode?: number
 }
 
 // The above test request, but with a body. If T is provided, the body is typed to it.
 export type TestRequestWithBodyParams<T = any> = TestRequestParams & {
-    body?: T,
+    body?: T
 }
 
-
-export interface ShimmieTestStackType<RecordModels extends Record<string, any>,
-    SubscribeModels extends Record<string, any> >
-    extends StackType<RecordModels,
-        SubscribeModels> {
+export interface ShimmieTestStackType<
+    RecordModels extends Record<string, any>,
+    SubscribeModels extends Record<string, any>
+> extends StackType<RecordModels, SubscribeModels> {
     mountTest: (router: Router, mountpoint?: string) => void
-    testGet: (
-        params: TestRequestParams,
-    ) => Promise<supertest.Response>
-    testPost: (
-        params: TestRequestWithBodyParams,
-    ) => Promise<supertest.Response>
-    testPut: (
-        params: TestRequestWithBodyParams,
-    ) => Promise<supertest.Response>
-    testDelete: (
-        params: TestRequestParams,
-    ) => Promise<supertest.Response>
+    testGet: (params: TestRequestParams) => Promise<supertest.Response>
+    testPost: (params: TestRequestWithBodyParams) => Promise<supertest.Response>
+    testPut: (params: TestRequestWithBodyParams) => Promise<supertest.Response>
+    testDelete: (params: TestRequestParams) => Promise<supertest.Response>
     /** Deprecated test GET function. Use testGet() instead**/
     testGetDep: (
         path: string,
@@ -74,13 +65,14 @@ export interface ShimmieTestStackType<RecordModels extends Record<string, any>,
 // allow indexed function lookup by name
 type SuperTester = supertest.SuperTest<supertest.Test> & Record<string, any>
 
-export default function ShimmieTestStack<RecordModels extends Record<string, any>,
-    SubscribeModels extends Record<string, any>>(
+export default function ShimmieTestStack<
+    RecordModels extends Record<string, any>,
+    SubscribeModels extends Record<string, any>
+>(
     defaultAuthHeaderValue?: string,
     usePiiBase: boolean = false,
     eventBase?: EventBaseType
-): ShimmieTestStackType<RecordModels,
-    SubscribeModels> {
+): ShimmieTestStackType<RecordModels, SubscribeModels> {
     const authHeaderValue = defaultAuthHeaderValue
     const app = express()
     app.use(express.json())
@@ -88,21 +80,27 @@ export default function ShimmieTestStack<RecordModels extends Record<string, any
 
     const prepareRequest =
         (method: string) =>
-            (path: string, headers?: Record<string, string>, withAuth = true): supertest.Test => {
-                const req: supertest.Test = (supertest(app) as SuperTester)[method](path)
+        (
+            path: string,
+            headers?: Record<string, string>,
+            withAuth = true
+        ): supertest.Test => {
+            const req: supertest.Test = (supertest(app) as SuperTester)[method](
+                path
+            )
 
-                if (authHeaderValue && withAuth) {
-                    req.set('\'Authorization\'', `Bearer ${authHeaderValue}`)
-                }
-
-                if (headers) {
-                    Object.entries(headers).map((header) =>
-                        req.set(header[0], header[1]),
-                    )
-                }
-
-                return req
+            if (authHeaderValue && withAuth) {
+                req.set("'Authorization'", `Bearer ${authHeaderValue}`)
             }
+
+            if (headers) {
+                Object.entries(headers).map((header) =>
+                    req.set(header[0], header[1])
+                )
+            }
+
+            return req
+        }
 
     const methods = {
         post: prepareRequest('post'),
@@ -118,15 +116,14 @@ export default function ShimmieTestStack<RecordModels extends Record<string, any
     const piiBase = usePiiBase ? PiiBase() : undefined
 
     /** our inner actual shimmie stack that we control access to for tests */
-    const testStack = ShimmieStack<RecordModels,
-        SubscribeModels>(
+    const testStack = ShimmieStack<RecordModels, SubscribeModels>(
         {
             ServerPort: 9999 /* ignored because the express server is never started */,
             enforceAuthorization: false,
         },
         memoryBase,
         authorizeApi(noAuthorization), // authorize admin apis with no auth for the test
-        piiBase,
+        piiBase
     )
 
     // Mount al the test processors at the root for ease of local testing.
@@ -135,67 +132,72 @@ export default function ShimmieTestStack<RecordModels extends Record<string, any
     }
 
     /** Get helper that uses supertest to hook into the express route to make the actual call */
-    const testGet = async (
-        {
-            path,
-            headers,
-            expectedResponseCode,
-        }: TestRequestParams
-    ): Promise<supertest.Response> => {
+    const testGet = async ({
+        path,
+        headers,
+        expectedResponseCode,
+    }: TestRequestParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            methods.get(path, headers).expect(expectedResponseCode ?? 200).end((err: any, res: supertest.Response) =>
-                err ? reject(res) : resolve(res)
-            )
+            methods
+                .get(path, headers)
+                .expect(expectedResponseCode ?? 200)
+                .end((err: any, res: supertest.Response) =>
+                    err ? reject(res) : resolve(res)
+                )
         })
     }
 
     /** Post helper that uses supertest to hook into the express route to make the actual call */
-    const testPost = async (
-        {
-            path,
-            headers,
-            expectedResponseCode,
-            body,
-        }: TestRequestWithBodyParams
-    ): Promise<supertest.Response> => {
+    const testPost = async ({
+        path,
+        headers,
+        expectedResponseCode,
+        body,
+    }: TestRequestWithBodyParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            methods.post(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {}).end((err: any, res: supertest.Response) =>
-                err ? reject(res) : resolve(res),
-            )
+            methods
+                .post(path, headers)
+                .expect(expectedResponseCode ?? 200)
+                .send(body ?? {})
+                .end((err: any, res: supertest.Response) =>
+                    err ? reject(res) : resolve(res)
+                )
         })
     }
 
     /** Put helper that uses supertest to hook into the express route to make the actual call */
-    const testPut = async (
-        {
-            path,
-            headers,
-            expectedResponseCode,
-            body,
-        }: TestRequestWithBodyParams
-    ): Promise<supertest.Response> => {
+    const testPut = async ({
+        path,
+        headers,
+        expectedResponseCode,
+        body,
+    }: TestRequestWithBodyParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            methods.put(path, headers).expect(expectedResponseCode ?? 200).send(body ?? {}).end((err: any, res: supertest.Response) =>
-                err ? reject(res) : resolve(res)
-            )
+            methods
+                .put(path, headers)
+                .expect(expectedResponseCode ?? 200)
+                .send(body ?? {})
+                .end((err: any, res: supertest.Response) =>
+                    err ? reject(res) : resolve(res)
+                )
         })
     }
 
     /** Delete helper that uses supertest to hook into the express route to make the actual call */
-    const testDelete = async (
-        {
-            path,
-            headers,
-            expectedResponseCode,
-        }: TestRequestParams
-    ): Promise<supertest.Response> => {
+    const testDelete = async ({
+        path,
+        headers,
+        expectedResponseCode,
+    }: TestRequestParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            return methods.delete(path, headers).expect(expectedResponseCode ?? 200).end((err: any, res: supertest.Response) =>
-                err ? reject(res) : resolve(res)
-            )
+            return methods
+                .delete(path, headers)
+                .expect(expectedResponseCode ?? 200)
+                .end((err: any, res: supertest.Response) =>
+                    err ? reject(res) : resolve(res)
+                )
         })
     }
-
 
     /** Deprecated */
     const testGetDep = async (
@@ -203,9 +205,12 @@ export default function ShimmieTestStack<RecordModels extends Record<string, any
         headers?: Record<string, string>
     ): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            methods.get(path, headers).expect(200).end((err: any, res: supertest.Response) => {
-                resolve(res)
-            })
+            methods
+                .get(path, headers)
+                .expect(200)
+                .end((err: any, res: supertest.Response) => {
+                    resolve(res)
+                })
         })
     }
 
@@ -216,9 +221,13 @@ export default function ShimmieTestStack<RecordModels extends Record<string, any
         headers?: Record<string, string>
     ): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            methods.post(path, headers).expect(200).send(body).end((err: any, res: supertest.Response) => {
-                resolve(res)
-            })
+            methods
+                .post(path, headers)
+                .expect(200)
+                .send(body)
+                .end((err: any, res: supertest.Response) => {
+                    resolve(res)
+                })
         })
     }
 
@@ -229,24 +238,31 @@ export default function ShimmieTestStack<RecordModels extends Record<string, any
         headers?: Record<string, string>
     ): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
-            methods.put(path, headers).expect(200).send(body).end((err: any, res: supertest.Response) => {
-                resolve(res)
-            })
+            methods
+                .put(path, headers)
+                .expect(200)
+                .send(body)
+                .end((err: any, res: supertest.Response) => {
+                    resolve(res)
+                })
         })
     }
 
     /** Deprecated */
-        // todo wrap in a try/catch
+    // todo wrap in a try/catch
     const testDeleteDep = async (
-            path: string,
-            headers?: Record<string, string>
-        ): Promise<supertest.Response> => {
-            return new Promise<supertest.Response>((resolve, reject) => {
-                return methods.delete(path, headers).expect(200).end((err: any, res: supertest.Response) => {
+        path: string,
+        headers?: Record<string, string>
+    ): Promise<supertest.Response> => {
+        return new Promise<supertest.Response>((resolve, reject) => {
+            return methods
+                .delete(path, headers)
+                .expect(200)
+                .end((err: any, res: supertest.Response) => {
                     resolve(res)
                 })
-            })
-        }
+        })
+    }
 
     // Allow passthrough to the actal function, but also let testers count calls
     // Disable Webstorm inspection for this line as it doesnt recognise the 2 input version of spyon
@@ -277,6 +293,6 @@ export default function ShimmieTestStack<RecordModels extends Record<string, any
             await memoryBase.reset()
             jest.clearAllMocks()
             jest.clearAllTimers()
-        }
+        },
     }
 }
