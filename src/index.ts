@@ -415,6 +415,7 @@ export default function ShimmieStack<
                 } catch (err) {
                     Logger.error(`Unable to record all events`)
                     Logger.error(err)
+                    throw err
                 }
             } else {
                 /**
@@ -426,6 +427,7 @@ export default function ShimmieStack<
                     } catch (err) {
                         Logger.info('Unable to record event: ' + event)
                         Logger.error(err)
+                        throw err
                     }
                 }
             }
