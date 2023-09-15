@@ -210,7 +210,7 @@ export default function EventStore<
             const streamId = e.streamId ?? (e as any)?.streamid
 
             // handle old versionless events
-            const streamVersionId =  e.streamVersionId ?? `${streamId}-${e.sequencenum}`
+            const streamVersionId =  'streamversionid' in e ? e.streamversionid : e.streamVersionId ?? `${streamId}-${e.sequencenum}`
 
             // WARNING: These are field names from the database and hence are all LOWERCASE
             const event: Event = {

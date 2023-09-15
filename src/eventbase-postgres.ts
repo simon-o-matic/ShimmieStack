@@ -51,10 +51,12 @@ export default function Eventbase(config: EventConfig): EventBaseType {
                 throw new Error("Unexpcted error occured. Unable to add event to stream.")
             }
             // running a second query is bad, but we didnt successfully write anyway so its probably fine
-            const dbStreamVersions = await runQuery(fetchMatchStreamVersionsQuery(Object.keys(streamVersionIds)))
-
+            const mismatchedVersionDbResult = await runQuery(fetchMatchStreamVersionsQuery(Object.keys(streamVersionIds)))
+            if(!mismatchedVersionDbResult || mismatchedVersionDbResult.length < 1){
+                throw Error("Sopmething went wrong. Unable to fetch details about db mismatch")
+            }
             // lets get some info out about the failure
-            const mismatchedVersions: StreamVersionMismatch[] = dbStreamVersions
+            const mismatchedVersions: StreamVersionMismatch[] = mismatchedVersionDbResult
                 .reduce((mismatched: StreamVersionMismatch[],version: {
                         "streamid": string,
                         "StreamVersionId": string
@@ -66,6 +68,7 @@ export default function Eventbase(config: EventConfig): EventBaseType {
                             actualVersionId: version.streamid,
                         })
                     }
+                    return mismatched
                 }, [])
 
             Logger.error(`Version mismatch detected: ${JSON.stringify(mismatchedVersions)}`)
