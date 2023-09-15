@@ -15,6 +15,7 @@ import {
     TypedEvent,
     TypedEventDep,
     TypedEventHandler,
+    StreamVersionError,
 } from './event'
 import { AuthorizerFunc } from './authorizers'
 import { configureLogger, Logger, StackLogger } from './logger'
@@ -38,7 +39,7 @@ process.on('unhandledRejection', (err) => {
 app.use(express.json())
 app.use(cookieParser())
 
-export { Request, Response, Router, ErrorRequestHandler, NextFunction }
+export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError }
 
 export interface ShimmieConfig {
     ServerPort: number
