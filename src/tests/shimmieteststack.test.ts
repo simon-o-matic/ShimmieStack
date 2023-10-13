@@ -69,15 +69,15 @@ const TestProcessor = (testStack: StackType<RecordModels, SubscribeModels>) => {
         else return res.status(400).send({ error: 'Missing foo parameters' })
     })
 
-    const returnHeaders = (req: any, res: any) => {
-        return res.status(200).json({ headers: req.headers, body: req.body })
+    const returnRequestDetails = (req: any, res: any) => {
+        return res.status(200).json({ headers: req.headers, body: req.body, queryParams: req.params })
     }
-    router.post('/postonly-nobodyrequired', returnHeaders)
+    router.post('/postonly-nobodyrequired', returnRequestDetails)
 
-    router.get('/nobodyrequired', returnHeaders)
-    router.post('/nobodyrequired', returnHeaders)
-    router.put('/nobodyrequired', returnHeaders)
-    router.delete('/nobodyrequired', returnHeaders)
+    router.get('/nobodyrequired', returnRequestDetails)
+    router.post('/nobodyrequired', returnRequestDetails)
+    router.put('/nobodyrequired', returnRequestDetails)
+    router.delete('/nobodyrequired', returnRequestDetails)
 
     return router
 }
@@ -92,7 +92,21 @@ beforeEach(() => {
 
 describe('when calling testPost with empty body', () => {
     it('there should be no errors', async () => {
-        const response = await testStack.testPost({ path: '/nobodyrequired' })
+
+        const requestOptions = {
+            path: '/nobodyrequired',
+            headers: {"example-header": "value1"},
+            queryParams: {"example-param-$%#":'val2'}
+        }
+        const postResponse = await testStack.testPost(requestOptions)
+
+        expect(postResponse.status).toEqual(200)
+        expect(postResponse.body.headers).toEqual(expect.objectContaining({ ...requestOptions.headers }))
+
+        const getResponse = await testStack.testGet(requestOptions)
+
+        expect(getResponse.status).toEqual(200)
+        expect(getResponse.body.headers).toEqual(expect.objectContaining({ ...requestOptions.headers }))
     })
 })
 
@@ -415,36 +429,32 @@ describe('When an API returns a 500', () => {
     describe('depricated syntax', () => {
         describe('GET', () => {
             it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-                const response = await testStack.testGetDep('/throw-500')
+                const response = await testStack.testGet({path: '/throw-500', expectedResponseCode: 500})
                 expect(response.body).toEqual({ 'error': 'Something went wrong' })
-                expect(response.status).toEqual(500)
             })
         })
 
         describe('PUT', () => {
 
             it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-                const response = await testStack.testPutDep('/throw-500', {})
+                const response = await testStack.testPut({path: '/throw-500', expectedResponseCode: 500})
                 expect(response.body).toEqual({ 'error': 'Something went wrong' })
-                expect(response.status).toEqual(500)
             })
         })
 
         describe('POST', () => {
 
             it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-                const response = await testStack.testPostDep('/throw-500', {})
+                const response = await testStack.testPost({path: '/throw-500', expectedResponseCode: 500})
                 expect(response.body).toEqual({ 'error': 'Something went wrong' })
-                expect(response.status).toEqual(500)
             })
         })
 
         describe('DELETE', () => {
 
             it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-                const response = await testStack.testDeleteDep('/throw-500')
+                const response = await testStack.testDelete({path: '/throw-500', expectedResponseCode: 500})
                 expect(response.body).toEqual({ 'error': 'Something went wrong' })
-                expect(response.status).toEqual(500)
             })
         })
     })

@@ -37,28 +37,6 @@ export interface ShimmieTestStackType<
     testPost: (params: TestRequestWithBodyParams) => Promise<supertest.Response>
     testPut: (params: TestRequestWithBodyParams) => Promise<supertest.Response>
     testDelete: (params: TestRequestParams) => Promise<supertest.Response>
-    /** Deprecated test GET function. Use testGet() instead**/
-    testGetDep: (
-        path: string,
-        headers?: Record<string, string>
-    ) => Promise<supertest.Response>
-    /** Deprecated test Post function. Use testPost() instead**/
-    testPostDep: (
-        path: string,
-        body: object,
-        headers?: Record<string, string>
-    ) => Promise<supertest.Response>
-    /** Deprecated test Put function. Use testPut() instead**/
-    testPutDep: (
-        path: string,
-        body: object,
-        headers?: Record<string, string>
-    ) => Promise<supertest.Response>
-    /** Deprecated test DELETE function. Use testDelete() instead**/
-    testDeleteDep: (
-        path: string,
-        headers?: Record<string, string>
-    ) => Promise<supertest.Response>
     use: (a: any) => any
 }
 
@@ -81,9 +59,12 @@ export default function ShimmieTestStack<
     const prepareRequest =
         (method: string) =>
         (
-            path: string,
-            headers?: Record<string, string>,
-            withAuth = true
+            { path, headers, withAuth = true, queryParams }: {
+                path: string,
+                headers?: Record<string, string>,
+                withAuth?: boolean,
+                queryParams?: Record<string, any>
+            }
         ): supertest.Test => {
             const req: supertest.Test = (supertest(app) as SuperTester)[method](
                 path
@@ -91,6 +72,14 @@ export default function ShimmieTestStack<
 
             if (authHeaderValue && withAuth) {
                 req.set("'Authorization'", `Bearer ${authHeaderValue}`)
+            }
+
+            if(queryParams){
+                if(['GET','HEAD'].includes(method)) {
+                    req.query(queryParams)
+                } else {
+                    console.warn("Super test only allows query params on GET and HEAD requests")
+                }
             }
 
             if (headers) {
@@ -139,7 +128,7 @@ export default function ShimmieTestStack<
     }: TestRequestParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
-                .get(path, headers)
+                .get({ path, headers })
                 .expect(expectedResponseCode ?? 200)
                 .end((err: any, res: supertest.Response) =>
                     err ? reject(res) : resolve(res)
@@ -156,7 +145,7 @@ export default function ShimmieTestStack<
     }: TestRequestWithBodyParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
-                .post(path, headers)
+                .post({path, headers})
                 .expect(expectedResponseCode ?? 200)
                 .send(body ?? {})
                 .end((err: any, res: supertest.Response) =>
@@ -174,7 +163,7 @@ export default function ShimmieTestStack<
     }: TestRequestWithBodyParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
-                .put(path, headers)
+                .put({path, headers})
                 .expect(expectedResponseCode ?? 200)
                 .send(body ?? {})
                 .end((err: any, res: supertest.Response) =>
@@ -191,76 +180,11 @@ export default function ShimmieTestStack<
     }: TestRequestParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             return methods
-                .delete(path, headers)
+                .delete({path, headers})
                 .expect(expectedResponseCode ?? 200)
                 .end((err: any, res: supertest.Response) =>
                     err ? reject(res) : resolve(res)
                 )
-        })
-    }
-
-    /** Deprecated */
-    const testGetDep = async (
-        path: string,
-        headers?: Record<string, string>
-    ): Promise<supertest.Response> => {
-        return new Promise<supertest.Response>((resolve, reject) => {
-            methods
-                .get(path, headers)
-                .expect(200)
-                .end((err: any, res: supertest.Response) => {
-                    resolve(res)
-                })
-        })
-    }
-
-    /** Deprecated */
-    const testPostDep = async (
-        path: string,
-        body: object,
-        headers?: Record<string, string>
-    ): Promise<supertest.Response> => {
-        return new Promise<supertest.Response>((resolve, reject) => {
-            methods
-                .post(path, headers)
-                .expect(200)
-                .send(body)
-                .end((err: any, res: supertest.Response) => {
-                    resolve(res)
-                })
-        })
-    }
-
-    /** Deprecated */
-    const testPutDep = async (
-        path: string,
-        body: object,
-        headers?: Record<string, string>
-    ): Promise<supertest.Response> => {
-        return new Promise<supertest.Response>((resolve, reject) => {
-            methods
-                .put(path, headers)
-                .expect(200)
-                .send(body)
-                .end((err: any, res: supertest.Response) => {
-                    resolve(res)
-                })
-        })
-    }
-
-    /** Deprecated */
-    // todo wrap in a try/catch
-    const testDeleteDep = async (
-        path: string,
-        headers?: Record<string, string>
-    ): Promise<supertest.Response> => {
-        return new Promise<supertest.Response>((resolve, reject) => {
-            return methods
-                .delete(path, headers)
-                .expect(200)
-                .end((err: any, res: supertest.Response) => {
-                    resolve(res)
-                })
         })
     }
 
@@ -284,10 +208,6 @@ export default function ShimmieTestStack<
         testPost,
         testPut,
         testDelete,
-        testGetDep,
-        testPostDep,
-        testPutDep,
-        testDeleteDep,
         use: (a: any) => app.use(a),
         restart: async () => {
             await memoryBase.reset()

@@ -69,7 +69,7 @@ describe('Utils', () => {
 
             const sql = prepareAddEventQuery(event)
             expect(sql).toEqual(`insert into eventlist (StreamId, StreamVersionId, Data, Type, Meta)
-select 'abc123', '10', '{"Foo":"Bar"}', 'ExampleEventType', '{"date":11,"user":"exampleUser","hasPii":false,"replay":false,"userAgent":"exampleAgent"}'
+select \$\$abc123\$\$, \$\$10\$\$, \$\${"Foo":"Bar"}\$\$, \$\$ExampleEventType\$\$, \$\${"date":11,"user":"exampleUser","hasPii":false,"replay":false,"userAgent":"exampleAgent"}\$\$
 RETURNING sequenceNum, streamId, StreamVersionId, logdate, type;`)
         })
 
@@ -117,7 +117,7 @@ with max_db_stream_versions as (
 -- Insert the new event
 insert
 into eventlist (StreamId, StreamVersionId, Data, Type, Meta)
-select 'abc123', '10', '{"Foo":"Bar"}', 'ExampleEventType', '{"date":11,"user":"exampleUser","hasPii":false,"replay":false,"userAgent":"exampleAgent"}'
+select \$\$abc123\$\$, \$\$10\$\$, \$\${"Foo":"Bar"}\$\$, \$\$ExampleEventType\$\$, \$\${"date":11,"user":"exampleUser","hasPii":false,"replay":false,"userAgent":"exampleAgent"}\$\$
 -- Only if this subquery returns us a result
 where exists(
           -- Select out the count of streamId, and streamVersionIds that match between
