@@ -21,7 +21,7 @@ type SubscribeModels = {
     ANOTHER_EVENT_NAME: { data: number }
 }
 
-const eventStore = EventStore<RecordModels, SubscribeModels>(eventBase,undefined,eventStoreOptions)
+const eventStore = EventStore<RecordModels, SubscribeModels>(eventBase,undefined, undefined, eventStoreOptions)
 
 // ignore event meta data
 const meta: Meta = {

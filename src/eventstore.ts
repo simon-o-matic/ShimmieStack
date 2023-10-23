@@ -3,10 +3,20 @@
 //
 
 import { EventEmitter } from 'events'
-import { Event, EventBaseType, EventToRecord, PiiBaseType, TypedEvent, TypedEventHandler } from './event'
+import {
+    Event,
+    EventBaseType,
+    EventBusType,
+    EventToRecord,
+    PiiBaseType,
+    StoredEventResponse,
+    TypedEvent,
+    TypedEventHandler,
+} from './event'
 import { Logger } from './logger'
 import { v4 as uuid } from 'uuid'
 import { RecordEventType } from './index'
+import NodeEventBus from './node-event-bus'
 
 export interface EventStoreType<RecordModels extends Record<string, any>, SubscribeModels extends Record<string, any>> {
     replayAllEvents: () => Promise<number>
@@ -28,9 +38,10 @@ export default function EventStore<
 >(
     eventbase: EventBaseType,
     piiBase?: PiiBaseType,
+    eventBus?: EventBusType,
     options?: { initialised: boolean },
 ): EventStoreType<RecordModels, SubscribeModels> {
-    const eventStoreEmitter = new EventEmitter()
+    const stackEventBus = eventBus ?? NodeEventBus()
     const allSubscriptions = new Map<string, boolean>()
 
     const recordEvent = async <EventName extends keyof RecordModels>(
@@ -96,30 +107,32 @@ export default function EventStore<
 
         // need to await here to confirm before emitting just in case
         // todo handle event success and pii failure 2 phase write
-        let rows = await eventbase.addEvent({ ...newEvent }, streamVersionsToCheck) // destructing object for deep copy
+        let storedEvent: StoredEventResponse = await eventbase.addEvent({ ...newEvent }, streamVersionsToCheck) // destructing object for deep copy
+
+        storedEvent = {
+            ...newEvent,
+            data: {
+                ...newEvent.data,
+                ...piiData,
+            },
+            sequencenum: storedEvent.sequencenum,
+        }
 
         if (hasPii && piiBase) {
             // get the stringified sequenceNum from the event stream and use it as the key for the pii row
-            const piiKey: string = (rows[0] as Event).sequencenum!.toString()
+            const piiKey: string = storedEvent.sequencenum.toString()
 
             // store the pii in the piiBase
             piiData = await piiBase.addPiiEventData(piiKey, piiData)
-
-            newEvent.data = {
-                ...newEvent.data,
-                ...piiData,
-            } // make sure the emited events contain the PII
         }
 
         if (!allSubscriptions.get(String(eventName))) {
             Logger.warn(`ShimmieStack >>>> Event ${String(eventName)} has no listeners`)
         }
 
-        eventStoreEmitter.emit(String(eventName), newEvent)
-        eventStoreEmitter.emit('*', {
-            ...newEvent,
-        })
-        return rows[0]
+        stackEventBus.emit(String(eventName), storedEvent)
+
+        return storedEvent
     }
 
     // event name needs to be an input and a generic here as we use the event name as a type index and as a string value
@@ -142,7 +155,7 @@ export default function EventStore<
         }
 
         allSubscriptions.set(String(type), true) // record for later
-        eventStoreEmitter.on(String(type), tryCatchCallback)
+        stackEventBus.on(String(type), tryCatchCallback)
     }
 
     const getAllEvents = async (withPii = true) => {
@@ -222,10 +235,10 @@ export default function EventStore<
                 sequencenum: e.sequencenum
             }
 
-            eventStoreEmitter.emit(event.type, {
+            stackEventBus.emit(event.type, {
                 ...event,
             })
-            eventStoreEmitter.emit('*', {
+            stackEventBus.emit('*', {
                 ...event,
             })
         }

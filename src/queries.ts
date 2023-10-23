@@ -20,7 +20,7 @@ export const fetchMatchStreamVersionsQuery = (streamIds: string[]): string => {
 
 const addEventVersionUncheckedQuery = `insert into eventlist (StreamId, StreamVersionId, Data, Type, Meta)
 select $$%s$$, $$%s$$, $$%s$$, $$%s$$, $$%s$$
-RETURNING sequenceNum, streamId, StreamVersionId, logdate, type;`
+RETURNING sequenceNum, streamId, StreamVersionId, logdate, type, Data;`
 
 
 const addEventVersionCheckedQuery = `
@@ -61,7 +61,7 @@ where exists(
               HAVING COUNT(*) = (SELECT COUNT(*) FROM tmp_stream_version_pairs)
           )
     FOR UPDATE
-RETURNING SequenceNum, streamId, StreamVersionId, logdate, type;`
+RETURNING SequenceNum, streamId, StreamVersionId, logdate, type, Data;`
 
 
 const selectMaxStreamVersions = `

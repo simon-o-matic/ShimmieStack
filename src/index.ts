@@ -15,10 +15,11 @@ import {
     TypedEvent,
     TypedEventDep,
     TypedEventHandler,
-    StreamVersionError,
+    StreamVersionError, EventBusType,
 } from './event'
 import { AuthorizerFunc } from './authorizers'
 import { configureLogger, Logger, StackLogger } from './logger'
+import NodeEventBus from './node-event-bus'
 
 /** Errors stop the server if not initialised, if initialised they continue on */
 let eventStoreFlags = { initialised: false }
@@ -39,7 +40,7 @@ process.on('unhandledRejection', (err) => {
 app.use(express.json())
 app.use(cookieParser())
 
-export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError }
+export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError, EventBusType, NodeEventBus }
 
 export interface ShimmieConfig {
     ServerPort: number
@@ -253,6 +254,7 @@ export default function ShimmieStack<
     adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
     piiBase?: PiiBaseType,
     appLogger?: StackLogger,
+    eventBus?: EventBusType,
 ): StackType<RecordModels, SubscribeModels> {
     // if the caller provided a custom logger, use it
     configureLogger(appLogger)
@@ -262,7 +264,7 @@ export default function ShimmieStack<
     }
 
     /** initialise the event store service by giving it an event database (db, memory, file ) */
-    const eventStore = EventStore<RecordModels, SubscribeModels>(eventBase, piiBase, eventStoreFlags)
+    const eventStore = EventStore<RecordModels, SubscribeModels>(eventBase, piiBase, eventBus, eventStoreFlags)
 
     /** set up our history listener, this breaks types */
     eventStore.subscribe(

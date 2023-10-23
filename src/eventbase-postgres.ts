@@ -2,7 +2,7 @@
 // TODO: encapsulate the underlying database elsewhere
 //
 import pg from 'pg'
-import { EventBaseType, EventToRecord, StreamVersionError, StreamVersionMismatch } from './event'
+import { EventBaseType, EventToRecord, StoredEventResponse, StreamVersionError, StreamVersionMismatch } from './event'
 import { Logger } from './logger'
 import { fetchMatchStreamVersionsQuery, prepareAddEventQuery, createEventListTableQuery } from './queries'
 
@@ -39,10 +39,10 @@ export default function Eventbase(config: EventConfig): EventBaseType {
         return
     }
 
-    const addEvent = async (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>) => {
+    const addEvent = async (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>): Promise<StoredEventResponse> => {
         // prepare and parameterised the addEvent query based on whether streamVersionIds were provided or not.
         const query = prepareAddEventQuery(event, streamVersionIds)
-        const results = await runQuery(query)
+        const results: StoredEventResponse[] = await runQuery(query)
 
         // if we get no result we didnt manage to record an event but the query succeeded, this is a version failure
         if(!results || results.length === 0){
@@ -75,7 +75,7 @@ export default function Eventbase(config: EventConfig): EventBaseType {
             throw new StreamVersionError('Version mismatch detected: ', mismatchedVersions)
         }
 
-        return results
+        return results[0]
     }
 
     // Get all events in the correct squence for replay

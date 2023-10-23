@@ -45,6 +45,14 @@ export type TypedEventDep<EventType> = TypedEvent<string, EventType>
 /** What comes back after adding a new event to the event log */
 export type StoredEventResponse<EventName = string, EventType = any> = TypedEvent<EventName, EventType> | Event
 
+/**
+ * The interface event buses must match to be used as a drop in
+ */
+export interface EventBusType {
+    on: (type: string, callback: (...args:any[]) => void) => void,
+    emit: (type: string, event: Event) => void
+}
+
 /**  The error type thrown when object versions don't match */
 export class StreamVersionError extends Error {
     public details: StreamVersionMismatch[]
@@ -79,7 +87,7 @@ export interface StreamVersionMismatch {
 
 export interface EventBaseType {
     /**  put a new event on the event stream */
-    addEvent: (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>) => Promise<any>
+    addEvent: (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>) => Promise<StoredEventResponse>
     /** get all the events from the start to the end (for replay) */
     getAllEventsInOrder: () => Promise<Event[]>
     /** update a single event with new data (no other fields). Protect this in production */

@@ -70,7 +70,7 @@ describe('Utils', () => {
             const sql = prepareAddEventQuery(event)
             expect(sql).toEqual(`insert into eventlist (StreamId, StreamVersionId, Data, Type, Meta)
 select \$\$abc123\$\$, \$\$10\$\$, \$\${"Foo":"Bar"}\$\$, \$\$ExampleEventType\$\$, \$\${"date":11,"user":"exampleUser","hasPii":false,"replay":false,"userAgent":"exampleAgent"}\$\$
-RETURNING sequenceNum, streamId, StreamVersionId, logdate, type;`)
+RETURNING sequenceNum, streamId, StreamVersionId, logdate, type, Data;`)
         })
 
         it('should correctly format for checked events', () => {
@@ -132,7 +132,7 @@ where exists(
               HAVING COUNT(*) = (SELECT COUNT(*) FROM tmp_stream_version_pairs)
           )
     FOR UPDATE
-RETURNING SequenceNum, streamId, StreamVersionId, logdate, type;`)
+RETURNING SequenceNum, streamId, StreamVersionId, logdate, type, Data;`)
         })
     })
 

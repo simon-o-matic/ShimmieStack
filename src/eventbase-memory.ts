@@ -42,7 +42,7 @@ export default function Eventbase(): EventBaseType {
         return Promise.resolve()
     }
 
-    const addEvent = async (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>): Promise<StoredEventResponse[]> => {
+    const addEvent = async (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>): Promise<StoredEventResponse> => {
         const newEvent: Event = {
             ...event,
             sequencenum: events.length,
@@ -82,8 +82,7 @@ export default function Eventbase(): EventBaseType {
 
         // when we update, we don't need to update all the referenced stream versions. Just this one.
 
-        return Promise.resolve([
-            {
+        return Promise.resolve({
                 streamId: newEvent.streamId,
                 sequencenum: newEvent.sequencenum,
                 logdate: new Date(newEvent.meta.date).toISOString(),
@@ -92,7 +91,7 @@ export default function Eventbase(): EventBaseType {
                 data: newEvent.data,
                 meta: newEvent.meta
             },
-        ])
+        )
     }
 
     // Get all events in the correct squence for replay
