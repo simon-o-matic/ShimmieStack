@@ -19,7 +19,7 @@ import {
 } from './event'
 import { AuthorizerFunc } from './authorizers'
 import { configureLogger, Logger, StackLogger } from './logger'
-import NodeEventBus from './node-event-bus'
+import EventBusNodejs from './event-bus-nodejs'
 
 /** Errors stop the server if not initialised, if initialised they continue on */
 let eventStoreFlags = { initialised: false }
@@ -40,7 +40,7 @@ process.on('unhandledRejection', (err) => {
 app.use(express.json())
 app.use(cookieParser())
 
-export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError, EventBusType, NodeEventBus }
+export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError, EventBusType, EventBusNodejs }
 
 export interface ShimmieConfig {
     ServerPort: number

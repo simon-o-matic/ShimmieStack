@@ -16,7 +16,7 @@ import {
 import { Logger } from './logger'
 import { v4 as uuid } from 'uuid'
 import { RecordEventType } from './index'
-import NodeEventBus from './node-event-bus'
+import EventBusNodejs from './event-bus-nodejs'
 
 export interface EventStoreType<RecordModels extends Record<string, any>, SubscribeModels extends Record<string, any>> {
     replayAllEvents: () => Promise<number>
@@ -41,7 +41,7 @@ export default function EventStore<
     eventBus?: EventBusType,
     options?: { initialised: boolean },
 ): EventStoreType<RecordModels, SubscribeModels> {
-    const stackEventBus = eventBus ?? NodeEventBus()
+    const stackEventBus = eventBus ?? EventBusNodejs()
     const allSubscriptions = new Map<string, boolean>()
 
     const recordEvent = async <EventName extends keyof RecordModels>(
