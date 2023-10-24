@@ -33,7 +33,7 @@ export default function AdminCommands(
     }
 
     const getEvents = async () => {
-        return eventbase.getAllEventsInOrder()
+        return eventbase.getEventsInOrder()
     }
 
     const deleteEvent = async (sequenceNumber: number) => {

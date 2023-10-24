@@ -37,25 +37,42 @@ export default function EventBusRedisPubsub({
     const pubClient = redisOptions ? new Redis(url, redisOptions) : new Redis(url)
     const subClient = redisOptions ? new Redis(url, redisOptions) : new Redis(url)
     const _logger = logger ?? Logger
+    let _replayFunc: (seqNum: number) => Promise<number>
+
 
     if (subscribe) {
-        subClient.subscribe(GLOBAL_CHANNEL, (err, count) => {
+        subClient.subscribe(GLOBAL_CHANNEL, (err) => {
             if (err) {
                 throw new RedisPubsubError(`An error occurred subscribing to redis event bus: ${err.message}`, err)
             }
         })
 
-        subClient.on('message', (channel, message) => {
+        subClient.on('message', async (channel, message) => {
             try {
                 const event: StoredEventResponse = JSON.parse(message)
-                nodeEventBus.emit(event.type, {
-                    ...event,
-                    meta: {
-                        ...event.meta,
-                        replay: true, // anything that comes via the redis event bus has been recorded elsewhere, so it will always be a replay here
-                        eventBusDelay:  Date.now() - event.meta.date
-                    }
-                })
+                const expectedSeqNum = nodeEventBus.getLastHandledSeqNum() + 1
+
+                // if we are ahead of this event, don't do anything.
+                if (event.sequencenum < expectedSeqNum) {
+                    return
+                }
+
+                if (event.sequencenum === expectedSeqNum) {
+                    // if we are here, this is the next event. process it.
+                    nodeEventBus.emit(event.type, {
+                        ...event,
+                        meta: {
+                            ...event.meta,
+                            replay: true, // anything that comes via the redis event bus has been recorded elsewhere, so it will always be a replay here
+                            eventBusDelay: Date.now() - event.meta.date
+                        }
+                    })
+                    return
+                }
+
+                // if we are here, our local is potentially behind/missing events. Go fetch any missing events.
+                await _replayFunc(expectedSeqNum)
+
             } catch (e) {
                 _logger.warn(`Unable to parse or local emit redis message: ${e}`)
             }
@@ -77,10 +94,16 @@ export default function EventBusRedisPubsub({
     const getLastEmittedSeqNum = () => nodeEventBus.getLastEmittedSeqNum()
     const getLastHandledSeqNum = () => nodeEventBus.getLastHandledSeqNum()
 
+    const setEventBaseReplayer = (replayfunc: (seqNum: number) => Promise<number>): void => {
+        _replayFunc = replayfunc
+    }
+
     return {
         emit,
+        reset: nodeEventBus.reset,
         on,
         getLastEmittedSeqNum,
         getLastHandledSeqNum,
+        setEventBaseReplayer
     }
 }

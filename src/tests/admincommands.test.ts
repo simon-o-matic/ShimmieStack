@@ -52,11 +52,11 @@ describe('when deleting an event', () => {
     it('the event is deleted', async () => {
         memoryEventBase.addEvent(event)
 
-        expect((await memoryEventBase.getAllEventsInOrder()).length).toBe(1)
+        expect((await memoryEventBase.getEventsInOrder()).length).toBe(1)
 
         await testStack.testDelete({path:'/events/0'})
 
-        expect((await memoryEventBase.getAllEventsInOrder()).length).toBe(0)
+        expect((await memoryEventBase.getEventsInOrder()).length).toBe(0)
     })
 })
 
@@ -65,7 +65,7 @@ describe('when updating an event', () => {
         memoryEventBase.addEvent(event)
 
         expect(
-            (await memoryEventBase.getAllEventsInOrder())[0].data
+            (await memoryEventBase.getEventsInOrder())[0].data
         ).toStrictEqual({
             one: 'two',
         })
@@ -73,7 +73,7 @@ describe('when updating an event', () => {
         await testStack.testPut({path:'/events/0', body:{ two: 'three' }})
 
         expect(
-            (await memoryEventBase.getAllEventsInOrder())[0].data
+            (await memoryEventBase.getEventsInOrder())[0].data
         ).toStrictEqual({
             two: 'three',
         })

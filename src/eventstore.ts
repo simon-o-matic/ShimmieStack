@@ -30,6 +30,7 @@ export interface EventStoreType<RecordModels extends Record<string, any>, Subscr
     deleteEvent: (sequenceNumber: number) => void
     updateEventData: (sequenceNumber: number, data: object) => void
     getAllEvents: (withPii?: boolean) => Promise<any>
+    reset: () => Promise<void>
 }
 
 export default function EventStore<
@@ -158,8 +159,9 @@ export default function EventStore<
         stackEventBus.on(String(type), tryCatchCallback)
     }
 
-    const getAllEvents = async (withPii = true) => {
-        const events: Event[] = await eventbase.getAllEventsInOrder()
+    const getAllEvents = async (withPii = true) => getEvents({ withPii: withPii })
+    const getEvents = async ({ withPii = true, seqNum }: { withPii?: boolean, seqNum?: number }) => {
+        const events: Event[] = await eventbase.getEventsInOrder(seqNum)
 
         // If we don't use a pii db, or we don't want the pii with the db return the events
         if (!withPii || !piiBase) {
@@ -184,10 +186,17 @@ export default function EventStore<
             }
         })
     }
-
+    const replayAllEvents = async () => replayEvents()
     // On startup only re-emit all of the events in the database
-    const replayAllEvents = async (): Promise<number> => {
-        const allEvents: Event[] = await getAllEvents(false) // get all the events WITHOUT Pii, so we don't iterate them twice.
+    const replayEvents = async (seqNum?: number): Promise<number> => {
+        const allEvents: Event[] = await getEvents(
+            {
+                withPii: false,
+                seqNum
+            }
+        )
+
+        // get all the events WITHOUT Pii, so we don't iterate them twice.
         let piiLookup: Record<string, any> | undefined
 
         // if we have a pii db, get all the pii for re-populating the emitted events
@@ -241,12 +250,21 @@ export default function EventStore<
         return allEvents.length
     }
 
+    stackEventBus.setEventBaseReplayer(replayEvents)
+
     const deleteEvent = async (sequenceNumber: number) =>
         await eventbase.deleteEvent(sequenceNumber)
     const updateEventData = async (sequenceNumber: number, data: object) =>
         await eventbase.updateEventData(sequenceNumber, data)
 
+    const reset = async () => {
+        await eventbase.reset()
+        stackEventBus.reset()
+        stackEventBus.setEventBaseReplayer(replayEvents)
+    }
+
     return {
+        reset,
         replayAllEvents,
         recordEvent,
         subscribe,

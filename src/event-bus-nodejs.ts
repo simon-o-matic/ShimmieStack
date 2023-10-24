@@ -2,9 +2,16 @@ import { Event, EventBusType, StoredEventResponse } from './event'
 import { EventEmitter } from 'events'
 
 export default function EventBusNodejs(): EventBusType {
-    const emitter = new EventEmitter()
-    let lastEmittedSeqNum: number
-    let lastHandledSeqNum: number
+    let emitter = new EventEmitter()
+    let _replayFunc: (seqNum: number) => Promise<number>
+    let lastEmittedSeqNum: number = -1
+    let lastHandledSeqNum: number = -1
+
+    const reset = () => {
+        lastHandledSeqNum = -1
+        lastEmittedSeqNum = -1
+        emitter = new EventEmitter()
+    }
 
     const emit = (type: string, event: Event|StoredEventResponse): void => {
         emitter.emit(type, { ...event })
@@ -15,9 +22,16 @@ export default function EventBusNodejs(): EventBusType {
     const on = (type: string, callback: (...args:any[]) => void): void => {
         const callbackWrapper: (...args:any[]) => void = (event: StoredEventResponse) => {
             // if I receive an event that has a sequence number I have already processed, don't call the callback
-            if(event.sequencenum && (event.sequencenum <= (lastHandledSeqNum ?? -1))) {
+            if(
+                event.sequencenum !== undefined &&
+                (event.sequencenum <= lastHandledSeqNum) &&
+                type !== '*' // allow for a second broadcast on '*' channel of the same event
+            ) {
                 return
             }
+
+
+            lastHandledSeqNum = event.sequencenum ?? lastHandledSeqNum
             callback(event)
         }
 
@@ -27,9 +41,15 @@ export default function EventBusNodejs(): EventBusType {
     const getLastEmittedSeqNum = () => lastEmittedSeqNum
     const getLastHandledSeqNum = () => lastHandledSeqNum
 
+    const setEventBaseReplayer = (replayfunc: (seqNum: number) => Promise<number>): void => {
+        _replayFunc = replayfunc
+    }
+
     return {
         emit,
         on,
+        reset,
+        setEventBaseReplayer,
         getLastEmittedSeqNum,
         getLastHandledSeqNum
     }

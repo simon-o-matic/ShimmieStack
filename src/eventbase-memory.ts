@@ -95,13 +95,13 @@ export default function Eventbase(): EventBaseType {
     }
 
     // Get all events in the correct squence for replay
-    const getAllEventsInOrder = () => {
-        return Promise.resolve(events)
+    const getEventsInOrder = async (seqNum?: number) => {
+        return Promise.resolve( seqNum !== undefined ? events.slice(seqNum - 1) : events)
     }
 
     return {
         addEvent,
-        getAllEventsInOrder,
+        getEventsInOrder,
         init,
         reset,
         updateEventData,

@@ -79,8 +79,8 @@ export default function Eventbase(config: EventConfig): EventBaseType {
     }
 
     // Get all events in the correct squence for replay
-    const getAllEventsInOrder = async () => {
-        const query = 'SELECT * FROM eventlist ORDER BY SequenceNum'
+    const getEventsInOrder = async (seqNum?: number) => {
+        const query = seqNum !== undefined ? 'SELECT * FROM eventlist WHERE SequenceNum >= ${seqNum} ORDER BY SequenceNum' : 'SELECT * FROM eventlist ORDER BY SequenceNum'
         return await runQuery(query)
     }
 
@@ -167,7 +167,7 @@ export default function Eventbase(config: EventConfig): EventBaseType {
     // };
 
     return {
-        getAllEventsInOrder,
+        getEventsInOrder,
         addEvent,
         reset,
         deleteEvent,

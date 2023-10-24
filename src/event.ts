@@ -52,8 +52,10 @@ export type StoredEventResponse<EventName = string, EventType = any> = TypedEven
 export interface EventBusType {
     on: (type: string, callback: (...args:any[]) => void) => void,
     emit: (type: string, event: Event) => void
-    getLastEmittedSeqNum: () => number | undefined
-    getLastHandledSeqNum: () => number | undefined
+    setEventBaseReplayer: (replayfunc: (seqNum: number) => Promise<number>) => void
+    getLastEmittedSeqNum: () => number
+    getLastHandledSeqNum: () => number
+    reset: () => void
 }
 
 /**  The error type thrown when object versions don't match */
@@ -91,8 +93,8 @@ export interface StreamVersionMismatch {
 export interface EventBaseType {
     /**  put a new event on the event stream */
     addEvent: (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>) => Promise<StoredEventResponse>
-    /** get all the events from the start to the end (for replay) */
-    getAllEventsInOrder: () => Promise<Event[]>
+    /** get events from the start to the end (for replay) optionally provide a starting point */
+    getEventsInOrder: (seqNum?: number) => Promise<Event[]>
     /** update a single event with new data (no other fields). Protect this in production */
     updateEventData: (sequenceNumber: number, data: object) => Promise<void>
     /** delete a single event by sequence number. Protect this in production */
