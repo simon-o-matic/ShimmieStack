@@ -20,6 +20,7 @@ import {
 import { AuthorizerFunc } from './authorizers'
 import { configureLogger, Logger, StackLogger } from './logger'
 import EventBusNodejs from './event-bus-nodejs'
+import EventBusRedisPubsub from './event-bus-redis-pubsub'
 
 /** Errors stop the server if not initialised, if initialised they continue on */
 let eventStoreFlags = { initialised: false }
@@ -40,7 +41,7 @@ process.on('unhandledRejection', (err) => {
 app.use(express.json())
 app.use(cookieParser())
 
-export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError, EventBusType, EventBusNodejs }
+export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError, EventBusType, EventBusNodejs, EventBusRedisPubsub }
 
 export interface ShimmieConfig {
     ServerPort: number

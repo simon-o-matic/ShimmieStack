@@ -235,12 +235,7 @@ export default function EventStore<
                 sequencenum: e.sequencenum
             }
 
-            stackEventBus.emit(event.type, {
-                ...event,
-            })
-            stackEventBus.emit('*', {
-                ...event,
-            })
+            stackEventBus.emit(event.type, event)
         }
 
         return allEvents.length

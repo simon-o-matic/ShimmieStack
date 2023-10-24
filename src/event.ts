@@ -10,6 +10,7 @@ export interface Meta extends UserMeta {
     replay?: boolean
     date: number
     hasPii?: boolean
+    eventBusDelay?: number
 }
 
 export type PiiFields = string[]
@@ -51,7 +52,8 @@ export type StoredEventResponse<EventName = string, EventType = any> = TypedEven
 export interface EventBusType {
     on: (type: string, callback: (...args:any[]) => void) => void,
     emit: (type: string, event: Event) => void
-    getLatestEmittedSeqNum: () => number|undefined
+    getLastEmittedSeqNum: () => number | undefined
+    getLastHandledSeqNum: () => number | undefined
 }
 
 /**  The error type thrown when object versions don't match */
