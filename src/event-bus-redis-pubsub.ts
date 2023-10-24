@@ -1,7 +1,6 @@
 import { Event, EventBusType, StoredEventResponse } from './event'
 import EventBusNodejs from './event-bus-nodejs'
-import Redis from 'ioredis'
-import { RedisOptions } from 'ioredis/built/redis/RedisOptions'
+import Redis, { RedisOptions } from 'ioredis'
 import { Logger, StackLogger } from './logger'
 
 export interface RedisPubsubEventBusOptions {
