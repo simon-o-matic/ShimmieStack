@@ -94,7 +94,7 @@ export interface EventBaseType {
     /**  put a new event on the event stream */
     addEvent: (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>) => Promise<StoredEventResponse>
     /** get events from the start to the end (for replay) optionally provide a starting point */
-    getEventsInOrder: (seqNum?: number) => Promise<Event[]>
+    getEventsInOrder: (minSequenceNumber?: number) => Promise<Event[]>
     /** update a single event with new data (no other fields). Protect this in production */
     updateEventData: (sequenceNumber: number, data: object) => Promise<void>
     /** delete a single event by sequence number. Protect this in production */

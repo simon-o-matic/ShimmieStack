@@ -178,9 +178,13 @@ export type StackType<
     ) => void
     use: (a: any) => any
     getHistory: (ids: string | string[]) => StreamHistory<SubscribeModels> | undefined
+    ensureMinSequenceNumberHandled: ({ minSequenceNumber }: {
+        minSequenceNumber: number
+    }) => void
     registerPreInitFn: (fn: () => void | Promise<void>) => StackType<RecordModels, SubscribeModels>
     registerPostInitFn: (fn: () => void | Promise<void>) => StackType<RecordModels, SubscribeModels>
 }
+
 
 
 const startApiListener = async (app: Application, port: number) => {
@@ -220,7 +224,7 @@ const initializeShimmieStack = async <
         Logger.info(
             `ShimmieStack >>>> Starting to replay the entire event stream to rebuild memory models`
         )
-        const numEvents = await eventStore.replayAllEvents()
+        const numEvents = await eventStore.replayEvents()
         Logger.info(`ShimmieStack >>>> replayed ${numEvents} events`)
 
         // Start accepting requests from the outside world
@@ -264,8 +268,15 @@ export default function ShimmieStack<
         throw Error('Missing event base parameter to ShimmieStack')
     }
 
+    const _eventBus = eventBus ?? EventBusNodejs()
+
     /** initialise the event store service by giving it an event database (db, memory, file ) */
-    const eventStore = EventStore<RecordModels, SubscribeModels>(eventBase, piiBase, eventBus, eventStoreFlags)
+    const eventStore = EventStore<RecordModels, SubscribeModels>({
+        eventbase: eventBase,
+        piiBase: piiBase,
+        eventBus: _eventBus,
+        options: eventStoreFlags
+    })
 
     /** set up our history listener, this breaks types */
     eventStore.subscribe(
@@ -452,6 +463,16 @@ export default function ShimmieStack<
 
         // provide the client the Express use function so they can do whatever they want
         use: (a: any) => app.use(a),
+
+        ensureMinSequenceNumberHandled: async ( {minSequenceNumber}): Promise<void> => {
+            if(_eventBus.getLastHandledSeqNum() >= minSequenceNumber) {
+                return
+            }
+
+            // replay any events between the last handled, and the requested minimum
+            await eventStore.replayEvents(minSequenceNumber)
+            return
+        },
 
         /**
          * Get all EventHistory of every stream ID passed - sorted oldest to newest

@@ -95,8 +95,8 @@ export default function Eventbase(): EventBaseType {
     }
 
     // Get all events in the correct squence for replay
-    const getEventsInOrder = async (seqNum?: number) => {
-        return Promise.resolve( seqNum !== undefined ? events.slice(seqNum - 1) : events)
+    const getEventsInOrder = async (minSequenceNumber?: number) => {
+        return Promise.resolve( minSequenceNumber !== undefined ? events.slice(minSequenceNumber - 1) : events)
     }
 
     return {

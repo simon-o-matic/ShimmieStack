@@ -3,6 +3,7 @@ import EventStore from '../eventstore'
 import { Meta } from '../event'
 import { Logger } from '../logger'
 import { expect, jest } from '@jest/globals'
+import EventBusNodejs from '../event-bus-nodejs'
 
 let eventStoreOptions = { initialised: true }
 const eventBase = EventBase()
@@ -22,7 +23,12 @@ type SubscribeModels = {
     ANOTHER_EVENT_NAME: { data: number }
 }
 
-const eventStore = EventStore<RecordModels, SubscribeModels>(eventBase, undefined, undefined, eventStoreOptions)
+const eventStore = EventStore<RecordModels, SubscribeModels>({
+    eventbase: eventBase,
+    piiBase: undefined,
+    eventBus: EventBusNodejs(),
+    options: eventStoreOptions
+})
 
 // ignore event meta data
 const meta: Meta = {
@@ -49,7 +55,7 @@ describe('EventStore Memory', () => {
 
     describe('when creating the eventstore', () => {
         it('there should be no events in the database', async () => {
-            const numEvents = await eventStore.getAllEvents()
+            const numEvents = await eventStore.getEvents()
             expect(numEvents.length).toEqual(0)
         })
     })
@@ -65,7 +71,7 @@ describe('EventStore Memory', () => {
                 streamVersionIds: { 'streamId': undefined },
                 meta: meta,
             })
-            const numEvents = await eventStore.getAllEvents()
+            const numEvents = await eventStore.getEvents()
 
             expect(numEvents.length).toEqual(1)
         })
@@ -85,7 +91,7 @@ describe('EventStore Memory', () => {
                 streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                 meta: meta,
             })
-            const allEvents = await eventStore.getAllEvents()
+            const allEvents = await eventStore.getEvents()
 
             expect(allEvents.length).toEqual(2)
         })
@@ -139,7 +145,7 @@ describe('EventStore Memory', () => {
                 streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                 meta: meta,
             })
-            const allEvents = await eventStore.getAllEvents()
+            const allEvents = await eventStore.getEvents()
             Logger.log(`EVENTS, ${allEvents} `)
             expect(allEvents.length).toEqual(2)
 
@@ -176,7 +182,7 @@ describe('EventStore Memory', () => {
             await eventStore.updateEventData(0, { bar: 'goo' })
             await eventStore.updateEventData(1, { bar: 'boo' })
 
-            const allEvents = await eventStore.getAllEvents()
+            const allEvents = await eventStore.getEvents()
 
             expect(allEvents[0].data).toEqual({ bar: 'goo' })
             expect(allEvents[1].data).toEqual({ bar: 'boo' })
@@ -208,7 +214,7 @@ describe('EventStore Memory', () => {
                     meta: meta,
                 })
 
-                const numEvents = await eventStore.getAllEvents()
+                const numEvents = await eventStore.getEvents()
 
                 // both events should be there, and the errored subscriber should log and not crash the app.
                 expect(numEvents.length).toEqual(2)

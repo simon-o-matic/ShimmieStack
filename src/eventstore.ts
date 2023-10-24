@@ -2,7 +2,6 @@
 // Send events to the database, and tell anyone who is litenening about it
 //
 
-import { EventEmitter } from 'events'
 import {
     Event,
     EventBaseType,
@@ -16,10 +15,9 @@ import {
 import { Logger } from './logger'
 import { v4 as uuid } from 'uuid'
 import { RecordEventType } from './index'
-import EventBusNodejs from './event-bus-nodejs'
 
 export interface EventStoreType<RecordModels extends Record<string, any>, SubscribeModels extends Record<string, any>> {
-    replayAllEvents: () => Promise<number>
+    replayEvents: (minSequenceNumber?: number) => Promise<number>
     recordEvent: <EventName extends keyof RecordModels>(
         event: RecordEventType<RecordModels, EventName>,
     ) => Promise<any>
@@ -29,7 +27,7 @@ export interface EventStoreType<RecordModels extends Record<string, any>, Subscr
     ) => void
     deleteEvent: (sequenceNumber: number) => void
     updateEventData: (sequenceNumber: number, data: object) => void
-    getAllEvents: (withPii?: boolean) => Promise<any>
+    getEvents: (options? : { withPii?: boolean, minSequenceNumber?: number }) => Promise<any>
     reset: () => Promise<void>
 }
 
@@ -37,12 +35,14 @@ export default function EventStore<
     RecordModels extends Record<string, any>,
     SubscribeModels extends Record<string, any>
 >(
-    eventbase: EventBaseType,
-    piiBase?: PiiBaseType,
-    eventBus?: EventBusType,
-    options?: { initialised: boolean },
+    { eventbase, piiBase, eventBus, options }: {
+        eventbase: EventBaseType,
+        piiBase?: PiiBaseType,
+        eventBus: EventBusType,
+        options?: { initialised: boolean }
+    },
 ): EventStoreType<RecordModels, SubscribeModels> {
-    const stackEventBus = eventBus ?? EventBusNodejs()
+    const stackEventBus = eventBus
     const allSubscriptions = new Map<string, boolean>()
 
     const recordEvent = async <EventName extends keyof RecordModels>(
@@ -159,9 +159,9 @@ export default function EventStore<
         stackEventBus.on(String(type), tryCatchCallback)
     }
 
-    const getAllEvents = async (withPii = true) => getEvents({ withPii: withPii })
-    const getEvents = async ({ withPii = true, seqNum }: { withPii?: boolean, seqNum?: number }) => {
-        const events: Event[] = await eventbase.getEventsInOrder(seqNum)
+    const getEvents = async (options?: { withPii?: boolean, minSequenceNumber?: number }) => {
+        const { withPii, minSequenceNumber } = options ?? { withPii: true }
+        const events: Event[] = await eventbase.getEventsInOrder(minSequenceNumber)
 
         // If we don't use a pii db, or we don't want the pii with the db return the events
         if (!withPii || !piiBase) {
@@ -186,13 +186,11 @@ export default function EventStore<
             }
         })
     }
-    const replayAllEvents = async () => replayEvents()
-    // On startup only re-emit all of the events in the database
-    const replayEvents = async (seqNum?: number): Promise<number> => {
+    const replayEvents = async (minSequenceNumber?: number): Promise<number> => {
         const allEvents: Event[] = await getEvents(
             {
                 withPii: false,
-                seqNum
+                minSequenceNumber
             }
         )
 
@@ -265,10 +263,10 @@ export default function EventStore<
 
     return {
         reset,
-        replayAllEvents,
+        replayEvents,
         recordEvent,
         subscribe,
-        getAllEvents,
+        getEvents,
         deleteEvent,
         updateEventData,
     }

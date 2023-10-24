@@ -5,9 +5,10 @@ import PiiBase from '../piibase-memory'
 import { ShimmieEvent } from '..'
 import { expect } from '@jest/globals'
 import ShimmieTestStack from '../shimmieteststack'
+import EventBusNodejs from '../event-bus-nodejs'
 const eventBase = EventBase()
 const piiBase = PiiBase()
-const eventStore = EventStore<RecordModels, any>(eventBase, piiBase)
+const eventStore = EventStore<RecordModels, any>({ eventbase: eventBase, piiBase: piiBase, eventBus: EventBusNodejs() })
 
 
 type RecordModels = {
@@ -44,7 +45,7 @@ afterAll(async () => {
 
 describe('when creating the eventstore', () => {
     it('there should be no events in the database', async () => {
-        const events = await eventStore.getAllEvents()
+        const events = await eventStore.getEvents()
         const piiData = await piiBase.getPiiLookup()
         expect(events.length).toEqual(0)
         expect(Object.keys(piiData).length).toEqual(0)
@@ -69,11 +70,11 @@ describe('when recording an event', () => {
                 })
 
                 // check that the eventbase does not have pii in it, and does have the other data
-                const nonPii = (await eventStore.getAllEvents(false))[0]
+                const nonPii = (await eventStore.getEvents({ withPii: false }))[0]
                 expect(nonPii.data).not.toHaveProperty('piiField')
                 expect(nonPii.data).toHaveProperty('nonPiiField')
 
-                const events = await eventStore.getAllEvents()
+                const events = await eventStore.getEvents()
 
                 // check that the returned event data does have pii in it
                 // meaning the piibase and event base have been merged at the event store level
@@ -99,7 +100,7 @@ describe('when recording an event', () => {
                 streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                 meta,
             })
-            const allEvents = await eventStore.getAllEvents()
+            const allEvents = await eventStore.getEvents()
 
             // are both events saved?
             expect(allEvents.length).toEqual(2)
@@ -115,7 +116,7 @@ describe('when recording an event', () => {
         })
     })
     describe('and the piibase is not configured', () => {
-        const noPiiEventStore = EventStore<RecordModels, any>(eventBase)
+        const noPiiEventStore = EventStore<RecordModels, any>({ eventbase: eventBase, eventBus: EventBusNodejs() })
 
         it('Should throw an error if provided a pii key', async () => {
             noPiiEventStore.subscribe('type', () => {
@@ -148,7 +149,7 @@ describe('when recording an event', () => {
             })
 
             // check that the eventbase does not have pii in it, and does have the other data
-            const event = (await noPiiEventStore.getAllEvents(false))[0]
+            const event = (await noPiiEventStore.getEvents({ withPii: false}))[0]
 
             expect(event.data).toEqual(piiTestData)
             expect(event.meta.hasPii).toBeFalsy()
