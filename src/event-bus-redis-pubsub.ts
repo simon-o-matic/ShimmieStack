@@ -3,12 +3,12 @@ import EventBusNodejs from './event-bus-nodejs'
 import Redis, { RedisOptions } from 'ioredis'
 import { Logger, StackLogger } from './logger'
 
-export interface RedisPubsubEventBusOptions {
+export interface EventBusRedisPubsubOptions {
     url: string
     subscribe?: boolean
     logger?: StackLogger
     redisOptions?: RedisOptions
-    replayfunc?: (seqNum: number) => Promise<number>
+    replayFunc?: (seqNum: number) => Promise<number>
 }
 
 export class RedisPubsubError extends Error {
@@ -25,23 +25,28 @@ export class RedisPubsubError extends Error {
     }
 }
 
-const STACK_GLOBAL_CHANNEL = 'STACK_GLOBAL_CHANNEL'
+const GLOBAL_CHANNEL = 'STACK_GLOBAL'
 
 export default function EventBusRedisPubsub({
                                                 url,
                                                 redisOptions,
                                                 logger,
-                                                replayfunc,
+                                                replayFunc,
                                                 subscribe = true,
-                                            }: RedisPubsubEventBusOptions): EventBusType {
+                                            }: EventBusRedisPubsubOptions): EventBusType {
     const nodeEventBus: EventBusType = EventBusNodejs()
     const pubClient = redisOptions ? new Redis(url, redisOptions) : new Redis(url)
     const subClient = redisOptions ? new Redis(url, redisOptions) : new Redis(url)
     const _logger = logger ?? Logger
 
+    if(!replayFunc){
+        throw Error("Unable to initialise a replayer for redis pubsub")
+    }
+
+    const _replayFunc = replayFunc
 
     if (subscribe) {
-        subClient.subscribe(STACK_GLOBAL_CHANNEL, (err) => {
+        subClient.subscribe(GLOBAL_CHANNEL, (err) => {
             if (err) {
                 throw new RedisPubsubError(`An error occurred subscribing to redis event bus: ${err.message}`, err)
             }
@@ -50,10 +55,7 @@ export default function EventBusRedisPubsub({
         subClient.on('message', async (channel, message) => {
             try {
                 const event: StoredEventResponse = JSON.parse(message)
-                // if no events processed, then this one is fine to start on.
-                const expectedSeqNum = nodeEventBus.getLastHandledSeqNum() !== -1 ?
-                    nodeEventBus.getLastHandledSeqNum() + 1 :
-                    event.sequencenum
+                const expectedSeqNum = nodeEventBus.getLastHandledSeqNum() + 1
 
                 // if we are ahead of this event, don't do anything.
                 if (event.sequencenum < expectedSeqNum) {
@@ -73,13 +75,8 @@ export default function EventBusRedisPubsub({
                     return
                 }
 
-                if(!replayfunc){
-                    logger?.error("Received unexpected sequence number, and no replay function")
-                    return
-                }
-
                 // if we are here, our local is potentially behind/missing events. Go fetch any missing events.
-                await replayfunc(expectedSeqNum)
+                await _replayFunc(expectedSeqNum)
 
             } catch (e) {
                 _logger.warn(`Unable to parse or local emit redis message: ${e}`)
@@ -90,7 +87,7 @@ export default function EventBusRedisPubsub({
     const emit = (type: string, event: Event | StoredEventResponse): void => {
         // don't publish replays globally.
         if(!event.meta.replay){
-            pubClient.publish(STACK_GLOBAL_CHANNEL, JSON.stringify(event))
+            pubClient.publish(GLOBAL_CHANNEL, JSON.stringify(event))
         }
         nodeEventBus.emit(type, event)
     }
@@ -102,6 +99,9 @@ export default function EventBusRedisPubsub({
     const getLastEmittedSeqNum = () => nodeEventBus.getLastEmittedSeqNum()
     const getLastHandledSeqNum = () => nodeEventBus.getLastHandledSeqNum()
 
+    const setEventBaseReplayer = (replayfunc: (seqNum: number) => Promise<number>): void => {
+        replayFunc = replayfunc
+    }
 
     return {
         emit,
@@ -109,5 +109,6 @@ export default function EventBusRedisPubsub({
         on,
         getLastEmittedSeqNum,
         getLastHandledSeqNum,
+        setEventBaseReplayer
     }
 }

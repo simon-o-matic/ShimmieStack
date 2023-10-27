@@ -5,6 +5,7 @@
 import {
     Event,
     EventBaseType,
+    EventBusOptions,
     EventToRecord,
     PiiBaseType,
     StoredEventResponse,
@@ -14,7 +15,7 @@ import {
 import { Logger } from './logger'
 import { v4 as uuid } from 'uuid'
 import { RecordEventType } from './index'
-import EventBusRedisPubsub, { RedisPubsubEventBusOptions } from './event-bus-redis-pubsub'
+import EventBusRedisPubsub from './event-bus-redis-pubsub'
 import EventBusNodejs from './event-bus-nodejs'
 
 export interface EventStoreType<RecordModels extends Record<string, any>, SubscribeModels extends Record<string, any>> {
@@ -33,7 +34,7 @@ export interface EventStoreType<RecordModels extends Record<string, any>, Subscr
     getLastHandledSeqNum: () => number
     reset: () => Promise<void>
 }
-export type EventBusOptions = RedisPubsubEventBusOptions
+
 export default function EventStore<
     RecordModels extends Record<string, any>,
     SubscribeModels extends Record<string, any>
@@ -263,7 +264,7 @@ export default function EventStore<
     const stackEventBus = eventBusOptions ?
         EventBusRedisPubsub({
             ...eventBusOptions,
-            replayfunc: replayEvents
+            replayFunc: replayEvents
         }) :
         EventBusNodejs()
 

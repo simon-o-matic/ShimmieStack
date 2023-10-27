@@ -37,7 +37,7 @@ describe("Event bus RedisPubsub", () => {
         mockDistributedBus = EventBusRedisPubsub({
             url: 'a string',
             logger: Logger,
-            replayfunc: mockReplayer,
+            replayFunc: mockReplayer,
         })
         event0 = createEvent()
         event1 = createEvent({sequencenum: 1})
