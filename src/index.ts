@@ -5,7 +5,7 @@ import express, { Application, ErrorRequestHandler, NextFunction, Request, Respo
 import cors, { CorsOptions } from 'cors'
 import cookieParser from 'cookie-parser'
 import * as routes from './routes'
-import EventStore, { EventStoreType } from './eventstore'
+import EventStore, { EventBusOptions, EventStoreType } from './eventstore'
 import {
     Event,
     EventBaseType,
@@ -20,7 +20,7 @@ import {
 import { AuthorizerFunc } from './authorizers'
 import { configureLogger, Logger, StackLogger } from './logger'
 import EventBusNodejs from './event-bus-nodejs'
-import EventBusRedisPubsub from './event-bus-redis-pubsub'
+import EventBusRedisPubsub, { RedisPubsubEventBusOptions } from './event-bus-redis-pubsub'
 
 /** Errors stop the server if not initialised, if initialised they continue on */
 let eventStoreFlags = { initialised: false }
@@ -41,7 +41,7 @@ process.on('unhandledRejection', (err) => {
 app.use(express.json())
 app.use(cookieParser())
 
-export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError, EventBusType, EventBusNodejs, EventBusRedisPubsub }
+export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError, EventBusType, EventBusNodejs, EventBusRedisPubsub, EventBusOptions, RedisPubsubEventBusOptions }
 
 export interface ShimmieConfig {
     ServerPort: number
@@ -259,7 +259,7 @@ export default function ShimmieStack<
     adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
     piiBase?: PiiBaseType,
     appLogger?: StackLogger,
-    eventBus?: EventBusType,
+    eventBusOptions?: EventBusOptions,
 ): StackType<RecordModels, SubscribeModels> {
     // if the caller provided a custom logger, use it
     configureLogger(appLogger)
@@ -268,14 +268,12 @@ export default function ShimmieStack<
         throw Error('Missing event base parameter to ShimmieStack')
     }
 
-    const _eventBus = eventBus ?? EventBusNodejs()
-
     /** initialise the event store service by giving it an event database (db, memory, file ) */
     const eventStore = EventStore<RecordModels, SubscribeModels>({
         eventbase: eventBase,
         piiBase: piiBase,
-        eventBus: _eventBus,
-        options: eventStoreFlags
+        options: eventStoreFlags,
+        eventBusOptions
     })
 
     /** set up our history listener, this breaks types */
@@ -465,7 +463,7 @@ export default function ShimmieStack<
         use: (a: any) => app.use(a),
 
         ensureMinSequenceNumberHandled: async ( {minSequenceNumber}): Promise<void> => {
-            if(_eventBus.getLastHandledSeqNum() >= minSequenceNumber) {
+            if(eventStore.getLastHandledSeqNum() >= minSequenceNumber) {
                 return
             }
 

@@ -3,7 +3,6 @@ import { EventEmitter } from 'events'
 
 export default function EventBusNodejs(): EventBusType {
     let emitter = new EventEmitter()
-    let _replayFunc: (seqNum: number) => Promise<number>
     let lastEmittedSeqNum: number = -1
     let lastHandledSeqNum: number = -1
 
@@ -41,15 +40,10 @@ export default function EventBusNodejs(): EventBusType {
     const getLastEmittedSeqNum = () => lastEmittedSeqNum
     const getLastHandledSeqNum = () => lastHandledSeqNum
 
-    const setEventBaseReplayer = (replayfunc: (seqNum: number) => Promise<number>): void => {
-        _replayFunc = replayfunc
-    }
-
     return {
         emit,
         on,
         reset,
-        setEventBaseReplayer,
         getLastEmittedSeqNum,
         getLastHandledSeqNum
     }

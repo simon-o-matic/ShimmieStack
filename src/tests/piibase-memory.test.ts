@@ -8,7 +8,7 @@ import ShimmieTestStack from '../shimmieteststack'
 import EventBusNodejs from '../event-bus-nodejs'
 const eventBase = EventBase()
 const piiBase = PiiBase()
-const eventStore = EventStore<RecordModels, any>({ eventbase: eventBase, piiBase: piiBase, eventBus: EventBusNodejs() })
+const eventStore = EventStore<RecordModels, any>({ eventbase: eventBase, piiBase: piiBase })
 
 
 type RecordModels = {
@@ -116,7 +116,7 @@ describe('when recording an event', () => {
         })
     })
     describe('and the piibase is not configured', () => {
-        const noPiiEventStore = EventStore<RecordModels, any>({ eventbase: eventBase, eventBus: EventBusNodejs() })
+        const noPiiEventStore = EventStore<RecordModels, any>({ eventbase: eventBase,  })
 
         it('Should throw an error if provided a pii key', async () => {
             noPiiEventStore.subscribe('type', () => {

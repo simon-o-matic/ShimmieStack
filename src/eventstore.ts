@@ -5,7 +5,6 @@
 import {
     Event,
     EventBaseType,
-    EventBusType,
     EventToRecord,
     PiiBaseType,
     StoredEventResponse,
@@ -15,6 +14,8 @@ import {
 import { Logger } from './logger'
 import { v4 as uuid } from 'uuid'
 import { RecordEventType } from './index'
+import EventBusRedisPubsub, { RedisPubsubEventBusOptions } from './event-bus-redis-pubsub'
+import EventBusNodejs from './event-bus-nodejs'
 
 export interface EventStoreType<RecordModels extends Record<string, any>, SubscribeModels extends Record<string, any>> {
     replayEvents: (minSequenceNumber?: number) => Promise<number>
@@ -28,21 +29,22 @@ export interface EventStoreType<RecordModels extends Record<string, any>, Subscr
     deleteEvent: (sequenceNumber: number) => void
     updateEventData: (sequenceNumber: number, data: object) => void
     getEvents: (options? : { withPii?: boolean, minSequenceNumber?: number }) => Promise<any>
+    getLastEmittedSeqNum: () => number
+    getLastHandledSeqNum: () => number
     reset: () => Promise<void>
 }
-
+export type EventBusOptions = RedisPubsubEventBusOptions
 export default function EventStore<
     RecordModels extends Record<string, any>,
     SubscribeModels extends Record<string, any>
 >(
-    { eventbase, piiBase, eventBus, options }: {
+    { eventbase, piiBase, eventBusOptions, options }: {
         eventbase: EventBaseType,
         piiBase?: PiiBaseType,
-        eventBus: EventBusType,
+        eventBusOptions?: EventBusOptions,
         options?: { initialised: boolean }
     },
 ): EventStoreType<RecordModels, SubscribeModels> {
-    const stackEventBus = eventBus
     const allSubscriptions = new Map<string, boolean>()
 
     const recordEvent = async <EventName extends keyof RecordModels>(
@@ -248,8 +250,6 @@ export default function EventStore<
         return allEvents.length
     }
 
-    stackEventBus.setEventBaseReplayer(replayEvents)
-
     const deleteEvent = async (sequenceNumber: number) =>
         await eventbase.deleteEvent(sequenceNumber)
     const updateEventData = async (sequenceNumber: number, data: object) =>
@@ -258,8 +258,17 @@ export default function EventStore<
     const reset = async () => {
         await eventbase.reset()
         stackEventBus.reset()
-        stackEventBus.setEventBaseReplayer(replayEvents)
     }
+
+    const stackEventBus = eventBusOptions ?
+        EventBusRedisPubsub({
+            ...eventBusOptions,
+            replayfunc: replayEvents
+        }) :
+        EventBusNodejs()
+
+    const getLastEmittedSeqNum = () => stackEventBus.getLastEmittedSeqNum()
+    const getLastHandledSeqNum = () => stackEventBus.getLastHandledSeqNum()
 
     return {
         reset,
@@ -269,5 +278,7 @@ export default function EventStore<
         getEvents,
         deleteEvent,
         updateEventData,
+        getLastEmittedSeqNum,
+        getLastHandledSeqNum,
     }
 }

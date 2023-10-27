@@ -26,7 +26,6 @@ type SubscribeModels = {
 const eventStore = EventStore<RecordModels, SubscribeModels>({
     eventbase: eventBase,
     piiBase: undefined,
-    eventBus: EventBusNodejs(),
     options: eventStoreOptions
 })
 
