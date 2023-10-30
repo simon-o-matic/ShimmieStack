@@ -210,7 +210,6 @@ export default function ShimmieTestStack<
         testDelete,
         use: (a: any) => app.use(a),
         restart: async () => {
-            await memoryBase.reset()
             testStack.restart()
             jest.clearAllMocks()
             jest.clearAllTimers()

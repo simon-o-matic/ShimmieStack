@@ -66,7 +66,7 @@ describe("Event bus NodeJS", () => {
             expect(bus.getLastHandledSeqNum()).toEqual(event1.sequencenum)
             expect(mockHandler).toHaveBeenCalledTimes(1)
 
-            // reset them, this should create a new emitter and mock handler shouldn't be called again
+            // reset them, this should reset the counts, but listeners should persist
             bus.reset()
 
             expect(bus.getLastEmittedSeqNum()).toEqual(-1)
@@ -76,8 +76,8 @@ describe("Event bus NodeJS", () => {
 
             // thia time we have no handler registered, so we should emit and no handler increment or called.
             expect(bus.getLastEmittedSeqNum()).toEqual(event1.sequencenum)
-            expect(bus.getLastHandledSeqNum()).toEqual(-1)
-            expect(mockHandler).toHaveBeenCalledTimes(1)
+            expect(bus.getLastHandledSeqNum()).toEqual(event1.sequencenum)
+            expect(mockHandler).toHaveBeenCalledTimes(2)
         })
     })
 })

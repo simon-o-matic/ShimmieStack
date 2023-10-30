@@ -4,12 +4,11 @@ import { EventEmitter } from 'events'
 export default function EventBusNodejs(): EventBusType {
     let lastEmittedSeqNum: number = -1
     let lastHandledSeqNum: number = -1
-    let callbackLookup: Map<string, ((...args:any[]) => void)[]> = new Map()
+    const callbackLookup: Map<string, ((...args:any[]) => void)[]> = new Map()
 
     const reset = () => {
         lastHandledSeqNum = -1
         lastEmittedSeqNum = -1
-        callbackLookup = new Map()
     }
 
     const emit = (type: string, event: Event|StoredEventResponse): void => {

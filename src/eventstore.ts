@@ -258,6 +258,7 @@ export default function EventStore<
 
     const reset = async () => {
         await eventbase.reset()
+        piiBase && await piiBase.reset()
         stackEventBus.reset()
     }
 
