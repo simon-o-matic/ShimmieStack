@@ -8,6 +8,9 @@ import { fetchMatchStreamVersionsQuery, prepareAddEventQuery, createEventListTab
 
 const { Pool } = pg
 
+pg.types.setTypeParser(20, function(val) {
+    return parseInt(val, 10)
+})
 export interface EventConfig {
     connectionString: string
 }
