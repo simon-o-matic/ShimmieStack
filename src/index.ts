@@ -351,6 +351,7 @@ export default function ShimmieStack<
         },
 
         restart: async () => {
+            eventStore.reset()
             Logger.info('TODO: empty everything and replay results')
         },
 
