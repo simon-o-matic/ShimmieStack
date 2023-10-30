@@ -54,7 +54,6 @@ export type StoredEventResponse<EventName = string, EventType = any> = TypedEven
 export interface EventBusType {
     on: (type: string, callback: (...args:any[]) => void) => void,
     emit: (type: string, event: Event) => void
-    setEventBaseReplayer: (replayfunc: (seqNum: number) => Promise<number>) => void
     getLastEmittedSeqNum: () => number
     getLastHandledSeqNum: () => number
     reset: () => void

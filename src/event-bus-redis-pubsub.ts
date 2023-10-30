@@ -99,9 +99,6 @@ export default function EventBusRedisPubsub({
     const getLastEmittedSeqNum = () => nodeEventBus.getLastEmittedSeqNum()
     const getLastHandledSeqNum = () => nodeEventBus.getLastHandledSeqNum()
 
-    const setEventBaseReplayer = (replayfunc: (seqNum: number) => Promise<number>): void => {
-        replayFunc = replayfunc
-    }
 
     return {
         emit,
@@ -109,6 +106,5 @@ export default function EventBusRedisPubsub({
         on,
         getLastEmittedSeqNum,
         getLastHandledSeqNum,
-        setEventBaseReplayer
     }
 }
