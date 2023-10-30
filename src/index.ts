@@ -15,7 +15,7 @@ import {
     TypedEvent,
     TypedEventDep,
     TypedEventHandler,
-    StreamVersionError, EventBusType, EventBusOptions,
+    StreamVersionError, EventBusType, EventBusOptions, WILDCARD_TYPE,
 } from './event'
 import { AuthorizerFunc } from './authorizers'
 import { configureLogger, Logger, StackLogger } from './logger'
@@ -41,7 +41,7 @@ process.on('unhandledRejection', (err) => {
 app.use(express.json())
 app.use(cookieParser())
 
-export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError, EventBusType, EventBusNodejs, EventBusRedisPubsub, EventBusOptions, EventBusRedisPubsubOptions }
+export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError, EventBusType, EventBusNodejs, EventBusRedisPubsub, EventBusOptions, EventBusRedisPubsubOptions, WILDCARD_TYPE }
 
 export interface ShimmieConfig {
     ServerPort: number

@@ -1,40 +1,50 @@
-import { Event, EventBusType, StoredEventResponse } from './event'
+import { Event, EventBusType, StoredEventResponse, WILDCARD_TYPE } from './event'
 import { EventEmitter } from 'events'
 
 export default function EventBusNodejs(): EventBusType {
-    let emitter = new EventEmitter()
     let lastEmittedSeqNum: number = -1
     let lastHandledSeqNum: number = -1
+    let callbackLookup: Map<string, ((...args:any[]) => void)[]> = new Map()
 
     const reset = () => {
         lastHandledSeqNum = -1
         lastEmittedSeqNum = -1
-        emitter = new EventEmitter()
+        callbackLookup = new Map()
     }
 
     const emit = (type: string, event: Event|StoredEventResponse): void => {
-        emitter.emit(type, { ...event })
-        emitter.emit('*', { ...event })
+        // if the type we are emiting isn't wildcard, call all of its callbacks
+        // and increment the last handled.
+        if(type !== WILDCARD_TYPE){
+            const callbacks = callbackLookup.get(type) ?? []
+            if(
+                callbacks.length > 0 &&
+                (event.sequencenum === undefined ||
+                event.sequencenum > lastHandledSeqNum)
+            ) {
+                // ensure we call all type callbacks
+                for (const callback of callbacks ?? []) {
+                    callback(event)
+                }
+
+                lastHandledSeqNum = event.sequencenum ?? lastHandledSeqNum
+            }
+        }
+
+
+        // ensure we always call all wildcard callbacks
+        for (const wildcardCallback of callbackLookup.get(WILDCARD_TYPE) ?? []) {
+            wildcardCallback(event)
+        }
+
         lastEmittedSeqNum = event.sequencenum
     }
 
     const on = (type: string, callback: (...args:any[]) => void): void => {
-        const callbackWrapper: (...args:any[]) => void = (event: StoredEventResponse) => {
-            // if I receive an event that has a sequence number I have already processed, don't call the callback
-            if(
-                event.sequencenum !== undefined &&
-                (event.sequencenum <= lastHandledSeqNum) &&
-                type !== '*' // allow for a second broadcast on '*' channel of the same event
-            ) {
-                return
-            }
-
-
-            lastHandledSeqNum = event.sequencenum ?? lastHandledSeqNum
-            callback(event)
-        }
-
-        emitter.on(type, callbackWrapper)
+        // keep track of the callbacks we register, to ensure every one of them is called.
+        const callbacks = callbackLookup.get(type) ?? []
+        callbacks.push(callback)
+        callbackLookup.set(type, callbacks)
     }
 
     const getLastEmittedSeqNum = () => lastEmittedSeqNum

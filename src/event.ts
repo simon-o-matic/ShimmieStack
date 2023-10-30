@@ -29,6 +29,8 @@ type BaseEvent = {
 
 export type EventToRecord = Omit<Event, 'sequencenum'>
 
+export const WILDCARD_TYPE = '*'
+
 export type Event = BaseEvent & {
     data: object,
     type: string
