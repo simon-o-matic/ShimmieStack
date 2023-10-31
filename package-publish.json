@@ -1,6 +1,6 @@
 {
     "name": "shimmiestack",
-    "version": "1.7.7",
+    "version": "1.7.9",
     "description": "A simple event sourced in-memory server framework.",
     "main": "index.js",
     "types": "index.d.ts",
@@ -17,6 +17,7 @@
     "license": "MIT",
     "dependencies": {
         "@types/supertest": "^2.0.12",
+        "async-lock": "^1.4.0",
         "cookie-parser": "^1.4.6",
         "cors": "^2.8.5",
         "express": "4.18.2",
