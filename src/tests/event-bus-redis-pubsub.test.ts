@@ -29,6 +29,7 @@ describe("Event bus RedisPubsub", () => {
     let event1: StoredEventResponse
     let event2: StoredEventResponse
     let event4: StoredEventResponse
+    let event6: StoredEventResponse
     let replayEvent: StoredEventResponse
     const mockReplayer = jest.fn()
 
@@ -43,6 +44,7 @@ describe("Event bus RedisPubsub", () => {
         event1 = createEvent({sequencenum: 1})
         event2 = createEvent({sequencenum: 2})
         event4 = createEvent({sequencenum: 4})
+        event6 = createEvent({sequencenum: 6})
         replayEvent = createEvent({sequencenum: 5, meta: { ...event0.meta, replay: true }})
     })
     afterEach(() => {
@@ -62,9 +64,11 @@ describe("Event bus RedisPubsub", () => {
         it('should only handle an event once, even if emitted more than once',() => {
             mockDistributedBus.on('example', mockHandler)
             mockDistributedBus.emit('example', event1)
-            mockDistributedBus.emit('example', event1)
+            mockDistributedBus.emit('example', event4)
             expect(mockHandler).toHaveBeenCalledWith(event1)
-            expect(mockHandler).toHaveBeenCalledTimes(1)
+            expect(mockHandler).toHaveBeenCalledWith(event4)
+            expect(mockHandler).toHaveBeenCalledTimes(2)
+            expect(mockReplayer).toHaveBeenCalledTimes(1)
         })
 
         it('should increment last emitted/handled on each emit',() => {

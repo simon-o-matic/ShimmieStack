@@ -17,9 +17,7 @@ export default function EventBusNodejs(): EventBusType {
         if(type !== WILDCARD_TYPE){
             const callbacks = callbackLookup.get(type) ?? []
             if(
-                callbacks.length > 0 &&
-                (event.sequencenum === undefined ||
-                event.sequencenum > lastHandledSeqNum)
+                callbacks.length > 0
             ) {
                 // ensure we call all type callbacks
                 for (const callback of callbacks ?? []) {

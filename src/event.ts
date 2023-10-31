@@ -12,6 +12,7 @@ export interface Meta extends UserMeta {
     replay?: boolean
     date: number
     hasPii?: boolean
+    emittedAt?: number
     eventBusDelay?: number
 }
 

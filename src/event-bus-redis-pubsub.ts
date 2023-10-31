@@ -2,6 +2,7 @@ import { Event, EventBusType, StoredEventResponse } from './event'
 import EventBusNodejs from './event-bus-nodejs'
 import Redis, { RedisOptions } from 'ioredis'
 import { Logger, StackLogger } from './logger'
+import AsyncLock  from 'async-lock'
 
 export interface EventBusRedisPubsubOptions {
     url: string
@@ -39,11 +40,18 @@ export default function EventBusRedisPubsub({
     const subClient = redisOptions ? new Redis(url, redisOptions) : new Redis(url)
     const _logger = logger ?? Logger
 
+    // ensure we are only replaying
+    let replayLock = new AsyncLock();
+
     if(!replayFunc){
         throw Error("Unable to initialise a replayer for redis pubsub")
     }
 
-    const _replayFunc = replayFunc
+    const _replayFunc = async (seqNum: number) => {
+        await replayLock.acquire('replayLock' ,async () => {
+            return await replayFunc(seqNum)
+        })
+    }
 
     if (subscribe) {
         subClient.subscribe(GLOBAL_CHANNEL, (err) => {
@@ -55,6 +63,13 @@ export default function EventBusRedisPubsub({
         subClient.on('message', async (channel, message) => {
             try {
                 const event: StoredEventResponse = JSON.parse(message)
+
+                // don't process the event during a replay. Wait 100ms (async) to see if the replay is done.
+                // this ensures we don't replay more than once, and we don't miss events if the replay is slow
+                while(replayLock.isBusy('replayLock')){
+                    await new Promise(r => setTimeout(r, 100));
+                }
+
                 const expectedSeqNum = nodeEventBus.getLastHandledSeqNum() + 1
 
                 // if we are ahead of this event, don't do anything.
@@ -69,7 +84,7 @@ export default function EventBusRedisPubsub({
                         meta: {
                             ...event.meta,
                             replay: true, // anything that comes via the redis event bus has been recorded elsewhere, so it will always be a replay here
-                            eventBusDelay: Date.now() - event.meta.date
+                            ...(event.meta.emittedAt && { eventBusDelay: Date.now() - event.meta.emittedAt })
                         }
                     })
                     return
@@ -87,7 +102,19 @@ export default function EventBusRedisPubsub({
     const emit = (type: string, event: Event | StoredEventResponse): void => {
         // don't publish replays globally.
         if(!event.meta.replay){
-            pubClient.publish(GLOBAL_CHANNEL, JSON.stringify(event))
+
+            pubClient.publish(
+                GLOBAL_CHANNEL,
+                JSON.stringify(
+                    {
+                        ...event,
+                        meta: {
+                            ...event.meta,
+                            emittedAt: Date.now(),
+                        },
+                    },
+                ),
+            )
         }
         nodeEventBus.emit(type, event)
     }
