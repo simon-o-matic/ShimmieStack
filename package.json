@@ -1,6 +1,6 @@
 {
     "name": "shimmiestack",
-    "version": "1.7.10",
+    "version": "1.7.11",
     "description": "A simple event sourced CQRS in-memory server framework.",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
