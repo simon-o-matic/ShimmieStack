@@ -167,6 +167,7 @@ export type StackType<
     registerModel<T>(name: string, model: T): void
     getModel<T>(name: string): T
     setErrorHandler(fn: ErrorRequestHandler): StackType<RecordModels, SubscribeModels>
+    setAppConfig(key: string, value: never): void
     mountProcessor: (
         name: string,
         mountPoint: string,
@@ -519,6 +520,10 @@ export default function ShimmieStack<
             postInitFns.push(fn)
             return funcs
         },
+
+        setAppConfig: (key: string, value: never) => {
+            app.set(key, value)
+        }
     }
 
     return funcs
