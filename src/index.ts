@@ -1,26 +1,38 @@
 //
 // Entry point of the application. Gets everything started.
 //
-import express, { Application, ErrorRequestHandler, NextFunction, Request, Response, Router } from 'express'
-import cors, { CorsOptions } from 'cors'
 import cookieParser from 'cookie-parser'
-import * as routes from './routes'
-import EventStore, {  EventStoreType } from './eventstore'
+import cors, { CorsOptions } from 'cors'
+import express, {
+    Application,
+    ErrorRequestHandler,
+    NextFunction,
+    Request,
+    Response,
+    Router,
+} from 'express'
+import { AuthorizerFunc } from './authorizers'
 import {
     Event,
     EventBaseType,
+    EventBusOptions,
+    EventBusType,
     Meta,
     PiiBaseType,
     PiiFields,
+    StreamVersionError,
     TypedEvent,
     TypedEventDep,
     TypedEventHandler,
-    StreamVersionError, EventBusType, EventBusOptions, WILDCARD_TYPE,
+    WILDCARD_TYPE,
 } from './event'
-import { AuthorizerFunc } from './authorizers'
-import { configureLogger, Logger, StackLogger } from './logger'
 import EventBusNodejs from './event-bus-nodejs'
-import EventBusRedisPubsub, { EventBusRedisPubsubOptions } from './event-bus-redis-pubsub'
+import EventBusRedisPubsub, {
+    EventBusRedisPubsubOptions,
+} from './event-bus-redis-pubsub'
+import EventStore, { EventStoreType } from './eventstore'
+import { Logger, StackLogger, configureLogger } from './logger'
+import * as routes from './routes'
 
 /** Errors stop the server if not initialised, if initialised they continue on */
 let eventStoreFlags = { initialised: false }
@@ -30,7 +42,7 @@ const app = express()
 process.on('uncaughtException', function (err) {
     // use `winston` or your own Logger instance as appropriate
     Logger.error(`Uncaught exception occurred: ${err} - ${err.stack}`)
-    if(eventStoreFlags.initialised === false){
+    if (eventStoreFlags.initialised === false) {
         throw err
     }
 })
@@ -38,10 +50,32 @@ process.on('uncaughtException', function (err) {
 process.on('unhandledRejection', (err) => {
     throw err
 })
-app.use(express.json())
+
+// need to add the raw body to the request so it can be used to sign requests
+// using the raw data as a Buffer
+app.use(
+    express.json({
+        verify: (req: Request & { rawBody: Buffer }, res, buf) => {
+            req.rawBody = buf
+        },
+    })
+)
 app.use(cookieParser())
 
-export { Request, Response, Router, ErrorRequestHandler, NextFunction, StreamVersionError, EventBusType, EventBusNodejs, EventBusRedisPubsub, EventBusOptions, EventBusRedisPubsubOptions, WILDCARD_TYPE }
+export {
+    Request,
+    Response,
+    Router,
+    ErrorRequestHandler,
+    NextFunction,
+    StreamVersionError,
+    EventBusType,
+    EventBusNodejs,
+    EventBusRedisPubsub,
+    EventBusOptions,
+    EventBusRedisPubsubOptions,
+    WILDCARD_TYPE,
+}
 
 export interface ShimmieConfig {
     ServerPort: number
@@ -55,9 +89,15 @@ export type ShimmieEvent = Event
 // #Deprecated: defaulted to any for when no type is provided.
 export type ShimmieTypedEventDep<EventType> = TypedEventDep<EventType>
 
-export type ShimmieTypedEvent<EventName, EventType> = TypedEvent<EventName, EventType>
+export type ShimmieTypedEvent<EventName, EventType> = TypedEvent<
+    EventName,
+    EventType
+>
 
-export type ShimmieTypedEventHandler<EventName,EventType> = TypedEventHandler<EventName,EventType>
+export type ShimmieTypedEventHandler<EventName, EventType> = TypedEventHandler<
+    EventName,
+    EventType
+>
 
 export enum ExecutionOrder {
     SEQUENTIAL = 'sequential',
@@ -78,21 +118,24 @@ export interface StreamHistory<SubscribeModels> {
     createdAt?: number
 }
 
-export type RecordUncheckedEventType<RecordModels, EventName extends keyof RecordModels> = Omit<
-    RecordEventType<RecordModels, EventName>,
-    'streamVersionIds'
->
+export type RecordUncheckedEventType<
+    RecordModels,
+    EventName extends keyof RecordModels
+> = Omit<RecordEventType<RecordModels, EventName>, 'streamVersionIds'>
 
-export type RecordEventType <RecordModels, EventName extends keyof RecordModels> = {
+export type RecordEventType<
+    RecordModels,
+    EventName extends keyof RecordModels
+> = {
     streamId: string
     eventName: EventName
     eventData: RecordModels[EventName]
     meta: Meta
     piiFields?: PiiFields
-    streamVersionIds: Record<string,string|undefined> | 'STREAM_VERSIONING_DISABLED'
+    streamVersionIds:
+        | Record<string, string | undefined>
+        | 'STREAM_VERSIONING_DISABLED'
 }
-
-
 
 /**
  * Stacktype is the base shimmiestack stack object. It handles the event sourcing
@@ -151,42 +194,54 @@ export type StackType<
 > = {
     setApiVersion: (version: string) => StackType<RecordModels, SubscribeModels>
     getRouter: () => Router
-    recordEvent: <EventName extends keyof RecordModels>(event: RecordEventType<RecordModels, EventName>) => Promise<void>
-    recordUncheckedEvent: <EventName extends keyof RecordModels>(event: RecordUncheckedEventType<RecordModels, EventName>) => Promise<void>
+    recordEvent: <EventName extends keyof RecordModels>(
+        event: RecordEventType<RecordModels, EventName>
+    ) => Promise<void>
+    recordUncheckedEvent: <EventName extends keyof RecordModels>(
+        event: RecordUncheckedEventType<RecordModels, EventName>
+    ) => Promise<void>
     recordEvents: <EventName extends keyof RecordModels>(
         events: RecordEventType<RecordModels, EventName>[],
-        executionOrder?: ExecutionOrder,
+        executionOrder?: ExecutionOrder
     ) => Promise<void>
     recordUncheckedEvents: <EventName extends keyof RecordModels>(
         events: RecordUncheckedEventType<RecordModels, EventName>[],
-        executionOrder?: ExecutionOrder,
+        executionOrder?: ExecutionOrder
     ) => Promise<void>
     startup: () => void
     restart: () => Promise<void>
     shutdown: () => void
     registerModel<T>(name: string, model: T): void
     getModel<T>(name: string): T
-    setErrorHandler(fn: ErrorRequestHandler): StackType<RecordModels, SubscribeModels>
+    setErrorHandler(
+        fn: ErrorRequestHandler
+    ): StackType<RecordModels, SubscribeModels>
     setAppConfig(key: string, value: unknown): void
     mountProcessor: (
         name: string,
         mountPoint: string,
-        router: Router,
+        router: Router
     ) => StackType<RecordModels, SubscribeModels>
     subscribe: <EventName extends keyof SubscribeModels>(
         type: EventName,
-        handler: TypedEventHandler<EventName,SubscribeModels[EventName]>,
+        handler: TypedEventHandler<EventName, SubscribeModels[EventName]>
     ) => void
     use: (a: any) => any
-    getHistory: (ids: string | string[]) => StreamHistory<SubscribeModels> | undefined
-    ensureMinSequenceNumberHandled: ({ minSequenceNumber }: {
+    getHistory: (
+        ids: string | string[]
+    ) => StreamHistory<SubscribeModels> | undefined
+    ensureMinSequenceNumberHandled: ({
+        minSequenceNumber,
+    }: {
         minSequenceNumber: number
     }) => void
-    registerPreInitFn: (fn: () => void | Promise<void>) => StackType<RecordModels, SubscribeModels>
-    registerPostInitFn: (fn: () => void | Promise<void>) => StackType<RecordModels, SubscribeModels>
+    registerPreInitFn: (
+        fn: () => void | Promise<void>
+    ) => StackType<RecordModels, SubscribeModels>
+    registerPostInitFn: (
+        fn: () => void | Promise<void>
+    ) => StackType<RecordModels, SubscribeModels>
 }
-
-
 
 const startApiListener = async (app: Application, port: number) => {
     await app.listen(port)
@@ -202,13 +257,15 @@ const initializeShimmieStack = async <
     eventBase: EventBaseType,
     eventStore: EventStoreType<RecordModels, SubscribeModels>,
     piiBase?: PiiBaseType,
-    logger?: StackLogger,
+    logger?: StackLogger
 ) => {
     try {
         Logger.info('ShimmieStack >>>> Initializing.')
         Logger.info('ShimmieStack >>>> Environment: ' + process.env.NODE_ENV)
         Logger.debug(`ShimmieStack >>>> Config: ${config} `)
-        Logger.info('ShimmieStack >>>> Finalizing routes, setting up 404 and error handlers.')
+        Logger.info(
+            'ShimmieStack >>>> Finalizing routes, setting up 404 and error handlers.'
+        )
         routes.finaliseRoutes(app, errorHandler)
         Logger.info('ShimmieStack >>>>: All processors mounted')
 
@@ -250,7 +307,6 @@ export const catchAllErrorHandler: ErrorRequestHandler = (
     return res.status(status).json({ error: 'Something went wrong' })
 }
 
-
 export default function ShimmieStack<
     RecordModels extends Record<string, any> = Record<string, any>,
     SubscribeModels extends Record<string, any> = Record<string, any>
@@ -260,7 +316,7 @@ export default function ShimmieStack<
     adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
     piiBase?: PiiBaseType,
     appLogger?: StackLogger,
-    eventBusOptions?: EventBusOptions,
+    eventBusOptions?: EventBusOptions
 ): StackType<RecordModels, SubscribeModels> {
     // if the caller provided a custom logger, use it
     configureLogger(appLogger)
@@ -274,14 +330,17 @@ export default function ShimmieStack<
         eventbase: eventBase,
         piiBase: piiBase,
         options: eventStoreFlags,
-        eventBusOptions
+        eventBusOptions,
     })
 
     /** set up our history listener, this breaks types */
     eventStore.subscribe(
         '*',
-        <EventName extends keyof SubscribeModels>(e: TypedEvent<EventName, SubscribeModels[EventName]>) => {
-            const historyArray: EventHistory<SubscribeModels>[] = eventHistory.get(e.streamId) || []
+        <EventName extends keyof SubscribeModels>(
+            e: TypedEvent<EventName, SubscribeModels[EventName]>
+        ) => {
+            const historyArray: EventHistory<SubscribeModels>[] =
+                eventHistory.get(e.streamId) || []
             historyArray.push({
                 streamId: e.streamId,
                 data: e.data,
@@ -290,7 +349,8 @@ export default function ShimmieStack<
                 user: e.meta.user,
             })
             eventHistory.set(e.streamId, historyArray)
-        })
+        }
+    )
 
     let errorHandler: ErrorRequestHandler = catchAllErrorHandler
 
@@ -324,8 +384,10 @@ export default function ShimmieStack<
             // if there are any post init fns registered execute them
             if (preInitFns.length) {
                 Logger.info('ShimmieStack >>>> Running pre-init functions')
-                await Promise.all(preInitFns.map(f => f()))
-                Logger.info('ShimmieStack >>>> Successfully completed pre-init functions')
+                await Promise.all(preInitFns.map((f) => f()))
+                Logger.info(
+                    'ShimmieStack >>>> Successfully completed pre-init functions'
+                )
             } else {
                 Logger.info('ShimmieStack >>>> No pre-init functions to run')
             }
@@ -338,13 +400,15 @@ export default function ShimmieStack<
                 errorHandler,
                 eventBase,
                 eventStore,
-                piiBase,
+                piiBase
             )
             // if there are any post init fns registered execute them
             if (postInitFns.length) {
                 Logger.info('ShimmieStack >>>> Running post-init functions')
-                await Promise.all(postInitFns.map(f => f()))
-                Logger.info('ShimmieStack >>>> Successfully compelted post-init functions')
+                await Promise.all(postInitFns.map((f) => f()))
+                Logger.info(
+                    'ShimmieStack >>>> Successfully compelted post-init functions'
+                )
             } else {
                 Logger.info('ShimmieStack >>>> No post-init functions to run')
             }
@@ -359,7 +423,9 @@ export default function ShimmieStack<
             Logger.info('TODO: HOW DO YOU STOP THIS THING!!!!')
         },
 
-        setApiVersion: (version: string): StackType<RecordModels, SubscribeModels> => {
+        setApiVersion: (
+            version: string
+        ): StackType<RecordModels, SubscribeModels> => {
             routes.setApiVersion(version)
             return funcs
         },
@@ -373,13 +439,19 @@ export default function ShimmieStack<
             if (!model) throw new Error('No registered model found: ' + name)
             return modelStore[name]
         },
-        setErrorHandler: (handler: ErrorRequestHandler): StackType<RecordModels, SubscribeModels> => {
+        setErrorHandler: (
+            handler: ErrorRequestHandler
+        ): StackType<RecordModels, SubscribeModels> => {
             errorHandler = handler
             Logger.info('ShimmieStack >>>> Overridden default error handler')
             return funcs
         },
 
-        mountProcessor: (name: string, mountPoint: string, router: Router): StackType<RecordModels, SubscribeModels> => {
+        mountProcessor: (
+            name: string,
+            mountPoint: string,
+            router: Router
+        ): StackType<RecordModels, SubscribeModels> => {
             const url = routes.mountApi(
                 app,
                 name,
@@ -393,23 +465,28 @@ export default function ShimmieStack<
 
         subscribe<EventName extends keyof SubscribeModels>(
             type: EventName,
-            handler: TypedEventHandler<EventName,SubscribeModels[EventName]>,
+            handler: TypedEventHandler<EventName, SubscribeModels[EventName]>
         ) {
             eventStore.subscribe(type, handler)
-            Logger.info(`ShimmieStack >>>> Registered event handler: ${String(type)}`)
+            Logger.info(
+                `ShimmieStack >>>> Registered event handler: ${String(type)}`
+            )
         },
         recordUncheckedEvents: <EventName extends keyof RecordModels>(
             events: RecordUncheckedEventType<RecordModels, EventName>[],
-            executionOrder?: ExecutionOrder,
+            executionOrder?: ExecutionOrder
         ): Promise<void> => {
             return funcs.recordEvents(
-                events.map(e => ({...e, streamVersionIds: 'STREAM_VERSIONING_DISABLED'})),
+                events.map((e) => ({
+                    ...e,
+                    streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+                })),
                 executionOrder
             )
         },
         recordEvents: async <EventName extends keyof RecordModels>(
             events: RecordEventType<RecordModels, EventName>[],
-            executionOrder?: ExecutionOrder,
+            executionOrder?: ExecutionOrder
         ) => {
             const executeConcurrently =
                 executionOrder === ExecutionOrder.CONCURRENT
@@ -448,14 +525,15 @@ export default function ShimmieStack<
         },
         // shorthand for disabling versionIds
         recordUncheckedEvent: <EventName extends keyof RecordModels>(
-            event: RecordUncheckedEventType<RecordModels, EventName>,
+            event: RecordUncheckedEventType<RecordModels, EventName>
         ): Promise<void> =>
-            eventStore.recordEvent({ ...event, streamVersionIds: 'STREAM_VERSIONING_DISABLED' }),
+            eventStore.recordEvent({
+                ...event,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            }),
         recordEvent: <EventName extends keyof RecordModels>(
-            event: RecordEventType<RecordModels, EventName>,
-        ): Promise<void> =>
-            eventStore.recordEvent(event),
-
+            event: RecordEventType<RecordModels, EventName>
+        ): Promise<void> => eventStore.recordEvent(event),
 
         // Make a new Express router
         getRouter: () => express.Router(),
@@ -463,8 +541,10 @@ export default function ShimmieStack<
         // provide the client the Express use function so they can do whatever they want
         use: (a: any) => app.use(a),
 
-        ensureMinSequenceNumberHandled: async ( {minSequenceNumber}): Promise<void> => {
-            if(eventStore.getLastHandledSeqNum() >= minSequenceNumber) {
+        ensureMinSequenceNumberHandled: async ({
+            minSequenceNumber,
+        }): Promise<void> => {
+            if (eventStore.getLastHandledSeqNum() >= minSequenceNumber) {
                 return
             }
 
@@ -478,7 +558,9 @@ export default function ShimmieStack<
          * Up to the caller to collate list of related IDs, getHistory doesn't
          * know or care if they're related events
          */
-        getHistory: (ids: string | string[]): StreamHistory<SubscribeModels> | undefined => {
+        getHistory: (
+            ids: string | string[]
+        ): StreamHistory<SubscribeModels> | undefined => {
             let history: EventHistory<SubscribeModels>[] | undefined
             if (typeof ids === 'string') {
                 history = eventHistory.get(ids)
@@ -510,20 +592,24 @@ export default function ShimmieStack<
             }
         },
         // add a function to be run before initialize
-        registerPreInitFn: (fn: () => void | Promise<void>): StackType<RecordModels, SubscribeModels> => {
+        registerPreInitFn: (
+            fn: () => void | Promise<void>
+        ): StackType<RecordModels, SubscribeModels> => {
             preInitFns.push(fn)
             return funcs
         },
 
         // add a function to be run after initialize
-        registerPostInitFn: (fn: () => void | Promise<void>): StackType<RecordModels, SubscribeModels> => {
+        registerPostInitFn: (
+            fn: () => void | Promise<void>
+        ): StackType<RecordModels, SubscribeModels> => {
             postInitFns.push(fn)
             return funcs
         },
 
         setAppConfig: (key: string, value: unknown) => {
             app.set(key, value)
-        }
+        },
     }
 
     return funcs
