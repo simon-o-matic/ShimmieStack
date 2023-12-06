@@ -234,7 +234,7 @@ export type StackType<
         minSequenceNumber,
     }: {
         minSequenceNumber: number
-    }) => void
+    }) => Promise<number>
     registerPreInitFn: (
         fn: () => void | Promise<void>
     ) => StackType<RecordModels, SubscribeModels>
@@ -543,14 +543,19 @@ export default function ShimmieStack<
 
         ensureMinSequenceNumberHandled: async ({
             minSequenceNumber,
-        }): Promise<void> => {
-            if (eventStore.getLastHandledSeqNum() >= minSequenceNumber) {
-                return
+        }): Promise<number> => {
+            // replay any events after the last handled, if the requested minimum > last handled
+            if (eventStore.getLastHandledSeqNum() < minSequenceNumber) {
+                Logger.debug(
+                    `Behind requested requested minSeqNum. Executing minSeqNum lookup: ${JSON.stringify({ minSequenceNumber, lastHandledSeqNum: eventStore.getLastHandledSeqNum() })}`
+                )
+                await eventStore.replayEvents(minSequenceNumber)
             }
-
-            // replay any events between the last handled, and the requested minimum
-            await eventStore.replayEvents(minSequenceNumber)
-            return
+            const lastHandled = eventStore.getLastHandledSeqNum()
+            Logger.debug(
+                `Last handled sequence number: ${lastHandled}`
+            )
+            return lastHandled
         },
 
         /**
