@@ -235,6 +235,7 @@ export type StackType<
     }: {
         minSequenceNumber: number
     }) => Promise<number>
+    getLastHandledSequenceNumberHandled: () => number
     registerPreInitFn: (
         fn: () => void | Promise<void>
     ) => StackType<RecordModels, SubscribeModels>
@@ -557,6 +558,8 @@ export default function ShimmieStack<
             )
             return lastHandled
         },
+
+        getLastHandledSequenceNumberHandled: () => eventStore.getLastHandledSeqNum(),
 
         /**
          * Get all EventHistory of every stream ID passed - sorted oldest to newest
