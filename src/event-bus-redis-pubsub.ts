@@ -34,7 +34,7 @@ export default function EventBusRedisPubsub({
                                                 replayFunc,
                                                 subscribe = true,
                                             }: EventBusRedisPubsubOptions): EventBusType {
-    const nodeEventBus: EventBusType =  EventBusNodejs()
+    const nodeEventBus: EventBusType = EventBusNodejs()
     const pubClient = redisOptions ? new Redis(url, redisOptions) : new Redis(url)
     const subClient = redisOptions ? new Redis(url, redisOptions) : new Redis(url)
     const _logger = logger ?? Logger
@@ -56,20 +56,25 @@ export default function EventBusRedisPubsub({
         subClient.on('message', async (channel, message) => {
             try {
                 const event: StoredEventResponse = JSON.parse(message)
+                _logger.debug(`${event.sequencenum}: Handling new event via PubSub`)
 
                 // Only process one event at a time.
                 // this ensures we don't replay more than once, and don't emit an event more than once.
                 // It also ensures we don't miss events if the replay is slow
+                _logger.debug(`${event.sequencenum}: Acquiring lock`)
                 return await replayLock.acquire('replayLock', async () => {
-
+                    _logger.debug(`${event.sequencenum}: Lock Acquired`)
                     const expectedSeqNum = nodeEventBus.getLastHandledSeqNum() + 1
+                    _logger.debug(`${event.sequencenum}: Expected SeqNum: ${expectedSeqNum}`)
 
                     // if we are ahead of this event, don't do anything.
                     if (event.sequencenum < expectedSeqNum) {
+                        _logger.debug(`${event.sequencenum}: Expected SeqNum (${expectedSeqNum}) > event.Seqnum (${event.sequencenum}) skipping`)
                         return
                     }
 
                     if (event.sequencenum === expectedSeqNum) {
+                        _logger.debug(`${event.sequencenum}: Emitting event`)
                         // if we are here, this is the next event. process it.
                         nodeEventBus.emit(event.type, {
                             ...event,
@@ -79,11 +84,14 @@ export default function EventBusRedisPubsub({
                                 ...(event.meta.emittedAt && { eventBusDelay: Date.now() - event.meta.emittedAt }),
                             },
                         })
+                        _logger.debug(`${event.sequencenum}: Event emitted`)
                         return
                     }
 
+                    _logger.debug(`${event.sequencenum}: Received event out of order, triggering replay`)
                     // if we are here, our local is potentially behind/missing events. Go fetch any missing events.
                     await replayFunc(expectedSeqNum)
+                    _logger.debug(`${event.sequencenum}: Replay complete`)
                 })
 
             } catch (e) {
@@ -93,9 +101,10 @@ export default function EventBusRedisPubsub({
     }
 
     const emit = (type: string, event: Event | StoredEventResponse): void => {
+        _logger.debug(`${event.sequencenum}: Beginning event emit`)
         // don't publish replays globally.
         if (!event.meta.replay) {
-
+            _logger.debug(`${event.sequencenum}: Emitting via PubSub`)
             pubClient.publish(
                 GLOBAL_CHANNEL,
                 JSON.stringify(
@@ -109,10 +118,12 @@ export default function EventBusRedisPubsub({
                 ),
             )
         }
+        _logger.debug(`${event.sequencenum}: Emitting locally`)
         nodeEventBus.emit(type, event)
     }
 
     const on = (type: string, callback: (...args: any[]) => void): void => {
+        _logger.debug(`Registering callback for event type ${type}`)
         nodeEventBus.on(type, callback)
     }
 
