@@ -54,9 +54,9 @@ describe('Event bus RedisPubsub', () => {
 
 
     describe('Should handle events published via the (mock) redis publisher', () => {
-        it('should receive and handle the mock event', () => {
+        it('should receive and handle the mock event', async () => {
             mockDistributedBus.on('example', mockHandler)
-            mockDistributedBus.emit('example', event1)
+            await mockDistributedBus.emit('example', event1)
             expect(mockHandler).toHaveBeenCalledWith(event1)
             expect(mockHandler).toHaveBeenCalledTimes(1)
         })
@@ -71,16 +71,16 @@ describe('Event bus RedisPubsub', () => {
             expect(mockReplayer).toHaveBeenCalledTimes(0)
         })
 
-        it('should increment last emitted/handled on each emit', () => {
+        it('should increment last emitted/handled on each emit', async () => {
             // emit without a listener
-            mockDistributedBus.emit('example', event1)
+            await mockDistributedBus.emit('example', event1)
             expect(mockHandler).not.toHaveBeenCalled()
             expect(mockDistributedBus.getLastEmittedSeqNum()).toEqual(event1.sequencenum)
             expect(mockDistributedBus.getLastHandledSeqNum()).toEqual(-1)
 
             // emit with a listener
-            mockDistributedBus.on('example', mockHandler)
-            mockDistributedBus.emit('example', event2)
+            await mockDistributedBus.on('example', mockHandler)
+            await mockDistributedBus.emit('example', event2)
             expect(mockHandler).toHaveBeenCalledWith(event2)
             expect(mockHandler).toHaveBeenCalledTimes(1)
 
@@ -103,17 +103,17 @@ describe('Event bus RedisPubsub', () => {
             expect(mockReplayer).toHaveBeenCalledWith(event1.sequencenum + 1)
         })
 
-        it('should error replaying missing events if no handler is provided', () => {
+        it('should error replaying missing events if no handler is provided', async () => {
 
             mockDistributedBus.on('example', mockHandler)
-            mockDistributedBus.emit('example', event0)
-            mockDistributedBus.emit('example', event4)
+            await mockDistributedBus.emit('example', event0)
+            await mockDistributedBus.emit('example', event4)
         })
 
-        it('should not emit replay events via pubsub', () => {
+        it('should not emit replay events via pubsub', async () => {
             const mockRedisHandler = jest.fn()
 
-            mockDistributedBus.emit('replay-tester', replayEvent)
+            await mockDistributedBus.emit('replay-tester', replayEvent)
             mockDistributedBus.on('pubsub-global', mockRedisHandler)
 
             // don't expect a pubsub emit for replay

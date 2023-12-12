@@ -134,7 +134,7 @@ export default function EventStore<
             Logger.warn(`ShimmieStack >>>> Event ${String(eventName)} has no listeners`)
         }
 
-        stackEventBus.emit(String(eventName), storedEvent)
+        await stackEventBus.emit(String(eventName), storedEvent)
 
         return storedEvent
     }
@@ -245,7 +245,7 @@ export default function EventStore<
                 sequencenum: e.sequencenum
             }
 
-            stackEventBus.emit(event.type, event)
+            await stackEventBus.emit(event.type, event)
         }
 
         return allEvents.length
