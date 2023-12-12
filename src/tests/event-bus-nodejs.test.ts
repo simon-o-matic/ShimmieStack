@@ -15,17 +15,17 @@ describe("Event bus NodeJS", () => {
         mockHandler.mockClear()
     })
     describe('when calling on', () => {
-        it('should call the provided function when an event is emitted with that type', async () => {
+        it('should call the provided function when an event is emitted with that type', () => {
             bus.on(event1.type, mockHandler)
-            await bus.emit(event1.type, event1)
+            bus.emit(event1.type, event1)
 
             expect(mockHandler).toHaveBeenCalledTimes(1)
         })
 
-        it('should increment the handled last seq num value if a handler is registered', async () => {
+        it('should increment the handled last seq num value if a handler is registered', () => {
             bus.on(event1.type, mockHandler)
-            await bus.emit(event1.type, event1)
-            await bus.emit('AN UNUSED CHANNEL', createEvent({ sequencenum: 1337 }))
+            bus.emit(event1.type, event1)
+            bus.emit('AN UNUSED CHANNEL', createEvent({sequencenum:1337}))
 
             expect(bus.getLastHandledSeqNum()).toEqual(event1.sequencenum)
             expect(bus.getLastEmittedSeqNum()).toEqual(1337)
@@ -33,33 +33,33 @@ describe("Event bus NodeJS", () => {
         })
     })
     describe('emit', () => {
-        it('should emit events via the JS Emitter for subscribers to listen to', async () => {
+        it('should emit events via the JS Emitter for subscribers to listen to', () => {
             bus.on(event1.type, mockHandler)
-            await bus.emit(event1.type, event1)
+            bus.emit(event1.type, event1)
 
             expect(mockHandler).toHaveBeenCalledTimes(1)
         })
 
-        it('should increment the emitted value when emitting', async () => {
-            await bus.emit(event1.type, event1)
+        it('should increment the emitted value when emitting', () => {
+            bus.emit(event1.type, event1)
             expect(bus.getLastEmittedSeqNum()).toEqual(event1.sequencenum)
         })
 
-        it('should broadcast on * as well as the type', async () => {
+        it('should broadcast on * as well as the type', () => {
             bus.on('*', mockHandler)
-            await bus.emit(event1.type, event1)
+            bus.emit(event1.type, event1)
 
             expect(mockHandler).toHaveBeenCalledTimes(1)
         })
     })
 
     describe('reset', () => {
-        it('Should reset last handled values and create a new JS emitter', async () => {
+        it('Should reset last handled values and create a new JS emitter', () => {
             const bus = EventBusNodejs()
             const event1 = createEvent()
 
             bus.on(event1.type, mockHandler)
-            await bus.emit(event1.type, event1)
+            bus.emit(event1.type, event1)
 
             // when we emit and have a listener, both should increment
             expect(bus.getLastEmittedSeqNum()).toEqual(event1.sequencenum)
@@ -72,7 +72,7 @@ describe("Event bus NodeJS", () => {
             expect(bus.getLastEmittedSeqNum()).toEqual(-1)
             expect(bus.getLastHandledSeqNum()).toEqual(-1)
 
-            await bus.emit(event1.type, event1)
+            bus.emit(event1.type, event1)
 
             // thia time we have no handler registered, so we should emit and no handler increment or called.
             expect(bus.getLastEmittedSeqNum()).toEqual(event1.sequencenum)

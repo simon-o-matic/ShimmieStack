@@ -71,7 +71,7 @@ export default function EventBusRedisPubsub({
 
                     if (event.sequencenum === expectedSeqNum) {
                         // if we are here, this is the next event. process it.
-                        await nodeEventBus.emit(event.type, {
+                        nodeEventBus.emit(event.type, {
                             ...event,
                             meta: {
                                 ...event.meta,
@@ -92,11 +92,11 @@ export default function EventBusRedisPubsub({
         })
     }
 
-    const emit = async (type: string, event: Event | StoredEventResponse): Promise<void> => {
+    const emit = (type: string, event: Event | StoredEventResponse): void => {
         // don't publish replays globally.
         if (!event.meta.replay) {
 
-            await pubClient.publish(
+            pubClient.publish(
                 GLOBAL_CHANNEL,
                 JSON.stringify(
                     {
@@ -109,10 +109,10 @@ export default function EventBusRedisPubsub({
                 ),
             )
         }
-        await nodeEventBus.emit(type, event)
+        nodeEventBus.emit(type, event)
     }
 
-    const on = (type: string, callback: (...args: any[]) => void | Promise<void>): void => {
+    const on = (type: string, callback: (...args: any[]) => void): void => {
         nodeEventBus.on(type, callback)
     }
 
