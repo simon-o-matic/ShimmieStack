@@ -7,11 +7,12 @@ export interface EventBusNodejsOptions {
     initialised?: boolean
 }
 
-export default function EventBusNodejs({initialised, logger}:EventBusNodejsOptions): EventBusType {
+export default function EventBusNodejs(options?:EventBusNodejsOptions): EventBusType {
+    const initialised = !!options?.initialised
     let lastEmittedSeqNum: number = -1
     let lastHandledSeqNum: number = -1
     const callbackLookup: Map<string, ((...args: any[]) => void)[]> = new Map()
-    const _logger = logger ?? Logger
+    const _logger = options?.logger ?? Logger
 
     const reset = () => {
         lastHandledSeqNum = -1
