@@ -31,6 +31,7 @@ type BaseEvent = {
 export type EventToRecord = Omit<Event, 'sequencenum'>
 
 export const WILDCARD_TYPE = '*'
+export const GLOBAL_CHANNEL = 'STACK_GLOBAL'
 
 export type Event = BaseEvent & {
     data: object,

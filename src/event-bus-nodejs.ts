@@ -1,22 +1,21 @@
 import { Event, EventBusType, StoredEventResponse, WILDCARD_TYPE } from './event'
-import { EventEmitter } from 'events'
 
 export default function EventBusNodejs(): EventBusType {
     let lastEmittedSeqNum: number = -1
     let lastHandledSeqNum: number = -1
-    const callbackLookup: Map<string, ((...args:any[]) => void)[]> = new Map()
+    const callbackLookup: Map<string, ((...args: any[]) => void)[]> = new Map()
 
     const reset = () => {
         lastHandledSeqNum = -1
         lastEmittedSeqNum = -1
     }
 
-    const emit = (type: string, event: Event|StoredEventResponse): void => {
+    const emit = (type: string, event: Event | StoredEventResponse): void => {
         // if the type we are emiting isn't wildcard, call all of its callbacks
         // and increment the last handled.
-        if(type !== WILDCARD_TYPE){
+        if (type !== WILDCARD_TYPE) {
             const callbacks = callbackLookup.get(type) ?? []
-            if(
+            if (
                 callbacks.length > 0
             ) {
                 // ensure we call all type callbacks
@@ -37,7 +36,7 @@ export default function EventBusNodejs(): EventBusType {
         lastEmittedSeqNum = event.sequencenum
     }
 
-    const on = (type: string, callback: (...args:any[]) => void): void => {
+    const on = (type: string, callback: (...args: any[]) => void): void => {
         // keep track of the callbacks we register, to ensure every one of them is called.
         const callbacks = callbackLookup.get(type) ?? []
         callbacks.push(callback)
@@ -53,6 +52,6 @@ export default function EventBusNodejs(): EventBusType {
         on,
         reset,
         getLastEmittedSeqNum,
-        getLastHandledSeqNum
+        getLastHandledSeqNum,
     }
 }

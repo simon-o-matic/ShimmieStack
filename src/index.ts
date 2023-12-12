@@ -54,6 +54,7 @@ process.on('unhandledRejection', (err) => {
 // need to add the raw body to the request so it can be used to sign requests
 // using the raw data as a Buffer
 app.use(
+
     express.json({
         verify: (req: Request & { rawBody: Buffer }, res, buf) => {
             req.rawBody = buf
