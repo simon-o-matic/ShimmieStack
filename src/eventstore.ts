@@ -265,7 +265,8 @@ export default function EventStore<
     const stackEventBus = eventBusOptions ?
         EventBusRedisPubsub({
             ...eventBusOptions,
-            replayFunc: eventBusOptions.replayFunc ?? replayEvents
+            replayFunc: eventBusOptions.replayFunc ?? replayEvents,
+            initialised: options?.initialised
         }) :
         EventBusNodejs()
 
