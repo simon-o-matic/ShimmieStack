@@ -1,9 +1,17 @@
 import { Event, EventBusType, StoredEventResponse, WILDCARD_TYPE } from './event'
+import { Logger, StackLogger } from './logger'
+import { RedisOptions } from 'ioredis'
 
-export default function EventBusNodejs(): EventBusType {
+export interface EventBusNodejsOptions {
+    logger?: StackLogger
+    initialised?: boolean
+}
+
+export default function EventBusNodejs({initialised, logger}:EventBusNodejsOptions): EventBusType {
     let lastEmittedSeqNum: number = -1
     let lastHandledSeqNum: number = -1
     const callbackLookup: Map<string, ((...args: any[]) => void)[]> = new Map()
+    const _logger = logger ?? Logger
 
     const reset = () => {
         lastHandledSeqNum = -1
@@ -11,6 +19,10 @@ export default function EventBusNodejs(): EventBusType {
     }
 
     const emit = (type: string, event: Event | StoredEventResponse): void => {
+        lastEmittedSeqNum = event.sequencenum
+        if(initialised){
+            _logger.debug(`${event.sequencenum}: Updating last emitted to ${event.sequencenum}`)
+        }
         // if the type we are emiting isn't wildcard, call all of its callbacks
         // and increment the last handled.
         if (type !== WILDCARD_TYPE) {
@@ -24,16 +36,16 @@ export default function EventBusNodejs(): EventBusType {
                 }
 
                 lastHandledSeqNum = event.sequencenum ?? lastHandledSeqNum
+                if(initialised){
+                    _logger.debug(`${event.sequencenum}: Updating last emitted to ${event.sequencenum}`)
+                }
             }
         }
-
 
         // ensure we always call all wildcard callbacks
         for (const wildcardCallback of callbackLookup.get(WILDCARD_TYPE) ?? []) {
             wildcardCallback(event)
         }
-
-        lastEmittedSeqNum = event.sequencenum
     }
 
     const on = (type: string, callback: (...args: any[]) => void): void => {

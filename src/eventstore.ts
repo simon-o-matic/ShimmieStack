@@ -12,7 +12,7 @@ import {
     TypedEvent,
     TypedEventHandler,
 } from './event'
-import { Logger } from './logger'
+import { Logger, StackLogger } from './logger'
 import { v4 as uuid } from 'uuid'
 import { RecordEventType } from './index'
 import EventBusRedisPubsub from './event-bus-redis-pubsub'
@@ -43,11 +43,11 @@ export default function EventStore<
         eventbase: EventBaseType,
         piiBase?: PiiBaseType,
         eventBusOptions?: EventBusOptions,
-        options?: { initialised: boolean }
+        options?: { initialised: boolean, logger?: StackLogger }
     },
 ): EventStoreType<RecordModels, SubscribeModels> {
     const allSubscriptions = new Map<string, boolean>()
-
+    const _logger = options?.logger ?? Logger
     const recordEvent = async <EventName extends keyof RecordModels>(
         {
             streamId,
@@ -58,7 +58,7 @@ export default function EventStore<
             piiFields,
         }: RecordEventType<RecordModels, EventName>) => {
         if (!streamId || !eventName || !meta) {
-            Logger.error(
+            _logger.error(
                 `EventStore::recordEvent::missing values ${{
                     streamId,
                     eventName,
@@ -68,11 +68,14 @@ export default function EventStore<
             throw new Error('Attempt to record bad event data')
         }
 
+        const eventDate = meta.date || Date.now()
+        _logger.debug(`Executing recordEvent: ${JSON.stringify({ streamId, eventName, eventDate })}`)
+
         // if we have any pii, make a pii key
         const hasPii: boolean = !!piiFields
 
         if (hasPii && !piiBase) {
-            Logger.warn('Pii key provided without a PiiBase defined')
+            _logger.warn('Pii key provided without a PiiBase defined')
             throw new Error(
                 'You must configure a PII base to store PII outside the event stream',
             )
@@ -131,7 +134,7 @@ export default function EventStore<
         }
 
         if (!allSubscriptions.get(String(eventName))) {
-            Logger.warn(`ShimmieStack >>>> Event ${String(eventName)} has no listeners`)
+            _logger.warn(`ShimmieStack >>>> Event ${String(eventName)} has no listeners`)
         }
 
         stackEventBus.emit(String(eventName), storedEvent)
@@ -151,7 +154,7 @@ export default function EventStore<
             try {
                 return callback(eventModel)
             } catch (e) {
-                Logger.error(`Unable to handle event subscription. Error when handling "${String(eventModel.type)}": ${e}`)
+                _logger.error(`Unable to handle event subscription. Error when handling "${String(eventModel.type)}": ${e}`)
                 if(options?.initialised === false){
                     throw e
                 }
@@ -164,6 +167,7 @@ export default function EventStore<
 
     const getEvents = async (options?: { withPii?: boolean, minSequenceNumber?: number }) => {
         const { withPii, minSequenceNumber } = options ?? { withPii: true }
+        _logger.debug(`Executing getEvents events withPii: ${!!withPii} for` + minSequenceNumber !== undefined ? `minSequenceNumber: ${minSequenceNumber}.` : ' all events')
         const events: Event[] = await eventbase.getEventsInOrder(minSequenceNumber)
 
         // If we don't use a pii db, or we don't want the pii with the db return the events
@@ -190,6 +194,7 @@ export default function EventStore<
         })
     }
     const replayEvents = async (minSequenceNumber?: number): Promise<number> => {
+        _logger.debug("Executing replay events for" + minSequenceNumber !== undefined ? `minSequenceNumber: ${minSequenceNumber}.` : ' all events')
         const allEvents: Event[] = await getEvents(
             {
                 withPii: false,
@@ -205,6 +210,7 @@ export default function EventStore<
             piiLookup = await piiBase.getPiiLookup()
         }
 
+        _logger.debug(`Replaying ${allEvents.length} events.`)
         for (let e of allEvents) {
             let data = e.data
 
@@ -244,10 +250,13 @@ export default function EventStore<
                 streamVersionId,
                 sequencenum: e.sequencenum
             }
-
+            if(options?.initialised){
+                _logger.debug(`Replaying event: ${event.sequencenum}`)
+            }
             stackEventBus.emit(event.type, event)
         }
 
+        _logger.debug(`Replayed ${allEvents.length} events.`)
         return allEvents.length
     }
 
@@ -268,7 +277,7 @@ export default function EventStore<
             replayFunc: eventBusOptions.replayFunc ?? replayEvents,
             initialised: options?.initialised
         }) :
-        EventBusNodejs()
+        EventBusNodejs({initialised: options?.initialised })
 
     const getLastEmittedSeqNum = () => stackEventBus.getLastEmittedSeqNum()
     const getLastHandledSeqNum = () => stackEventBus.getLastHandledSeqNum()
