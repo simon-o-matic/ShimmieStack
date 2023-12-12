@@ -167,7 +167,7 @@ export default function EventStore<
 
     const getEvents = async (options?: { withPii?: boolean, minSequenceNumber?: number }) => {
         const { withPii, minSequenceNumber } = options ?? { withPii: true }
-        _logger.debug(`Executing getEvents events withPii: ${!!withPii} for` + minSequenceNumber !== undefined ? `minSequenceNumber: ${minSequenceNumber}.` : ' all events')
+        _logger.debug(`Executing getEvents events ${JSON.stringify(options)}`)
         const events: Event[] = await eventbase.getEventsInOrder(minSequenceNumber)
 
         // If we don't use a pii db, or we don't want the pii with the db return the events
@@ -194,7 +194,7 @@ export default function EventStore<
         })
     }
     const replayEvents = async (minSequenceNumber?: number): Promise<number> => {
-        _logger.debug("Executing replay events for" + minSequenceNumber !== undefined ? `minSequenceNumber: ${minSequenceNumber}.` : ' all events')
+        _logger.debug(`Executing replayEvents events ${JSON.stringify(options)}`)
         const allEvents: Event[] = await getEvents(
             {
                 withPii: false,
