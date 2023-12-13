@@ -71,7 +71,7 @@ export default function EventBusRedisPubsub({
 
                     const eventBusDelayMs = event.meta.emittedAt ? (Date.now() - event.meta.emittedAt) : undefined
                     if(eventBusDelayMs !== undefined){
-                        _logger.debug(`eventBusDelayMs: ${eventBusDelayMs.toString()})}`, { sequenceNum: event.sequencenum , eventBusDelay: eventBusDelayMs })
+                        _logger.debug(`eventBusDelayMs: ${eventBusDelayMs.toString()}`, { sequenceNum: event.sequencenum , eventBusDelay: eventBusDelayMs })
                     }
                     // if we are ahead of this event, don't do anything.
                     if (event.sequencenum < expectedSeqNum) {
