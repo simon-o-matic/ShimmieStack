@@ -48,6 +48,7 @@ export default function EventStore<
 ): EventStoreType<RecordModels, SubscribeModels> {
     const allSubscriptions = new Map<string, boolean>()
     const _logger = options?.logger ?? Logger
+    const initialised = !!options?.initialised
     const recordEvent = async <EventName extends keyof RecordModels>(
         {
             streamId,
@@ -250,7 +251,7 @@ export default function EventStore<
                 streamVersionId,
                 sequencenum: e.sequencenum
             }
-            if(options?.initialised){
+            if(initialised){
                 _logger.debug(`Replaying event: ${event.sequencenum}`)
             }
             stackEventBus.emit(event.type, event)

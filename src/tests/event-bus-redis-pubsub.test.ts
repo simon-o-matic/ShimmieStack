@@ -76,7 +76,7 @@ describe('Event bus RedisPubsub', () => {
             mockDistributedBus.emit('example', event1)
             expect(mockHandler).not.toHaveBeenCalled()
             expect(mockDistributedBus.getLastEmittedSeqNum()).toEqual(event1.sequencenum)
-            expect(mockDistributedBus.getLastHandledSeqNum()).toEqual(-1)
+            expect(mockDistributedBus.getLastHandledSeqNum()).toEqual(event1.sequencenum)
 
             // emit with a listener
             mockDistributedBus.on('example', mockHandler)

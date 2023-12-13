@@ -1,13 +1,12 @@
 import { Event, EventBusType, StoredEventResponse, WILDCARD_TYPE } from './event'
 import { Logger, StackLogger } from './logger'
-import { RedisOptions } from 'ioredis'
 
 export interface EventBusNodejsOptions {
     logger?: StackLogger
     initialised?: boolean
 }
 
-export default function EventBusNodejs(options?:EventBusNodejsOptions): EventBusType {
+export default function EventBusNodejs(options?: EventBusNodejsOptions): EventBusType {
     const initialised = !!options?.initialised
     let lastEmittedSeqNum: number = -1
     let lastHandledSeqNum: number = -1
@@ -21,7 +20,7 @@ export default function EventBusNodejs(options?:EventBusNodejsOptions): EventBus
 
     const emit = (type: string, event: Event | StoredEventResponse): void => {
         lastEmittedSeqNum = event.sequencenum
-        if(initialised){
+        if (initialised) {
             _logger.debug(`${event.sequencenum}: Updating last emitted to ${event.sequencenum}`)
         }
         // if the type we are emiting isn't wildcard, call all of its callbacks
@@ -36,10 +35,10 @@ export default function EventBusNodejs(options?:EventBusNodejsOptions): EventBus
                     callback(event)
                 }
 
-                lastHandledSeqNum = event.sequencenum ?? lastHandledSeqNum
-                if(initialised){
-                    _logger.debug(`${event.sequencenum}: Updating last emitted to ${event.sequencenum}`)
-                }
+            }
+            lastHandledSeqNum = event.sequencenum
+            if (initialised) {
+                _logger.debug(`${event.sequencenum}: Updating last handled to ${event.sequencenum}`)
             }
         }
 

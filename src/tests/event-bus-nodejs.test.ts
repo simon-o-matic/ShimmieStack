@@ -22,13 +22,16 @@ describe("Event bus NodeJS", () => {
             expect(mockHandler).toHaveBeenCalledTimes(1)
         })
 
-        it('should increment the handled last seq num value if a handler is registered', () => {
+        it('should increment the handled last seq num value even if no handler is registered', () => {
             bus.on(event1.type, mockHandler)
             bus.emit(event1.type, event1)
-            bus.emit('AN UNUSED CHANNEL', createEvent({sequencenum:1337}))
-
             expect(bus.getLastHandledSeqNum()).toEqual(event1.sequencenum)
+            expect(bus.getLastEmittedSeqNum()).toEqual(event1.sequencenum)
+
+            bus.emit('AN UNUSED CHANNEL', createEvent({sequencenum:1337}))
+            expect(bus.getLastHandledSeqNum()).toEqual(1337)
             expect(bus.getLastEmittedSeqNum()).toEqual(1337)
+
             expect(mockHandler).toHaveBeenCalledTimes(1)
         })
     })
