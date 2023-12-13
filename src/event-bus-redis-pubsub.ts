@@ -69,9 +69,9 @@ export default function EventBusRedisPubsub({
                     const expectedSeqNum = nodeEventBus.getLastHandledSeqNum() + 1
                     _logger.debug(`${event.sequencenum}: Expected SeqNum: ${expectedSeqNum}`)
 
-                    const eventBusDelay = event.meta.emittedAt ? (Date.now() - event.meta.emittedAt) : undefined
-                    if(eventBusDelay !== undefined){
-                        _logger.debug(`eventBusDelay: ${JSON.stringify({ sequenceNum: event.sequencenum , eventBusDelay })}`, { sequenceNum: event.sequencenum , eventBusDelay })
+                    const eventBusDelayMs = event.meta.emittedAt ? (Date.now() - event.meta.emittedAt) : undefined
+                    if(eventBusDelayMs !== undefined){
+                        _logger.debug(`eventBusDelayMs: ${eventBusDelayMs.toString()})}`, { sequenceNum: event.sequencenum , eventBusDelay: eventBusDelayMs })
                     }
                     // if we are ahead of this event, don't do anything.
                     if (event.sequencenum < expectedSeqNum) {
@@ -87,7 +87,7 @@ export default function EventBusRedisPubsub({
                             meta: {
                                 ...event.meta,
                                 replay: true, // anything that comes via the redis event bus has been recorded elsewhere, so it will always be a replay here
-                                ...(eventBusDelay && { eventBusDelay }),
+                                ...(eventBusDelayMs && { eventBusDelay: eventBusDelayMs }),
                             },
                         })
                         _logger.debug(`${event.sequencenum}: Event emitted`)

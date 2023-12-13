@@ -13,7 +13,7 @@ export interface Meta extends UserMeta {
     date: number
     hasPii?: boolean
     emittedAt?: number
-    eventBusDelay?: number
+    eventBusDelayMs?: number
 }
 
 export type PiiFields = string[]
