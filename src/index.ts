@@ -24,6 +24,7 @@ import EventBusRedisPubsub, { EventBusRedisPubsubOptions } from './event-bus-red
 import EventStore, { EventStoreType } from './eventstore'
 import { configureLogger, Logger, StackLogger } from './logger'
 import * as routes from './routes'
+import { sequenceNumberMiddleware } from './sequenceNumberMiddleware'
 
 /** Errors stop the server if not initialised, if initialised they continue on */
 let stackInitialised = false
@@ -227,6 +228,7 @@ export type StackType<
         minSequenceNumber: number
     }) => Promise<number>
     getLastHandledSequenceNumberHandled: () => number
+    setupMinSeqNumMiddleware: (hashKey?: string) => StackType<RecordModels, SubscribeModels>
     registerPreInitFn: (
         fn: () => void | Promise<void>,
     ) => StackType<RecordModels, SubscribeModels>
@@ -592,6 +594,15 @@ export default function ShimmieStack<
                 updatedAt: undefined,
                 createdAt: undefined,
             }
+        },
+        setupMinSeqNumMiddleware: (hashKey?: string) => {
+            // add in middleware that ensures minimum seq num is handled
+            app.use(sequenceNumberMiddleware({
+                stackEnsureMinSeqNumFunc: funcs.ensureMinSequenceNumberHandled,
+                getLastHandledSeqNum: funcs.getLastHandledSequenceNumberHandled,
+                hashKey,
+            }))
+            return funcs
         },
         // add a function to be run before initialize
         registerPreInitFn: (
