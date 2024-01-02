@@ -25,6 +25,7 @@ describe('SequenceNumberMiddleware', () => {
         const cryptor = Encryption({
             key: hashKey,
         })
+
         beforeEach(() => {
             eventbase.reset()
             testStack.restart()

@@ -228,7 +228,6 @@ export type StackType<
         minSequenceNumber: number
     }) => Promise<number>
     getLastHandledSequenceNumberHandled: () => number
-    setupMinSeqNumMiddleware: (hashKey?: string) => StackType<RecordModels, SubscribeModels>
     registerPreInitFn: (
         fn: () => void | Promise<void>,
     ) => StackType<RecordModels, SubscribeModels>
@@ -594,15 +593,6 @@ export default function ShimmieStack<
                 updatedAt: undefined,
                 createdAt: undefined,
             }
-        },
-        setupMinSeqNumMiddleware: (hashKey?: string) => {
-            // add in middleware that ensures minimum seq num is handled
-            app.use(sequenceNumberMiddleware({
-                stackEnsureMinSeqNumFunc: funcs.ensureMinSequenceNumberHandled,
-                getLastHandledSeqNum: funcs.getLastHandledSequenceNumberHandled,
-                hashKey,
-            }))
-            return funcs
         },
         // add a function to be run before initialize
         registerPreInitFn: (
