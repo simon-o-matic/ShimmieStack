@@ -1,6 +1,6 @@
 {
   "name": "shimmiestack",
-  "version": "1.7.26",
+  "version": "1.7.27",
   "description": "A simple event sourced CQRS in-memory server framework.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,7 +24,6 @@
   "license": "MIT",
   "dependencies": {
     "@types/jest": "29.5.10",
-    "@types/pg-format": "^1.0.5",
     "@types/supertest": "^2.0.16",
     "async-lock": "^1.4.0",
     "cookie-parser": "^1.4.6",
@@ -40,6 +39,7 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/pg-format": "^1.0.5",
     "@types/async-lock": "^1.4.2",
     "@types/cookie-parser": "^1.4.6",
     "@types/cors": "^2.8.17",

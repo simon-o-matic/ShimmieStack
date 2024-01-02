@@ -33,7 +33,8 @@ export const sequenceNumberMiddleware = (
         let minSeqNum = req.headers[SEQ_NUM_MIN_HEADER.toLowerCase()]
         if (typeof minSeqNum === 'string') {
             // If running in encrypted mode, try decrypt the seqNum
-            if(cryptor){
+            // todo remove isNan in a few weeks to allow for smooth numeric to encrypted value changeover
+            if(cryptor && isNaN(parseInt(minSeqNum))){
                 minSeqNum = cryptor.decrypt(minSeqNum)
             }
             const minSequenceNumber = parseInt(minSeqNum)

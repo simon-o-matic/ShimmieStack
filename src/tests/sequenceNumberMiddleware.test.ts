@@ -101,6 +101,8 @@ describe('SequenceNumberMiddleware', () => {
                     },
                 })
 
+                expect(mockFunc).not.toHaveBeenCalled()
+
                 // Ensure it succeeded, and the decrypted value matches maximum,
                 // and the value returned by the POST request
                 const maxEvent = await eventbase.getEventsInOrder()
@@ -115,6 +117,33 @@ describe('SequenceNumberMiddleware', () => {
                 expect(decryptedValue).toEqual(
                     cryptor.decrypt(respSeqNum),
                 )
+            })
+
+            // todo remove isNan in a few weeks to allow for smooth numeric to encrypted value changeover (same comment in another spot too)
+            it('Should accept raw numeric seq num too for now', async () => {
+                // get the seq num from a post
+                const putResp = await testStack.testPost({ path: '/' })
+                expect(putResp.status).toEqual(200)
+                const respSeqNum = putResp.headers['x-seq-num']
+
+                const decryptedValue = cryptor.decrypt(respSeqNum)
+                const resp = await testStack.testGet({
+                    path: '/',
+                    headers: {
+                        'x-seq-num-min': decryptedValue,
+                    },
+                })
+
+                expect(resp.status).toEqual(200)
+
+                const resp2 = await testStack.testGet({
+                    path: '/',
+                    headers: {
+                        'x-seq-num-min': respSeqNum,
+                    },
+                })
+
+                expect(resp2.status).toEqual(200)
             })
         })
         xit(' Should test how fast yo', () => {
