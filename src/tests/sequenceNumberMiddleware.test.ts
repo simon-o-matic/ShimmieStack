@@ -82,7 +82,7 @@ describe('SequenceNumberMiddleware', () => {
             const resp = await testStack.testPost({ path: '/' })
             const events = await eventbase.getEventsInOrder()
             const lastEvent = events[events.length - 1]
-            expect(cryptor.decrypt(resp.headers['x-seq-num']))
+            expect(resp.headers['x-seq-num'])
                 .toEqual(lastEvent.sequencenum.toString())
         })
 
@@ -111,12 +111,14 @@ describe('SequenceNumberMiddleware', () => {
                     maxEvent[maxEvent.length - 1].sequencenum
 
                 expect(resp.status).toEqual(200)
-                const decryptedValue = cryptor.decrypt(resp.headers['x-seq-num'])
+                // todo remove me, disabled encrypton
+                // const decryptedValue = cryptor.decrypt(resp.headers['x-seq-num'])
+                const decryptedValue = resp.headers['x-seq-num']
                 expect(decryptedValue).toEqual(
                     currentMaxSeqNum.toString(),
                 )
                 expect(decryptedValue).toEqual(
-                    cryptor.decrypt(respSeqNum),
+                    respSeqNum,
                 )
             })
 
@@ -127,11 +129,11 @@ describe('SequenceNumberMiddleware', () => {
                 expect(putResp.status).toEqual(200)
                 const respSeqNum = putResp.headers['x-seq-num']
 
-                const decryptedValue = cryptor.decrypt(respSeqNum)
+                // const decryptedValue = cryptor.decrypt(respSeqNum)
                 const resp = await testStack.testGet({
                     path: '/',
                     headers: {
-                        'x-seq-num-min': decryptedValue,
+                        'x-seq-num-min': respSeqNum,
                     },
                 })
 

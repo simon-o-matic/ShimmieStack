@@ -38,7 +38,11 @@ export const sequenceNumberMiddleware = (
                 minSeqNum = cryptor.decrypt(minSeqNum)
             }
             const minSequenceNumber = parseInt(minSeqNum)
-            await stackEnsureMinSeqNumFunc({ minSequenceNumber })
+            // todo remove me, this is a temporary solution as the encryption is causing periodic issues.
+            if(getLastHandledSeqNum() + 500 > minSequenceNumber){
+                await stackEnsureMinSeqNumFunc({ minSequenceNumber })
+            }
+
         }
         // Overwrite res.send to ensure we add the last-seq-num header when res.send is called.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,7 +53,9 @@ export const sequenceNumberMiddleware = (
                 minSeqNum !== undefined
             ) {
                 // If running in encrypted mode, encrypt seqNum before returning
-                const lastHandled = cryptor ? cryptor.encrypt(getLastHandledSeqNum().toString()) : getLastHandledSeqNum().toString()
+                const lastHandled = getLastHandledSeqNum().toString()
+                // commented out due to encryption issues
+                // const lastHandled = cryptor ? cryptor.encrypt(getLastHandledSeqNum().toString()) : getLastHandledSeqNum().toString()
 
                 res.set(
                     CURRENT_SEQ_NUM_HEADER,
