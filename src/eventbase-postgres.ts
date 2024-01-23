@@ -1,7 +1,7 @@
 //
 // TODO: encapsulate the underlying database elsewhere
 //
-import pg from 'pg'
+import pg, { PoolConfig } from 'pg'
 import { EventBaseType, EventToRecord, StoredEventResponse, StreamVersionError, StreamVersionMismatch } from './event'
 import { Logger } from './logger'
 import { fetchMatchStreamVersionsQuery, prepareAddEventQuery, createEventListTableQuery } from './queries'
@@ -11,9 +11,7 @@ const { Pool } = pg
 pg.types.setTypeParser(20, function(val) {
     return parseInt(val, 10)
 })
-export interface EventConfig {
-    connectionString: string
-}
+export type PostgresDbConfig = Partial<PoolConfig>
 
 export class EventbaseError extends Error {
     constructor(message: string) {
@@ -22,14 +20,18 @@ export class EventbaseError extends Error {
     }
 }
 
-export default function Eventbase(config: EventConfig): EventBaseType {
+export default function Eventbase(config: PostgresDbConfig): EventBaseType {
     if (!config.connectionString) {
         throw new Error('Missing DATABASE_URL environment variable.')
     }
 
+    const defaultPoolConfig: PostgresDbConfig = {
+        connectionTimeoutMillis: 5000 // wait 5 seconds before timeout on connect
+    }
+
     const pool = new Pool({
-        connectionString: config.connectionString,
-        connectionTimeoutMillis: 5000, // wait 5 seconds before timeout on connect
+        ...defaultPoolConfig,
+        ...config,
     })
 
     // called during start up to first connect to the database

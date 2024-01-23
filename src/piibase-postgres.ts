@@ -1,12 +1,8 @@
 import { PiiBaseType } from './event'
 import pg from 'pg'
 const { Pool } = pg
-import { EventbaseError } from './eventbase-postgres'
+import { PostgresDbConfig, EventbaseError } from './eventbase-postgres'
 import { Logger } from './logger'
-
-export interface PiiBaseConfig {
-    connectionString: string
-}
 
 export class PiiBaseError extends Error {
     constructor(message: string) {
@@ -15,14 +11,18 @@ export class PiiBaseError extends Error {
     }
 }
 
-export default function PiiBase(config: PiiBaseConfig): PiiBaseType {
+export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     if (!config.connectionString) {
         throw new Error('Missing DATABASE_URL environment variable.')
     }
 
+    const defaultPoolConfig: PostgresDbConfig = {
+        connectionTimeoutMillis: 5000 // wait 5 seconds before timeout on connect
+    }
+
     const pool = new Pool({
-        connectionString: config.connectionString,
-        connectionTimeoutMillis: 5000, // wait 5 seconds before timeout on connect
+        ...defaultPoolConfig,
+        ...config,
     })
 
     // called during start up to first connect to the database

@@ -25,6 +25,7 @@ import EventStore, { EventStoreType } from './eventstore'
 import { configureLogger, Logger, StackLogger } from './logger'
 import * as routes from './routes'
 import { sequenceNumberMiddleware } from './sequenceNumberMiddleware'
+import { PostgresDbConfig } from './eventbase-postgres'
 
 /** Errors stop the server if not initialised, if initialised they continue on */
 let stackInitialised = false
@@ -67,6 +68,7 @@ export {
     EventBusOptions,
     EventBusRedisPubsubOptions,
     WILDCARD_TYPE,
+    PostgresDbConfig,
 }
 
 export interface ShimmieConfig {
