@@ -1,28 +1,35 @@
 import { EventBusType, StoredEventResponse } from '../event'
-import { createEvent } from './mocks'
 import EventBusRedisPubsub from '../event-bus-redis-pubsub'
 import { Logger } from '../logger'
-
+import { createEvent } from './mocks'
 
 /**
  * Mock the ioredis import to use a node emitter instead.
  */
-let redisMessageCallback: (type: string, message: string) => Promise<void> | void | undefined
-const mockPublish = async (type: string, message: string) => await redisMessageCallback(type, message)
+let redisMessageCallback: (
+    type: string,
+    message: string
+) => Promise<void> | void | undefined
+const mockPublish = async (type: string, message: string) =>
+    await redisMessageCallback(type, message)
 
 jest.mock('ioredis', () => {
-    return jest.fn()
-        .mockImplementation(() => { // Works and lets you check for constructor calls
-            return {
-                subscribe: (type: string) => {
-                },
-                publish: () => {
-                },
-                on: (event: 'message', callback: (type: string, message: string) => void | Promise<void>) => {
-                    redisMessageCallback = callback
-                },
-            }
-        })
+    return jest.fn().mockImplementation(() => {
+        // Works and lets you check for constructor calls
+        return {
+            subscribe: (type: string) => {},
+            publish: () => {},
+            on: (
+                event: 'message',
+                callback: (
+                    type: string,
+                    message: string
+                ) => void | Promise<void>
+            ) => {
+                redisMessageCallback = callback
+            },
+        }
+    })
 })
 
 describe('Event bus RedisPubsub', () => {
@@ -40,18 +47,21 @@ describe('Event bus RedisPubsub', () => {
             url: 'a string',
             logger: Logger,
             replayFunc: mockReplayer,
+            initialised: true,
         })
         event0 = createEvent()
         event1 = createEvent({ sequencenum: 1 })
         event2 = createEvent({ sequencenum: 2 })
         event4 = createEvent({ sequencenum: 4 })
-        replayEvent = createEvent({ sequencenum: 5, meta: { ...event0.meta, replay: true } })
+        replayEvent = createEvent({
+            sequencenum: 5,
+            meta: { ...event0.meta, replay: true },
+        })
     })
     afterEach(() => {
         mockHandler.mockClear()
         mockReplayer.mockClear()
     })
-
 
     describe('Should handle events published via the (mock) redis publisher', () => {
         it('should receive and handle the mock event', () => {
@@ -75,8 +85,12 @@ describe('Event bus RedisPubsub', () => {
             // emit without a listener
             mockDistributedBus.emit('example', event1)
             expect(mockHandler).not.toHaveBeenCalled()
-            expect(mockDistributedBus.getLastEmittedSeqNum()).toEqual(event1.sequencenum)
-            expect(mockDistributedBus.getLastHandledSeqNum()).toEqual(event1.sequencenum)
+            expect(mockDistributedBus.getLastEmittedSeqNum()).toEqual(
+                event1.sequencenum
+            )
+            expect(mockDistributedBus.getLastHandledSeqNum()).toEqual(
+                event1.sequencenum
+            )
 
             // emit with a listener
             mockDistributedBus.on('example', mockHandler)
@@ -84,8 +98,12 @@ describe('Event bus RedisPubsub', () => {
             expect(mockHandler).toHaveBeenCalledWith(event2)
             expect(mockHandler).toHaveBeenCalledTimes(1)
 
-            expect(mockDistributedBus.getLastHandledSeqNum()).toEqual(event2.sequencenum)
-            expect(mockDistributedBus.getLastEmittedSeqNum()).toEqual(event2.sequencenum)
+            expect(mockDistributedBus.getLastHandledSeqNum()).toEqual(
+                event2.sequencenum
+            )
+            expect(mockDistributedBus.getLastEmittedSeqNum()).toEqual(
+                event2.sequencenum
+            )
         })
 
         it('should recognise and try to replay missing events', async () => {
@@ -95,7 +113,6 @@ describe('Event bus RedisPubsub', () => {
             await mockPublish(event1.type, JSON.stringify(event1))
             await mockPublish(event4.type, JSON.stringify(event4))
 
-
             expect(mockHandler).toHaveBeenCalledTimes(2)
 
             // expect replay to have been called with the seqNum of the last event we processed +1
@@ -104,7 +121,6 @@ describe('Event bus RedisPubsub', () => {
         })
 
         it('should error replaying missing events if no handler is provided', () => {
-
             mockDistributedBus.on('example', mockHandler)
             mockDistributedBus.emit('example', event0)
             mockDistributedBus.emit('example', event4)
@@ -120,8 +136,9 @@ describe('Event bus RedisPubsub', () => {
             expect(mockRedisHandler).not.toHaveBeenCalled()
 
             // expect a local emit for replay
-            expect(mockDistributedBus.getLastEmittedSeqNum()).toEqual(replayEvent.sequencenum)
+            expect(mockDistributedBus.getLastEmittedSeqNum()).toEqual(
+                replayEvent.sequencenum
+            )
         })
     })
-
 })
