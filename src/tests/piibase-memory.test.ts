@@ -1,21 +1,21 @@
+import { expect } from '@jest/globals'
+import { ShimmieEvent } from '..'
+import { Meta } from '../event'
 import EventBase from '../eventbase-memory'
 import EventStore from '../eventstore'
-import { Meta } from '../event'
 import PiiBase from '../piibase-memory'
-import { ShimmieEvent } from '..'
-import { expect } from '@jest/globals'
-import ShimmieTestStack from '../shimmieteststack'
-import EventBusNodejs from '../event-bus-nodejs'
 const eventBase = EventBase()
 const piiBase = PiiBase()
-const eventStore = EventStore<RecordModels, any>({ eventbase: eventBase, piiBase: piiBase })
-
+const eventStore = EventStore<RecordModels, any>({
+    eventbase: eventBase,
+    piiBase: piiBase,
+    options: { initialised: true },
+})
 
 type RecordModels = {
-    nonPiiTestData: { data: string },
-    piiTest: { piiField: string, nonPiiField: string }
+    nonPiiTestData: { data: string }
+    piiTest: { piiField: string; nonPiiField: string }
 }
-
 
 // ignore event meta data
 const meta: Meta = {
@@ -54,49 +54,44 @@ describe('when creating the eventstore', () => {
 
 describe('when recording an event', () => {
     describe('and the piibase is configured', () => {
-        it('the user should get back the data and eventstore should not contain the pii',
-            async () => {
-
-
-                eventStore.subscribe('piiTest', () => {
-                })
-                await eventStore.recordEvent({
-                    streamId:'streamid',
-                    eventName:'piiTest',
-                    eventData:piiTestData,
-                    streamVersionIds: 'STREAM_VERSIONING_DISABLED',
-                    meta,
-                    piiFields: ['piiField'],
-                })
-
-                // check that the eventbase does not have pii in it, and does have the other data
-                const nonPii = (await eventStore.getEvents({ withPii: false }))[0]
-                expect(nonPii.data).not.toHaveProperty('piiField')
-                expect(nonPii.data).toHaveProperty('nonPiiField')
-
-                const events = await eventStore.getEvents()
-
-                // check that the returned event data does have pii in it
-                // meaning the piibase and event base have been merged at the event store level
-                expect((events[0] as ShimmieEvent)?.data).toEqual(piiTestData)
+        it('the user should get back the data and eventstore should not contain the pii', async () => {
+            eventStore.subscribe('piiTest', () => {})
+            await eventStore.recordEvent({
+                streamId: 'streamid',
+                eventName: 'piiTest',
+                eventData: piiTestData,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+                meta,
+                piiFields: ['piiField'],
             })
+
+            // check that the eventbase does not have pii in it, and does have the other data
+            const nonPii = (await eventStore.getEvents({ withPii: false }))[0]
+            expect(nonPii.data).not.toHaveProperty('piiField')
+            expect(nonPii.data).toHaveProperty('nonPiiField')
+
+            const events = await eventStore.getEvents()
+
+            // check that the returned event data does have pii in it
+            // meaning the piibase and event base have been merged at the event store level
+            expect((events[0] as ShimmieEvent)?.data).toEqual(piiTestData)
+        })
 
         it('there should be two events in the database when two are recorded', async () => {
-            eventStore.subscribe('type', (event) => {
-            })
+            eventStore.subscribe('type', (event) => {})
 
             await eventStore.recordEvent({
-                streamId:'streamid',
-                eventName:'piiTest',
-                eventData:piiTestData,
+                streamId: 'streamid',
+                eventName: 'piiTest',
+                eventData: piiTestData,
                 meta,
                 streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                 piiFields: ['piiField'],
             })
             await eventStore.recordEvent({
-                streamId:'streamid',
-                eventName:'nonPiiTestData',
-                eventData:nonPiiTestData,
+                streamId: 'streamid',
+                eventName: 'nonPiiTestData',
+                eventData: nonPiiTestData,
                 streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                 meta,
             })
@@ -112,44 +107,49 @@ describe('when recording an event', () => {
             // does the non PII event meta.hasPii = false
             expect(allEvents[1].data).toEqual(nonPiiTestData)
             expect(allEvents[1].meta.hasPii).toBe(false)
-
         })
     })
     describe('and the piibase is not configured', () => {
-        const noPiiEventStore = EventStore<RecordModels, any>({ eventbase: eventBase,  })
+        const noPiiEventStore = EventStore<RecordModels, any>({
+            eventbase: eventBase,
+            options: { initialised: true },
+        })
 
         it('Should throw an error if provided a pii key', async () => {
-            noPiiEventStore.subscribe('type', () => {
-            })
+            noPiiEventStore.subscribe('type', () => {})
             try {
                 await noPiiEventStore.recordEvent({
-                    streamId:'streamid',
-                    eventName:'piiTest',
-                    eventData:piiTestData,
+                    streamId: 'streamid',
+                    eventName: 'piiTest',
+                    eventData: piiTestData,
                     meta,
-                    streamVersionIds: {'streamId': undefined},
+                    streamVersionIds: { streamId: undefined },
                     piiFields: ['piiField'],
                 })
-                fail("Should have thrown when no piibase is configured and pii is provided");
+                fail(
+                    'Should have thrown when no piibase is configured and pii is provided'
+                )
             } catch (err: any) {
-                expect(err.message).toEqual('You must configure a PII base to store PII outside the event stream')
+                expect(err.message).toEqual(
+                    'You must configure a PII base to store PII outside the event stream'
+                )
             }
-
         })
 
         it('Should store the event when no pii is present', async () => {
-            noPiiEventStore.subscribe('type', () => {
-            })
+            noPiiEventStore.subscribe('type', () => {})
             await noPiiEventStore.recordEvent({
-                streamId:'streamid',
-                eventName:'piiTest',
-                eventData:piiTestData,
-                streamVersionIds: {'streamId': undefined},
+                streamId: 'streamid',
+                eventName: 'piiTest',
+                eventData: piiTestData,
+                streamVersionIds: { streamId: undefined },
                 meta,
             })
 
             // check that the eventbase does not have pii in it, and does have the other data
-            const event = (await noPiiEventStore.getEvents({ withPii: false}))[0]
+            const event = (
+                await noPiiEventStore.getEvents({ withPii: false })
+            )[0]
 
             expect(event.data).toEqual(piiTestData)
             expect(event.meta.hasPii).toBeFalsy()
