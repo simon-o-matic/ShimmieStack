@@ -31,6 +31,7 @@ jest.mock('ioredis', () => {
         }
     })
 })
+const stackInitialised = { initialised: true }
 
 describe('Event bus RedisPubsub', () => {
     const mockHandler = jest.fn()
@@ -47,7 +48,7 @@ describe('Event bus RedisPubsub', () => {
             url: 'a string',
             logger: Logger,
             replayFunc: mockReplayer,
-            initialised: true,
+            options: stackInitialised,
         })
         event0 = createEvent()
         event1 = createEvent({ sequencenum: 1 })
@@ -59,6 +60,7 @@ describe('Event bus RedisPubsub', () => {
         })
     })
     afterEach(() => {
+        stackInitialised.initialised = true
         mockHandler.mockClear()
         mockReplayer.mockClear()
     })
@@ -118,6 +120,16 @@ describe('Event bus RedisPubsub', () => {
             // expect replay to have been called with the seqNum of the last event we processed +1
             expect(mockReplayer).toHaveBeenCalledTimes(1)
             expect(mockReplayer).toHaveBeenCalledWith(event1.sequencenum + 1)
+        })
+
+        it('should not handle events if stack not initialised', async () => {
+            stackInitialised.initialised = false
+            mockDistributedBus.on(event0.type, mockHandler)
+            await mockPublish(event0.type, JSON.stringify(event0))
+            await mockPublish(event1.type, JSON.stringify(event1))
+            await mockPublish(event4.type, JSON.stringify(event4))
+
+            expect(mockHandler).toHaveBeenCalledTimes(0)
         })
 
         it('should error replaying missing events if no handler is provided', () => {

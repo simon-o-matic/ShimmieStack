@@ -1,14 +1,15 @@
-import EventBusNodejs from '../event-bus-nodejs'
 import { EventBusType, StoredEventResponse } from '../event'
+import EventBusNodejs from '../event-bus-nodejs'
 import { createEvent } from './mocks'
 
-describe("Event bus NodeJS", () => {
+const eventBusOptions = { options: { initialised: true } }
+describe('Event bus NodeJS', () => {
     const mockHandler = jest.fn()
     let bus: EventBusType
     let event1: StoredEventResponse
 
     beforeEach(() => {
-        bus = EventBusNodejs()
+        bus = EventBusNodejs(eventBusOptions)
         event1 = createEvent()
     })
     afterEach(() => {
@@ -28,7 +29,7 @@ describe("Event bus NodeJS", () => {
             expect(bus.getLastHandledSeqNum()).toEqual(event1.sequencenum)
             expect(bus.getLastEmittedSeqNum()).toEqual(event1.sequencenum)
 
-            bus.emit('AN UNUSED CHANNEL', createEvent({sequencenum:1337}))
+            bus.emit('AN UNUSED CHANNEL', createEvent({ sequencenum: 1337 }))
             expect(bus.getLastHandledSeqNum()).toEqual(1337)
             expect(bus.getLastEmittedSeqNum()).toEqual(1337)
 
@@ -58,7 +59,7 @@ describe("Event bus NodeJS", () => {
 
     describe('reset', () => {
         it('Should reset last handled values and create a new JS emitter', () => {
-            const bus = EventBusNodejs()
+            const bus = EventBusNodejs(eventBusOptions)
             const event1 = createEvent()
 
             bus.on(event1.type, mockHandler)

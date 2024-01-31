@@ -2,6 +2,7 @@
 // Send events to the database, and tell anyone who is litenening about it
 //
 
+import { v4 as uuid } from 'uuid'
 import {
     Event,
     EventBaseType,
@@ -12,24 +13,29 @@ import {
     TypedEvent,
     TypedEventHandler,
 } from './event'
-import { Logger, StackLogger } from './logger'
-import { v4 as uuid } from 'uuid'
-import { RecordEventType } from './index'
-import EventBusRedisPubsub from './event-bus-redis-pubsub'
 import EventBusNodejs from './event-bus-nodejs'
+import EventBusRedisPubsub from './event-bus-redis-pubsub'
+import { RecordEventType } from './index'
+import { Logger, StackLogger } from './logger'
 
-export interface EventStoreType<RecordModels extends Record<string, any>, SubscribeModels extends Record<string, any>> {
+export interface EventStoreType<
+    RecordModels extends Record<string, any>,
+    SubscribeModels extends Record<string, any>
+> {
     replayEvents: (minSequenceNumber?: number) => Promise<number>
     recordEvent: <EventName extends keyof RecordModels>(
-        event: RecordEventType<RecordModels, EventName>,
+        event: RecordEventType<RecordModels, EventName>
     ) => Promise<any>
-    subscribe: <EventName extends keyof SubscribeModels> (
+    subscribe: <EventName extends keyof SubscribeModels>(
         type: EventName,
-        callback: TypedEventHandler<EventName, SubscribeModels[EventName]>,
+        callback: TypedEventHandler<EventName, SubscribeModels[EventName]>
     ) => void
     deleteEvent: (sequenceNumber: number) => void
     updateEventData: (sequenceNumber: number, data: object) => void
-    getEvents: (options? : { withPii?: boolean, minSequenceNumber?: number }) => Promise<any>
+    getEvents: (options?: {
+        withPii?: boolean
+        minSequenceNumber?: number
+    }) => Promise<any>
     getLastEmittedSeqNum: () => number
     getLastHandledSeqNum: () => number
     reset: () => Promise<void>
@@ -38,39 +44,46 @@ export interface EventStoreType<RecordModels extends Record<string, any>, Subscr
 export default function EventStore<
     RecordModels extends Record<string, any>,
     SubscribeModels extends Record<string, any>
->(
-    { eventbase, piiBase, eventBusOptions, options }: {
-        eventbase: EventBaseType,
-        piiBase?: PiiBaseType,
-        eventBusOptions?: EventBusOptions,
-        options?: { initialised: boolean, logger?: StackLogger }
-    },
-): EventStoreType<RecordModels, SubscribeModels> {
+>({
+    eventbase,
+    piiBase,
+    eventBusOptions,
+    options,
+}: {
+    eventbase: EventBaseType
+    piiBase?: PiiBaseType
+    eventBusOptions?: EventBusOptions
+    options: { initialised: boolean; logger?: StackLogger }
+}): EventStoreType<RecordModels, SubscribeModels> {
     const allSubscriptions = new Map<string, boolean>()
     const _logger = options?.logger ?? Logger
-    const initialised = !!options?.initialised
-    const recordEvent = async <EventName extends keyof RecordModels>(
-        {
-            streamId,
-            eventName,
-            eventData,
-            meta,
-            streamVersionIds,
-            piiFields,
-        }: RecordEventType<RecordModels, EventName>) => {
+    const recordEvent = async <EventName extends keyof RecordModels>({
+        streamId,
+        eventName,
+        eventData,
+        meta,
+        streamVersionIds,
+        piiFields,
+    }: RecordEventType<RecordModels, EventName>) => {
         if (!streamId || !eventName || !meta) {
             _logger.error(
                 `EventStore::recordEvent::missing values ${{
                     streamId,
                     eventName,
                     meta: meta,
-                }}`,
+                }}`
             )
             throw new Error('Attempt to record bad event data')
         }
 
         const eventDate = meta.date || Date.now()
-        _logger.debug(`Executing recordEvent: ${JSON.stringify({ streamId, eventName, eventDate })}`)
+        _logger.debug(
+            `Executing recordEvent: ${JSON.stringify({
+                streamId,
+                eventName,
+                eventDate,
+            })}`
+        )
 
         // if we have any pii, make a pii key
         const hasPii: boolean = !!piiFields
@@ -78,7 +91,7 @@ export default function EventStore<
         if (hasPii && !piiBase) {
             _logger.warn('Pii key provided without a PiiBase defined')
             throw new Error(
-                'You must configure a PII base to store PII outside the event stream',
+                'You must configure a PII base to store PII outside the event stream'
             )
         }
 
@@ -111,11 +124,19 @@ export default function EventStore<
         }
 
         // if explicitly passed 'STREAM_VERSIONING_DISABLED' dont check versions, otherwise compare to the passed in values.
-        const streamVersionsToCheck: Record<string, string|undefined> | undefined = streamVersionIds !== 'STREAM_VERSIONING_DISABLED' ? streamVersionIds : undefined
+        const streamVersionsToCheck:
+            | Record<string, string | undefined>
+            | undefined =
+            streamVersionIds !== 'STREAM_VERSIONING_DISABLED'
+                ? streamVersionIds
+                : undefined
 
         // need to await here to confirm before emitting just in case
         // todo handle event success and pii failure 2 phase write
-        let storedEvent: StoredEventResponse = await eventbase.addEvent({ ...newEvent }, streamVersionsToCheck) // destructing object for deep copy
+        let storedEvent: StoredEventResponse = await eventbase.addEvent(
+            { ...newEvent },
+            streamVersionsToCheck
+        ) // destructing object for deep copy
 
         storedEvent = {
             ...newEvent,
@@ -135,7 +156,9 @@ export default function EventStore<
         }
 
         if (!allSubscriptions.get(String(eventName))) {
-            _logger.warn(`ShimmieStack >>>> Event ${String(eventName)} has no listeners`)
+            _logger.warn(
+                `ShimmieStack >>>> Event ${String(eventName)} has no listeners`
+            )
         }
 
         stackEventBus.emit(String(eventName), storedEvent)
@@ -146,17 +169,25 @@ export default function EventStore<
     // event name needs to be an input and a generic here as we use the event name as a type index and as a string value
     const subscribe = <EventName extends keyof SubscribeModels>(
         type: EventName,
-        callback: (event: TypedEvent<EventName, SubscribeModels[EventName]>) => void
+        callback: (
+            event: TypedEvent<EventName, SubscribeModels[EventName]>
+        ) => void
     ): void => {
         // wrap the handler in a try catch so we don't crash the server with unhandled exceptions.
-        const tryCatchCallback: (event: TypedEvent<EventName, SubscribeModels[EventName]>) => void = (
+        const tryCatchCallback: (
+            event: TypedEvent<EventName, SubscribeModels[EventName]>
+        ) => void = (
             eventModel: TypedEvent<EventName, SubscribeModels[EventName]>
         ): void => {
             try {
                 return callback(eventModel)
             } catch (e) {
-                _logger.error(`Unable to handle event subscription. Error when handling "${String(eventModel.type)}": ${e}`)
-                if(options?.initialised === false){
+                _logger.error(
+                    `Unable to handle event subscription. Error when handling "${String(
+                        eventModel.type
+                    )}": ${e}`
+                )
+                if (options.initialised === false) {
                     throw e
                 }
             }
@@ -166,10 +197,15 @@ export default function EventStore<
         stackEventBus.on(String(type), tryCatchCallback)
     }
 
-    const getEvents = async (options?: { withPii?: boolean, minSequenceNumber?: number }) => {
+    const getEvents = async (options?: {
+        withPii?: boolean
+        minSequenceNumber?: number
+    }) => {
         const { withPii, minSequenceNumber } = options ?? { withPii: true }
         _logger.debug(`Executing getEvents events ${JSON.stringify(options)}`)
-        const events: Event[] = await eventbase.getEventsInOrder(minSequenceNumber)
+        const events: Event[] = await eventbase.getEventsInOrder(
+            minSequenceNumber
+        )
 
         // If we don't use a pii db, or we don't want the pii with the db return the events
         if (!withPii || !piiBase) {
@@ -194,14 +230,16 @@ export default function EventStore<
             }
         })
     }
-    const replayEvents = async (minSequenceNumber?: number): Promise<number> => {
-        _logger.debug(`Executing replayEvents events ${JSON.stringify(options)}`)
-        const allEvents: Event[] = await getEvents(
-            {
-                withPii: false,
-                minSequenceNumber
-            }
+    const replayEvents = async (
+        minSequenceNumber?: number
+    ): Promise<number> => {
+        _logger.debug(
+            `Executing replayEvents events ${JSON.stringify(options)}`
         )
+        const allEvents: Event[] = await getEvents({
+            withPii: false,
+            minSequenceNumber,
+        })
 
         // get all the events WITHOUT Pii, so we don't iterate them twice.
         let piiLookup: Record<string, any> | undefined
@@ -240,7 +278,10 @@ export default function EventStore<
             const streamId = e.streamId ?? (e as any)?.streamid
 
             // handle old versionless events
-            const streamVersionId =  'streamversionid' in e ? e.streamversionid as string : e.streamVersionId ?? `${streamId}-${e.sequencenum}`
+            const streamVersionId =
+                'streamversionid' in e
+                    ? (e.streamversionid as string)
+                    : e.streamVersionId ?? `${streamId}-${e.sequencenum}`
 
             // WARNING: These are field names from the database and hence are all LOWERCASE
             const event: Event = {
@@ -249,9 +290,9 @@ export default function EventStore<
                 meta,
                 type: e.type,
                 streamVersionId,
-                sequencenum: e.sequencenum
+                sequencenum: e.sequencenum,
             }
-            if(initialised){
+            if (!!options.initialised) {
                 _logger.debug(`Replaying event: ${event.sequencenum}`)
             }
             stackEventBus.emit(event.type, event)
@@ -268,17 +309,18 @@ export default function EventStore<
 
     const reset = async () => {
         await eventbase.reset()
-        piiBase && await piiBase.reset()
+        piiBase && (await piiBase.reset())
         stackEventBus.reset()
     }
 
-    const stackEventBus = eventBusOptions ?
-        EventBusRedisPubsub({
-            ...eventBusOptions,
-            replayFunc: eventBusOptions.replayFunc ?? replayEvents,
-            initialised: options?.initialised
-        }) :
-        EventBusNodejs({initialised: options?.initialised })
+    const stackEventBus = eventBusOptions
+        ? EventBusRedisPubsub({
+              ...eventBusOptions,
+              replayFunc: eventBusOptions.replayFunc ?? replayEvents,
+          })
+        : EventBusNodejs({
+              options: { initialised: !!options.initialised },
+          })
 
     const getLastEmittedSeqNum = () => stackEventBus.getLastEmittedSeqNum()
     const getLastHandledSeqNum = () => stackEventBus.getLastHandledSeqNum()

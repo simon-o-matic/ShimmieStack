@@ -15,7 +15,7 @@ export interface EventBusRedisPubsubOptions {
     logger?: StackLogger
     redisOptions?: RedisOptions
     replayFunc?: (seqNum: number) => Promise<number>
-    initialised?: boolean
+    options: { initialised: boolean }
 }
 
 export class RedisPubsubError extends Error {
@@ -35,7 +35,7 @@ export default function EventBusRedisPubsub({
     logger,
     replayFunc,
     subscribe = true,
-    initialised,
+    options,
 }: EventBusRedisPubsubOptions): EventBusType {
     const pubClient = redisOptions
         ? new Redis(url, redisOptions)
@@ -45,7 +45,7 @@ export default function EventBusRedisPubsub({
         : new Redis(url)
     const _logger = logger ?? Logger
     const nodeEventBus: EventBusType = EventBusNodejs({
-        initialised,
+        options,
         logger: _logger,
     })
 
@@ -67,7 +67,7 @@ export default function EventBusRedisPubsub({
         })
 
         subClient.on('message', async (channel, message) => {
-            if (!initialised) {
+            if (!options.initialised) {
                 _logger.debug(
                     `Message received via PubSub before app initialised.`
                 )
@@ -144,7 +144,7 @@ export default function EventBusRedisPubsub({
     }
 
     const emit = (type: string, event: Event | StoredEventResponse): void => {
-        if (initialised) {
+        if (!!options.initialised) {
             _logger.debug(`${event.sequencenum}: Beginning event emit`)
         }
         // don't publish replays globally.
@@ -161,7 +161,7 @@ export default function EventBusRedisPubsub({
                 })
             )
         }
-        if (initialised) {
+        if (!!options.initialised) {
             _logger.debug(`${event.sequencenum}: Emitting locally`)
         }
         nodeEventBus.emit(type, event)
