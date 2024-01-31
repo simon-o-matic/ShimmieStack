@@ -8,7 +8,7 @@ import { Logger, StackLogger } from './logger'
 
 export interface EventBusNodejsOptions {
     logger?: StackLogger
-    options: { initialised: boolean }
+    options?: { initialised: boolean }
 }
 
 export default function EventBusNodejs({
@@ -27,7 +27,7 @@ export default function EventBusNodejs({
 
     const emit = (type: string, event: Event | StoredEventResponse): void => {
         lastEmittedSeqNum = event.sequencenum
-        if (!!options.initialised) {
+        if (!!options?.initialised) {
             _logger.debug(
                 `${event.sequencenum}: Updating last emitted to ${event.sequencenum}`
             )
@@ -43,7 +43,7 @@ export default function EventBusNodejs({
                 }
             }
             lastHandledSeqNum = event.sequencenum
-            if (!!options.initialised) {
+            if (!!options?.initialised) {
                 _logger.debug(
                     `${event.sequencenum}: Updating last handled to ${event.sequencenum}`
                 )
