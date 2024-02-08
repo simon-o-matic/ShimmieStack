@@ -133,8 +133,14 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
         }
     }
 
+    // todo implement me
+    const anonymisePiiEventData = async (keys: string[]):Promise<void> => {
+        throw new Error("Not implemented yes")
+    }
+
     return {
         addPiiEventData,
+        anonymisePiiEventData,
         getPiiLookup,
         getPiiData,
         init,

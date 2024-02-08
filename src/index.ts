@@ -208,6 +208,7 @@ export type StackType<
     registerPostInitFn: (
         fn: () => void | Promise<void>,
     ) => StackType<RecordModels, SubscribeModels>
+    anonymiseStreamPii: (streamId: string) => Promise<void>
 }
 
 const startApiListener = async (app: Application, port: number) => {
@@ -628,6 +629,11 @@ export default function ShimmieStack<
         setAppConfig: (key: string, value: unknown) => {
             app.set(key, value)
         },
+
+        anonymiseStreamPii: (streamId: string): Promise<void> => {
+            return eventStore.anonymiseStreamPii(streamId)
+            // todo also update/wipe history
+        }
     }
 
     return funcs

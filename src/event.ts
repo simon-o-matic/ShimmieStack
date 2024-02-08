@@ -106,6 +106,8 @@ export interface EventBaseType {
     updateEventData: (sequenceNumber: number, data: object) => Promise<void>
     /** delete a single event by sequence number. Protect this in production */
     deleteEvent: (sequenceNumber: number) => Promise<void>
+    /** fetch all events for a streamId in order */
+    getStreamEvents: (streamId: string) => Promise<Event[] | undefined>
     /** set up the event base */
     init: () => Promise<void>
     /** clear out all the events */
@@ -115,21 +117,18 @@ export interface EventBaseType {
 }
 
 export interface PiiBaseType {
-    // record some PII in the PII store
-    addPiiEventData(key: string, data: any): Promise<any>
-
-    // get a single pii record if it exists
-    getPiiData(key: string): Promise<Record<string, any> | undefined>
-
-    // get all pii records
-    getPiiLookup(): Promise<Record<string, any>>
-
-    // prepare the piibase
-    init(): Promise<void>
-
+    /** record some PII in the PII store */
+    addPiiEventData: (key: string, data: any) => Promise<any>
+    /** get a single pii record if it exists */
+    getPiiData: (key: string) => Promise<Record<string, any> | undefined>
+    /** get all pii records */
+    getPiiLookup: () => Promise<Record<string, any>>
+    /** anonymise data in rows with the provided keys */
+    anonymisePiiEventData: (keys: string[]) => Promise<void>
+    /**  prepare the piibase */
+    init: () => Promise<void>
     /** clear out all the data */
     reset: () => Promise<void>
-
     /** clean up any anything in the pii base */
     shutdown: () => Promise<void>
 }

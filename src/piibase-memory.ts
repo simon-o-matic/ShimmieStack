@@ -40,8 +40,13 @@ export default function PiiBase(): PiiBaseType {
         return Promise.resolve(piiData);
     };
 
+    const anonymisePiiEventData = async (keys: string[]):Promise<void> => {
+        return Promise.resolve()
+    }
+
     return {
         addPiiEventData,
+        anonymisePiiEventData,
         getPiiLookup,
         getPiiData,
         init,
