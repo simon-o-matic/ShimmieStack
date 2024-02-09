@@ -2,6 +2,7 @@ import pg from 'pg'
 import { PiiBaseType } from './event'
 import { PostgresDbConfig } from './eventbase-postgres'
 import { Logger } from './logger'
+import { anonymiseObject } from './utils'
 const { Pool } = pg
 
 export class PiiBaseError extends Error {
@@ -50,6 +51,16 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
         const result = await runQuery(query, [key, JSON.stringify(data)])
 
         return result[0].data
+    }
+
+    const updatePiiEventData = async (
+        key: string,
+        data: Record<string, any>
+    ): Promise<void> => {
+        const query = `UPDATE pii_store SET Data=${data} WHERE Key = ${key}`
+
+        await runQuery(query)
+        return Promise.resolve()
     }
 
     // Get a single pii value by the key (sequence num in event store)
@@ -133,9 +144,14 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
         }
     }
 
-    // todo implement me
     const anonymisePiiEventData = async (keys: string[]): Promise<void> => {
-        throw new Error('Not implemented yes')
+        for (const key of keys) {
+            const entry = await getPiiData(key)
+            if (entry) {
+                await updatePiiEventData(key, anonymiseObject(entry))
+            }
+        }
+        return Promise.resolve()
     }
 
     return {
