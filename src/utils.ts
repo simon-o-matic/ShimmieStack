@@ -4,14 +4,16 @@ import { ObjectLockedError } from './event'
 export const withObjectLock = async (
     objectLocks: Set<string>,
     streamIds: string[],
-    callback: () => Promise<void>,
+    callback: () => Promise<void>
 ): Promise<void> => {
     // keep track of the locks this call has
     const localLocks = []
     try {
         for (const streamId of streamIds) {
             if (objectLocks.has(streamId)) {
-                throw new ObjectLockedError(`Lock for ${streamId} already in use.`)
+                throw new ObjectLockedError(
+                    `Lock for ${streamId} already in use.`
+                )
             }
             objectLocks.add(streamId)
             localLocks.push(streamId)
@@ -22,5 +24,30 @@ export const withObjectLock = async (
         for (const streamId of localLocks) {
             objectLocks.delete(streamId)
         }
+    }
+}
+
+export const ANONYMISED_STRING = 'anonymous'
+export const ANONYMISED_NUM = 0
+/** Take any form of data and anonymise any fields to strip PII. This assumes
+ * all strings and numbers are created equal. (e.g. won't change emails into
+ * fake emails - should we?)
+ * Recursively updates objects and arrays
+ */
+export const anonymiseObject = (data: any): any => {
+    if (typeof data === 'string') {
+        return ANONYMISED_STRING
+    } else if (typeof data === 'number') {
+        return ANONYMISED_NUM
+    } else if (Array.isArray(data)) {
+        return data.map(anonymiseObject)
+    } else if (typeof data === 'object') {
+        const anonymisedObject: any = {}
+        for (const key in data) {
+            anonymisedObject[key] = anonymiseObject(data[key])
+        }
+        return anonymisedObject
+    } else {
+        return data
     }
 }

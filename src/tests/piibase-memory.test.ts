@@ -1,9 +1,9 @@
-import { expect } from '@jest/globals'
 import { ShimmieEvent } from '..'
 import { Meta } from '../event'
 import EventBase from '../eventbase-memory'
 import EventStore from '../eventstore'
 import PiiBase from '../piibase-memory'
+import { ANONYMISED_NUM, ANONYMISED_STRING } from '../utils'
 const eventBase = EventBase()
 const piiBase = PiiBase()
 const eventStore = EventStore<RecordModels, any>({
@@ -15,6 +15,7 @@ const eventStore = EventStore<RecordModels, any>({
 type RecordModels = {
     nonPiiTestData: { data: string }
     piiTest: { piiField: string; nonPiiField: string }
+    anonymiseTest: any
 }
 
 // ignore event meta data
@@ -154,5 +155,49 @@ describe('when recording an event', () => {
             expect(event.data).toEqual(piiTestData)
             expect(event.meta.hasPii).toBeFalsy()
         })
+    })
+})
+
+describe('when anonymising pii', () => {
+    it('should do a thing', async () => {
+        eventStore.subscribe('type', (event) => {})
+
+        const anonEventData = {
+            name: 'NAME',
+            number: 1234,
+            object: {
+                child: {
+                    grandchild: 'MORE TEXT',
+                },
+            },
+            array: ['STRING', 10, { objectInArray: 'MORE STRING' }],
+            notAPiiField: 'HELLO THERE',
+            alsoNotPii: 4567,
+        }
+
+        await eventStore.recordEvent({
+            streamId: 'streamid',
+            eventName: 'anonymiseTest',
+            eventData: anonEventData,
+            meta,
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            piiFields: ['email', 'object', 'name', 'number', 'array'],
+        })
+
+        const allEvents = await eventStore.getEvents()
+        const seqNums = allEvents.map((el: any) => el.sequencenum)
+
+        await piiBase.anonymisePiiEventData(seqNums)
+        const allEventsAgain = await eventStore.getEvents()
+        const anonymised = allEventsAgain[0].data
+
+        expect(anonymised.name).toBe(ANONYMISED_STRING)
+        expect(anonymised.number).toBe(ANONYMISED_NUM)
+        expect(anonymised.object.child.grandchild).toBe(ANONYMISED_STRING)
+        expect(anonymised.array[0]).toBe(ANONYMISED_STRING)
+        expect(anonymised.array[1]).toBe(ANONYMISED_NUM)
+        expect(anonymised.array[2].objectInArray).toBe(ANONYMISED_STRING)
+        expect(anonymised.notAPiiField).toBe(anonEventData.notAPiiField)
+        expect(anonymised.alsoNotPii).toBe(anonEventData.alsoNotPii)
     })
 })
