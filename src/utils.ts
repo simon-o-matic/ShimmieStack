@@ -48,6 +48,7 @@ export const anonymiseObject = (data: any): any => {
         }
         return anonymisedObject
     } else {
+        // if it gets past all the above type checks just return the original? make it undefined? what we wanna do here
         return data
     }
 }
