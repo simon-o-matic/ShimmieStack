@@ -2,13 +2,23 @@
 // TODO: encapsulate the underlying database elsewhere
 //
 import pg, { PoolConfig } from 'pg'
-import { EventBaseType, EventToRecord, StoredEventResponse, StreamVersionError, StreamVersionMismatch } from './event'
+import {
+    EventBaseType,
+    EventToRecord,
+    StoredEventResponse,
+    StreamVersionError,
+    StreamVersionMismatch,
+} from './event'
 import { Logger } from './logger'
-import { fetchMatchStreamVersionsQuery, prepareAddEventQuery, createEventListTableQuery } from './queries'
+import {
+    createEventListTableQuery,
+    fetchMatchStreamVersionsQuery,
+    prepareAddEventQuery,
+} from './queries'
 
 const { Pool } = pg
 
-pg.types.setTypeParser(20, function(val) {
+pg.types.setTypeParser(20, function (val) {
     return parseInt(val, 10)
 })
 export type PostgresDbConfig = Partial<PoolConfig>
@@ -26,7 +36,7 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
     }
 
     const defaultPoolConfig: PostgresDbConfig = {
-        connectionTimeoutMillis: 5000 // wait 5 seconds before timeout on connect
+        connectionTimeoutMillis: 5000, // wait 5 seconds before timeout on connect
     }
 
     const pool = new Pool({
@@ -44,40 +54,72 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
         return
     }
 
-    const addEvent = async (event: EventToRecord, streamVersionIds?: Record<string, string|undefined>): Promise<StoredEventResponse> => {
+    const addEvent = async (
+        event: EventToRecord,
+        streamVersionIds?: Record<string, string | undefined>
+    ): Promise<StoredEventResponse> => {
         // prepare and parameterised the addEvent query based on whether streamVersionIds were provided or not.
         const query = prepareAddEventQuery(event, streamVersionIds)
         const results: StoredEventResponse[] = await runQuery(query)
 
         // if we get no result we didnt manage to record an event but the query succeeded, this is a version failure
-        if(!results || results.length === 0){
-            if(!streamVersionIds){
-                Logger.error("Something unexpected happened. We shouldn't be in here without checking versions")
-                throw new Error("Unexpcted error occured. Unable to add event to stream.")
+        if (!results || results.length === 0) {
+            if (!streamVersionIds) {
+                Logger.error(
+                    "Something unexpected happened. We shouldn't be in here without checking versions"
+                )
+                throw new Error(
+                    'Unexpcted error occured. Unable to add event to stream.'
+                )
             }
             // running a second query is bad, but we didnt successfully write anyway so its probably fine
-            const mismatchedVersionDbResult = await runQuery(fetchMatchStreamVersionsQuery(Object.keys(streamVersionIds)))
-            if(!mismatchedVersionDbResult || mismatchedVersionDbResult.length < 1){
-                throw Error("Sopmething went wrong. Unable to fetch details about db mismatch")
+            const mismatchedVersionDbResult = await runQuery(
+                fetchMatchStreamVersionsQuery(Object.keys(streamVersionIds))
+            )
+            if (
+                !mismatchedVersionDbResult ||
+                mismatchedVersionDbResult.length < 1
+            ) {
+                throw Error(
+                    'Sopmething went wrong. Unable to fetch details about db mismatch'
+                )
             }
             // lets get some info out about the failure
-            const mismatchedVersions: StreamVersionMismatch[] = mismatchedVersionDbResult
-                .reduce((mismatched: StreamVersionMismatch[],version: {
-                        "streamid": string,
-                        "StreamVersionId": string
-                }) => {
-                    if(version.StreamVersionId !== streamVersionIds[version.streamid]){
-                        mismatched.push({
-                            streamId: version.streamid,
-                            expectedVersionId: streamVersionIds[version.streamid] ?? 'Unknown',
-                            actualVersionId: version.streamid,
-                        })
-                    }
-                    return mismatched
-                }, [])
+            const mismatchedVersions: StreamVersionMismatch[] =
+                mismatchedVersionDbResult.reduce(
+                    (
+                        mismatched: StreamVersionMismatch[],
+                        version: {
+                            streamid: string
+                            StreamVersionId: string
+                        }
+                    ) => {
+                        if (
+                            version.StreamVersionId !==
+                            streamVersionIds[version.streamid]
+                        ) {
+                            mismatched.push({
+                                streamId: version.streamid,
+                                expectedVersionId:
+                                    streamVersionIds[version.streamid] ??
+                                    'Unknown',
+                                actualVersionId: version.streamid,
+                            })
+                        }
+                        return mismatched
+                    },
+                    []
+                )
 
-            Logger.error(`Version mismatch detected: ${JSON.stringify(mismatchedVersions)}`)
-            throw new StreamVersionError('Version mismatch detected: ', mismatchedVersions)
+            Logger.error(
+                `Version mismatch detected: ${JSON.stringify(
+                    mismatchedVersions
+                )}`
+            )
+            throw new StreamVersionError(
+                'Version mismatch detected: ',
+                mismatchedVersions
+            )
         }
 
         return results[0]
@@ -85,7 +127,21 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
 
     // Get all events in the correct squence for replay
     const getEventsInOrder = async (minSequenceNumber?: number) => {
-        const query = minSequenceNumber !== undefined ? `SELECT * FROM eventlist WHERE SequenceNum >= ${minSequenceNumber} ORDER BY SequenceNum` : 'SELECT * FROM eventlist ORDER BY SequenceNum'
+        const query =
+            minSequenceNumber !== undefined
+                ? `SELECT * FROM eventlist WHERE SequenceNum >= ${minSequenceNumber} ORDER BY SequenceNum`
+                : 'SELECT * FROM eventlist ORDER BY SequenceNum'
+        return await runQuery(query)
+    }
+
+    /** Get all events for corresponding stream IDs */
+    const getEventsByStreamIds = async (streamIds: string[]) => {
+        const query =
+            streamIds.length > 0
+                ? `SELECT * FROM eventlist WHERE StreamId in (${streamIds.join(
+                      ','
+                  )}) ORDER BY SequenceNum`
+                : 'SELECT * FROM eventlist ORDER BY SequenceNum'
         return await runQuery(query)
     }
 
@@ -121,7 +177,7 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
                 : await pool.query(query)
             // was it a multi statement query?
             // if so return the last result
-            if(Array.isArray(res)){
+            if (Array.isArray(res)) {
                 return res[res.length - 1]?.rows
             }
             return res.rows
@@ -173,6 +229,7 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
 
     return {
         getEventsInOrder,
+        getEventsByStreamIds,
         addEvent,
         reset,
         deleteEvent,
