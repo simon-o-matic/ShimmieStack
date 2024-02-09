@@ -310,30 +310,42 @@ export default function EventStore<
     ): Promise<EventHistory<SubscribeModels>[]> => {
         const events = await eventbase.getEventsByStreamIds(streamIds)
 
-        const piiLookup = piiBase ? await piiBase.getPiiLookup() : undefined
+        // const piiLookup = piiBase ? await piiBase.getPiiLookup() : undefined
 
-        const withPii = piiLookup
-            ? events.map((event) => {
-                  const piiKey = event.sequencenum!.toString()
-                  if (!piiLookup.has(piiKey)) {
-                      return event
-                  }
+        // const withPii = piiLookup
+        //     ? events.map((event) => {
+        //           const piiKey = event.sequencenum!.toString()
+        //           if (!piiLookup.has(piiKey)) {
+        //               return event
+        //           }
 
-                  const piiData: Record<string, any> = piiLookup.get(piiKey)
-                  return {
-                      ...event,
-                      data: {
-                          ...event.data,
-                          ...piiData,
-                      },
-                  }
-              })
-            : events
+        //           const piiData: Record<string, any> = piiLookup.get(piiKey)
+        //           return {
+        //               ...event,
+        //               data: {
+        //                   ...event.data,
+        //                   ...piiData,
+        //               },
+        //           }
+        //       })
+        //     : events
 
-        return withPii.map((event) => {
+        return events.map((event) => {
+            // this way or the piiLookup way above? ask James
+            let piiData: Record<string, any> | undefined
+            if (event.meta.hasPii && piiBase) {
+                piiData = piiBase.getPiiData(event.sequencenum.toString())
+            }
+
+            // merge with pii if there is any
+            const data = {
+                ...event.data,
+                ...(piiData ? piiData : {}),
+            }
+
             return {
                 streamId: event.streamId,
-                data: event.data as SubscribeModels[keyof SubscribeModels],
+                data: data as SubscribeModels[keyof SubscribeModels],
                 type: event.type,
                 date: event.meta.date,
                 user: event.meta.user,
