@@ -48,9 +48,9 @@ export default function PiiBase(): PiiBaseType {
 
     const anonymisePiiEventData = async (keys: string[]): Promise<void> => {
         for (const key of keys) {
-            const entry = piiData.get(key.toString())
+            const entry = piiData.get(key)
             if (entry) {
-                piiData.set(key.toString(), anonymiseObject(entry))
+                piiData.set(key, anonymiseObject(entry))
             }
         }
         return Promise.resolve()
