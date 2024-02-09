@@ -1,13 +1,13 @@
 //
 // Also needs a Test for the postgress version
 //
-import ShimmieTestStack from '../shimmieteststack'
-import AdminProcessor from '../admin_processor'
-import MemoryEventBase from '../eventbase-memory'
-import { authorizeApi, noAuthorization } from '../authorizers'
-import { Logger } from '../logger'
 import { expect } from '@jest/globals'
 import { v4 as uuid } from 'uuid'
+import AdminProcessor from '../admin_processor'
+import { authorizeApi, noAuthorization } from '../authorizers'
+import MemoryEventBase from '../eventbase-memory'
+import { Logger } from '../logger'
+import ShimmieTestStack from '../shimmieteststack'
 
 const testStack = ShimmieTestStack()
 const memoryEventBase = MemoryEventBase()
@@ -18,7 +18,7 @@ testStack.mountTest(
 describe('when calling the internal admin processors on an in-memory event base', () => {
     // Will this always be true???? Its kinda useless.
     it('/time should return the time', async () => {
-        const response = await testStack.testGet({path:'/time'})
+        const response = await testStack.testGet({ path: '/time' })
         expect(response.status).toBe(200)
         const timeNow: Date = new Date()
 
@@ -54,7 +54,7 @@ describe('when deleting an event', () => {
 
         expect((await memoryEventBase.getEventsInOrder()).length).toBe(1)
 
-        await testStack.testDelete({path:'/events/0'})
+        await testStack.testDelete({ path: '/events/0' })
 
         expect((await memoryEventBase.getEventsInOrder()).length).toBe(0)
     })
@@ -70,7 +70,7 @@ describe('when updating an event', () => {
             one: 'two',
         })
 
-        await testStack.testPut({path:'/events/0', body:{ two: 'three' }})
+        await testStack.testPut({ path: '/events/0', body: { two: 'three' } })
 
         expect(
             (await memoryEventBase.getEventsInOrder())[0].data

@@ -1,23 +1,23 @@
-import { catchAllErrorHandler, EventHistory, StackType } from '../index'
-import ShimmieTestStack from '../shimmieteststack'
 import { expect, jest } from '@jest/globals'
 import { Meta } from '../event'
+import { catchAllErrorHandler, EventHistory, StackType } from '../index'
+import ShimmieTestStack from '../shimmieteststack'
 
-type ExampleEventV1 = { payload: string, meta: any, min: number }
-type ExampleEventV2 = { data: string, meta: any, min: number }
-type SimpleExampleEvent = { data: string}
+type ExampleEventV1 = { payload: string; meta: any; min: number }
+type ExampleEventV2 = { data: string; meta: any; min: number }
+type SimpleExampleEvent = { data: string }
 type ExampleEvent = ExampleEventV2
 
 type RecordModels = {
-    EXAMPLE_EVENT: ExampleEvent,
-    SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent,
-    WHO_AM_I_EVENT: { elvis: string },
+    EXAMPLE_EVENT: ExampleEvent
+    SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent
+    WHO_AM_I_EVENT: { elvis: string }
 }
 
 type SubscribeModels = {
-    EXAMPLE_EVENT: ExampleEventV1 | ExampleEventV2,
-    SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent,
-    WHO_AM_I_EVENT: { elvis: string },
+    EXAMPLE_EVENT: ExampleEventV1 | ExampleEventV2
+    SIMPLE_EXAMPLE_EVENT: SimpleExampleEvent
+    WHO_AM_I_EVENT: { elvis: string }
 }
 
 const testStack = ShimmieTestStack<RecordModels, SubscribeModels>()
@@ -27,16 +27,15 @@ const TestProcessor = (testStack: StackType<RecordModels, SubscribeModels>) => {
 
     router.get('/whoami', async (req, res) => {
         await testStack.recordUncheckedEvent({
-                streamId: '1',
-                eventName: 'WHO_AM_I_EVENT',
-                eventData: { elvis: 'costello' },
-                meta: {
-                    user: { id: 'johnny-come-lately' }, // this can be any
-                    userAgent: 'agent-johnny:GECKO-9.0',
-                    date: Date.now(),
-                }
+            streamId: '1',
+            eventName: 'WHO_AM_I_EVENT',
+            eventData: { elvis: 'costello' },
+            meta: {
+                user: { id: 'johnny-come-lately' }, // this can be any
+                userAgent: 'agent-johnny:GECKO-9.0',
+                date: Date.now(),
             },
-        )
+        })
         return res.status(200).send({ me: 'shimmie' })
     })
 
@@ -70,7 +69,13 @@ const TestProcessor = (testStack: StackType<RecordModels, SubscribeModels>) => {
     })
 
     const returnRequestDetails = (req: any, res: any) => {
-        return res.status(200).json({ headers: req.headers, body: req.body, queryParams: req.params })
+        return res
+            .status(200)
+            .json({
+                headers: req.headers,
+                body: req.body,
+                queryParams: req.params,
+            })
     }
     router.post('/postonly-nobodyrequired', returnRequestDetails)
 
@@ -92,21 +97,24 @@ beforeEach(() => {
 
 describe('when calling testPost with empty body', () => {
     it('there should be no errors', async () => {
-
         const requestOptions = {
             path: '/nobodyrequired',
-            headers: {"example-header": "value1"},
-            queryParams: {"example-param-$%#":'val2'}
+            headers: { 'example-header': 'value1' },
+            queryParams: { 'example-param-$%#': 'val2' },
         }
         const postResponse = await testStack.testPost(requestOptions)
 
         expect(postResponse.status).toEqual(200)
-        expect(postResponse.body.headers).toEqual(expect.objectContaining({ ...requestOptions.headers }))
+        expect(postResponse.body.headers).toEqual(
+            expect.objectContaining({ ...requestOptions.headers })
+        )
 
         const getResponse = await testStack.testGet(requestOptions)
 
         expect(getResponse.status).toEqual(200)
-        expect(getResponse.body.headers).toEqual(expect.objectContaining({ ...requestOptions.headers }))
+        expect(getResponse.body.headers).toEqual(
+            expect.objectContaining({ ...requestOptions.headers })
+        )
     })
 })
 
@@ -159,31 +167,36 @@ describe('when merging histories of multiple source ids', () => {
     })
     it('should return history in the order the events occured', async () => {
         await testStack.testPost({
-            path: '/333/golden-girls', body: {
+            path: '/333/golden-girls',
+            body: {
                 type: 'cheryl',
                 data: { a: 3 },
             },
         })
         await testStack.testPost({
-            path: '/555/golden-girls', body: {
+            path: '/555/golden-girls',
+            body: {
                 type: 'dolores',
                 data: { a: 4 },
             },
         })
         await testStack.testPost({
-            path: '/333/golden-girls', body: {
+            path: '/333/golden-girls',
+            body: {
                 type: 'eugenie',
                 data: { a: 5 },
             },
         })
         await testStack.testPost({
-            path: '/333/golden-girls', body: {
+            path: '/333/golden-girls',
+            body: {
                 type: 'frances',
                 data: { a: 6 },
             },
         })
         await testStack.testPost({
-            path: '/444/golden-girls', body: {
+            path: '/444/golden-girls',
+            body: {
                 type: 'gertrude',
                 data: { a: 7 },
             },
@@ -191,9 +204,11 @@ describe('when merging histories of multiple source ids', () => {
 
         const history = testStack.getHistory(['333', '444', '555'])?.history
         if (history) {
-            const types = history.map((histEl: EventHistory<SubscribeModels>) => {
-                return histEl.type
-            })
+            const types = history.map(
+                (histEl: EventHistory<SubscribeModels>) => {
+                    return histEl.type
+                }
+            )
             expect(types).toEqual([
                 'cheryl',
                 'dolores',
@@ -202,7 +217,7 @@ describe('when merging histories of multiple source ids', () => {
                 'gertrude',
             ])
         } else {
-            fail('history wasn\'t build')
+            fail("history wasn't build")
         }
     })
 })
@@ -245,10 +260,9 @@ describe('when calling a GET with an auth header', () => {
 describe('when calling a DELETE with an auth header', () => {
     it('there should be no errors', async () => {
         const response = await testStack.testPost({
-                path: '/nobodyrequired',
-                headers: { Authorization: authHeaderValue },
-            },
-        )
+            path: '/nobodyrequired',
+            headers: { Authorization: authHeaderValue },
+        })
         const requestHeaders = response.body.headers
         expect(requestHeaders['authorization']).toBe(authHeaderValue)
     })
@@ -291,28 +305,27 @@ describe('when calling /whoami', () => {
 
 describe('when calling /whoami', () => {
     it('there should be two events in the database when two are recorded', async () => {
-        testStack.subscribe(
-            'SIMPLE_EXAMPLE_EVENT',
-            (e) => {
-            }
-        )
+        testStack.subscribe('SIMPLE_EXAMPLE_EVENT', (e) => {})
         const meta: Meta = {
             user: {},
             replay: false,
             date: 123,
             userAgent: 'test agent',
         }
-        await testStack.recordUncheckedEvents([{
-            streamId: 'streamid',
-            eventName: 'SIMPLE_EXAMPLE_EVENT',
-            eventData: { data: 'blah' },
-            meta,
-        }, {
-            streamId: 'streamid',
-            eventName: 'SIMPLE_EXAMPLE_EVENT',
-            eventData: { data: 'blah2' },
-            meta,
-        }])
+        await testStack.recordUncheckedEvents([
+            {
+                streamId: 'streamid',
+                eventName: 'SIMPLE_EXAMPLE_EVENT',
+                eventData: { data: 'blah' },
+                meta,
+            },
+            {
+                streamId: 'streamid',
+                eventName: 'SIMPLE_EXAMPLE_EVENT',
+                eventData: { data: 'blah2' },
+                meta,
+            },
+        ])
 
         expect(testStack.getHistory('streamid')?.history.length).toEqual(2)
     })
@@ -320,7 +333,10 @@ describe('when calling /whoami', () => {
 
 describe('when posting to /foo ', () => {
     it('the request body parameter should be returned', async () => {
-        const response = await testStack.testPost({ path: '/foo', body: { foo: 'boo' } })
+        const response = await testStack.testPost({
+            path: '/foo',
+            body: { foo: 'boo' },
+        })
         expect(response.body.foo).toBe('boo')
     })
 
@@ -333,94 +349,114 @@ describe('when posting to /foo ', () => {
     })
 })
 
-
 describe('When an API returns a 500', () => {
     describe('GET', () => {
         it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-            const response = await testStack.testGet(
-                { path: '/throw-500', expectedResponseCode: 500 },
-            )
-            expect(response.body).toEqual({ 'error': 'Something went wrong' })
+            const response = await testStack.testGet({
+                path: '/throw-500',
+                expectedResponseCode: 500,
+            })
+            expect(response.body).toEqual({ error: 'Something went wrong' })
             expect(response.status).toEqual(500)
         })
 
         it('the response should throw on mismatched http status code', async () => {
             try {
-                await testStack.testGet(
-                    { path: '/throw-500', expectedResponseCode: 200 },
+                await testStack.testGet({
+                    path: '/throw-500',
+                    expectedResponseCode: 200,
+                })
+                expect(
+                    fail(
+                        'Should throw on the call above due to incorrect response code'
+                    )
                 )
-                expect(fail('Should throw on the call above due to incorrect response code'))
             } catch (e: any) {
-                expect(e.body).toEqual({ 'error': 'Something went wrong' })
+                expect(e.body).toEqual({ error: 'Something went wrong' })
                 expect(e.status).toEqual(500)
             }
         })
     })
 
     describe('PUT', () => {
-
         it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-            const response = await testStack.testPut(
-                { path: '/throw-500', expectedResponseCode: 500 },
-            )
-            expect(response.body).toEqual({ 'error': 'Something went wrong' })
+            const response = await testStack.testPut({
+                path: '/throw-500',
+                expectedResponseCode: 500,
+            })
+            expect(response.body).toEqual({ error: 'Something went wrong' })
             expect(response.status).toEqual(500)
         })
 
         it('the response should throw on mismatched http status code', async () => {
             try {
-                await testStack.testPut(
-                    { path: '/throw-500', expectedResponseCode: 200 },
+                await testStack.testPut({
+                    path: '/throw-500',
+                    expectedResponseCode: 200,
+                })
+                expect(
+                    fail(
+                        'Should throw on the call above due to incorrect response code'
+                    )
                 )
-                expect(fail('Should throw on the call above due to incorrect response code'))
             } catch (e: any) {
-                expect(e.body).toEqual({ 'error': 'Something went wrong' })
+                expect(e.body).toEqual({ error: 'Something went wrong' })
                 expect(e.status).toEqual(500)
             }
         })
     })
 
     describe('POST', () => {
-
         it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-            const response = await testStack.testPost(
-                { path: '/throw-500', expectedResponseCode: 500 },
-            )
-            expect(response.body).toEqual({ 'error': 'Something went wrong' })
+            const response = await testStack.testPost({
+                path: '/throw-500',
+                expectedResponseCode: 500,
+            })
+            expect(response.body).toEqual({ error: 'Something went wrong' })
             expect(response.status).toEqual(500)
         })
 
         it('the response should throw on mismatched http status code', async () => {
             try {
-                await testStack.testPost(
-                    { path: '/throw-500', expectedResponseCode: 200 },
+                await testStack.testPost({
+                    path: '/throw-500',
+                    expectedResponseCode: 200,
+                })
+                expect(
+                    fail(
+                        'Should throw on the call above due to incorrect response code'
+                    )
                 )
-                expect(fail('Should throw on the call above due to incorrect response code'))
             } catch (e: any) {
-                expect(e.body).toEqual({ 'error': 'Something went wrong' })
+                expect(e.body).toEqual({ error: 'Something went wrong' })
                 expect(e.status).toEqual(500)
             }
         })
     })
 
     describe('DELETE', () => {
-
         it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-            const response = await testStack.testDelete(
-                { path: '/throw-500', expectedResponseCode: 500 },
-            )
-            expect(response.body).toEqual({ 'error': 'Something went wrong' })
+            const response = await testStack.testDelete({
+                path: '/throw-500',
+                expectedResponseCode: 500,
+            })
+            expect(response.body).toEqual({ error: 'Something went wrong' })
             expect(response.status).toEqual(500)
         })
 
         it('the response should throw on mismatched http status code', async () => {
             try {
-                await testStack.testDelete(
-                    { path: '/throw-500', expectedResponseCode: 200 },
+                await testStack.testDelete({
+                    path: '/throw-500',
+                    expectedResponseCode: 200,
+                })
+                expect(
+                    fail(
+                        'Should throw on the call above due to incorrect response code'
+                    )
                 )
-                expect(fail('Should throw on the call above due to incorrect response code'))
             } catch (e: any) {
-                expect(e.body).toEqual({ 'error': 'Something went wrong' })
+                expect(e.body).toEqual({ error: 'Something went wrong' })
                 expect(e.status).toEqual(500)
             }
         })
@@ -429,32 +465,41 @@ describe('When an API returns a 500', () => {
     describe('depricated syntax', () => {
         describe('GET', () => {
             it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-                const response = await testStack.testGet({path: '/throw-500', expectedResponseCode: 500})
-                expect(response.body).toEqual({ 'error': 'Something went wrong' })
+                const response = await testStack.testGet({
+                    path: '/throw-500',
+                    expectedResponseCode: 500,
+                })
+                expect(response.body).toEqual({ error: 'Something went wrong' })
             })
         })
 
         describe('PUT', () => {
-
             it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-                const response = await testStack.testPut({path: '/throw-500', expectedResponseCode: 500})
-                expect(response.body).toEqual({ 'error': 'Something went wrong' })
+                const response = await testStack.testPut({
+                    path: '/throw-500',
+                    expectedResponseCode: 500,
+                })
+                expect(response.body).toEqual({ error: 'Something went wrong' })
             })
         })
 
         describe('POST', () => {
-
             it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-                const response = await testStack.testPost({path: '/throw-500', expectedResponseCode: 500})
-                expect(response.body).toEqual({ 'error': 'Something went wrong' })
+                const response = await testStack.testPost({
+                    path: '/throw-500',
+                    expectedResponseCode: 500,
+                })
+                expect(response.body).toEqual({ error: 'Something went wrong' })
             })
         })
 
         describe('DELETE', () => {
-
             it('the response should contain an error object, and not throw if expected response code is 500', async () => {
-                const response = await testStack.testDelete({path: '/throw-500', expectedResponseCode: 500})
-                expect(response.body).toEqual({ 'error': 'Something went wrong' })
+                const response = await testStack.testDelete({
+                    path: '/throw-500',
+                    expectedResponseCode: 500,
+                })
+                expect(response.body).toEqual({ error: 'Something went wrong' })
             })
         })
     })

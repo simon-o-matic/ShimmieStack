@@ -2,12 +2,12 @@ import cookieParser from 'cookie-parser'
 import express, { Router } from 'express'
 import supertest from 'supertest'
 
-import Eventbase from './eventbase-memory'
-import PiiBase from './piibase-memory'
-import ShimmieStack, { StackType } from './index'
-import { authorizeApi, noAuthorization } from './authorizers'
 import 'express-async-errors'
+import { authorizeApi, noAuthorization } from './authorizers'
 import { EventBaseType } from './event'
+import Eventbase from './eventbase-memory'
+import ShimmieStack, { StackType } from './index'
+import PiiBase from './piibase-memory'
 
 /** Some extra convenience functions for ease testing */
 
@@ -58,14 +58,17 @@ export default function ShimmieTestStack<
 
     const prepareRequest =
         (method: string) =>
-        (
-            { path, headers, withAuth = true, queryParams }: {
-                path: string,
-                headers?: Record<string, string>,
-                withAuth?: boolean,
-                queryParams?: Record<string, any>
-            }
-        ): supertest.Test => {
+        ({
+            path,
+            headers,
+            withAuth = true,
+            queryParams,
+        }: {
+            path: string
+            headers?: Record<string, string>
+            withAuth?: boolean
+            queryParams?: Record<string, any>
+        }): supertest.Test => {
             const req: supertest.Test = (supertest(app) as SuperTester)[method](
                 path
             )
@@ -74,11 +77,13 @@ export default function ShimmieTestStack<
                 req.set("'Authorization'", `Bearer ${authHeaderValue}`)
             }
 
-            if(queryParams){
-                if(['GET','HEAD'].includes(method)) {
+            if (queryParams) {
+                if (['GET', 'HEAD'].includes(method)) {
                     req.query(queryParams)
                 } else {
-                    console.warn("Super test only allows query params on GET and HEAD requests")
+                    console.warn(
+                        'Super test only allows query params on GET and HEAD requests'
+                    )
                 }
             }
 
@@ -145,7 +150,7 @@ export default function ShimmieTestStack<
     }: TestRequestWithBodyParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
-                .post({path, headers})
+                .post({ path, headers })
                 .expect(expectedResponseCode ?? 200)
                 .send(body ?? {})
                 .end((err: any, res: supertest.Response) =>
@@ -163,7 +168,7 @@ export default function ShimmieTestStack<
     }: TestRequestWithBodyParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
-                .put({path, headers})
+                .put({ path, headers })
                 .expect(expectedResponseCode ?? 200)
                 .send(body ?? {})
                 .end((err: any, res: supertest.Response) =>
@@ -180,7 +185,7 @@ export default function ShimmieTestStack<
     }: TestRequestParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             return methods
-                .delete({path, headers})
+                .delete({ path, headers })
                 .expect(expectedResponseCode ?? 200)
                 .end((err: any, res: supertest.Response) =>
                     err ? reject(res) : resolve(res)

@@ -1,9 +1,8 @@
+import { expect, jest } from '@jest/globals'
+import { Meta } from '../event'
 import EventBase from '../eventbase-memory'
 import EventStore from '../eventstore'
-import { Meta } from '../event'
 import { Logger } from '../logger'
-import { expect, jest } from '@jest/globals'
-import EventBusNodejs from '../event-bus-nodejs'
 
 let eventStoreOptions = { initialised: true }
 const eventBase = EventBase()
@@ -26,7 +25,7 @@ type SubscribeModels = {
 const eventStore = EventStore<RecordModels, SubscribeModels>({
     eventbase: eventBase,
     piiBase: undefined,
-    options: eventStoreOptions
+    options: eventStoreOptions,
 })
 
 // ignore event meta data
@@ -36,7 +35,6 @@ const meta: Meta = {
     date: 123,
     userAgent: 'test agent',
 }
-
 
 describe('EventStore Memory', () => {
     beforeAll(async () => {
@@ -61,13 +59,12 @@ describe('EventStore Memory', () => {
 
     describe('when recording an event', () => {
         it('there should be one event in the database if one is recorded', async () => {
-            eventStore.subscribe('AN_EVENT_NAME', () => {
-            })
+            eventStore.subscribe('AN_EVENT_NAME', () => {})
             await eventStore.recordEvent({
                 streamId: 'streamid',
                 eventName: 'AN_EVENT_NAME',
                 eventData: { data: 'blah' },
-                streamVersionIds: { 'streamId': undefined },
+                streamVersionIds: { streamId: undefined },
                 meta: meta,
             })
             const numEvents = await eventStore.getEvents()
@@ -80,7 +77,7 @@ describe('EventStore Memory', () => {
                 streamId: 'streamid',
                 eventName: 'ANOTHER_EVENT_NAME',
                 eventData: { data: 123 },
-                streamVersionIds: { 'streamId': undefined },
+                streamVersionIds: { streamId: undefined },
                 meta,
             })
             await eventStore.recordEvent({
@@ -123,7 +120,7 @@ describe('EventStore Memory', () => {
             })
 
             expect(Logger.warn).toHaveBeenCalledWith(
-                'ShimmieStack >>>> Event AN_EVENT_WITH_NO_LISTENERS_NAME has no listeners',
+                'ShimmieStack >>>> Event AN_EVENT_WITH_NO_LISTENERS_NAME has no listeners'
             )
         })
     })
@@ -188,14 +185,15 @@ describe('EventStore Memory', () => {
         })
     })
 
-
     describe('when subscribing to an event', () => {
         describe('an error in the subscription', () => {
             it('should be caught and handled', async () => {
                 let valueSet = false
                 eventStore.subscribe('AN_EVENT_NAME', (event) => {
                     valueSet = true
-                    throw new Error('Something happened and should stop the app launching')
+                    throw new Error(
+                        'Something happened and should stop the app launching'
+                    )
                 })
                 await eventStore.recordEvent({
                     streamId: 'streamid',
@@ -229,7 +227,9 @@ describe('EventStore Memory', () => {
                     })
                 } catch (err: any) {
                     expect(err).toBeDefined()
-                    expect(err.message).toEqual('Something happened and should stop the app launching')
+                    expect(err.message).toEqual(
+                        'Something happened and should stop the app launching'
+                    )
                     return
                 }
                 throw new Error('Should have thrown during init but didnt')

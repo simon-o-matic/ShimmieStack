@@ -1,7 +1,6 @@
-import { NextFunction, Request, Response } from 'express'
+import { NextFunction } from 'express'
 
-
-export type AuthorizerFunc = (req:any, res: any, next: NextFunction) => void
+export type AuthorizerFunc = (req: any, res: any, next: NextFunction) => void
 
 /**
  * This ia a wrapper function, if enforcing authorization in the shimmie stack it looks for a middleware
@@ -11,14 +10,18 @@ export type AuthorizerFunc = (req:any, res: any, next: NextFunction) => void
  */
 export const authorizeApi = (authFunc: AuthorizerFunc) => {
     // rename the function to __authorizer so when we check if the function s authorized we have a unique name
-    Object.defineProperty(authFunc, "name", { value: "__authorizer" });
+    Object.defineProperty(authFunc, 'name', { value: '__authorizer' })
     return authFunc
 }
 
 /**
  * If no authorization is required on this endpoint use this function.
  */
-export const noAuthorization = (req:any, res: any, next: NextFunction): void => {
+export const noAuthorization = (
+    req: any,
+    res: any,
+    next: NextFunction
+): void => {
     next()
 }
 

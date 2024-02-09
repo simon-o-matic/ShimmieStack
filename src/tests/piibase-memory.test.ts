@@ -159,7 +159,7 @@ describe('when recording an event', () => {
 })
 
 describe('when anonymising pii', () => {
-    it('should do a thing', async () => {
+    it('should retain non pii fields and anonymise the rest', async () => {
         eventStore.subscribe('type', (event) => {})
 
         const anonEventData = {
@@ -183,21 +183,28 @@ describe('when anonymising pii', () => {
             streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             piiFields: ['email', 'object', 'name', 'number', 'array'],
         })
+        await eventStore.recordEvent({
+            streamId: 'streamid',
+            eventName: 'anonymiseTest',
+            eventData: anonEventData,
+            meta,
+            streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            piiFields: ['email', 'object', 'name', 'number', 'array'],
+        })
 
-        const allEvents = await eventStore.getEvents()
-        const seqNums = allEvents.map((el: any) => el.sequencenum)
-
-        await piiBase.anonymisePiiEventData(seqNums)
+        await eventStore.anonymiseStreamPii('streamid')
         const allEventsAgain = await eventStore.getEvents()
-        const anonymised = allEventsAgain[0].data
 
-        expect(anonymised.name).toBe(ANONYMISED_STRING)
-        expect(anonymised.number).toBe(ANONYMISED_NUM)
-        expect(anonymised.object.child.grandchild).toBe(ANONYMISED_STRING)
-        expect(anonymised.array[0]).toBe(ANONYMISED_STRING)
-        expect(anonymised.array[1]).toBe(ANONYMISED_NUM)
-        expect(anonymised.array[2].objectInArray).toBe(ANONYMISED_STRING)
-        expect(anonymised.notAPiiField).toBe(anonEventData.notAPiiField)
-        expect(anonymised.alsoNotPii).toBe(anonEventData.alsoNotPii)
+        allEventsAgain.forEach((event: any) => {
+            const anonymised = event.data
+            expect(anonymised.name).toBe(ANONYMISED_STRING)
+            expect(anonymised.number).toBe(ANONYMISED_NUM)
+            expect(anonymised.object.child.grandchild).toBe(ANONYMISED_STRING)
+            expect(anonymised.array[0]).toBe(ANONYMISED_STRING)
+            expect(anonymised.array[1]).toBe(ANONYMISED_NUM)
+            expect(anonymised.array[2].objectInArray).toBe(ANONYMISED_STRING)
+            expect(anonymised.notAPiiField).toBe(anonEventData.notAPiiField)
+            expect(anonymised.alsoNotPii).toBe(anonEventData.alsoNotPii)
+        })
     })
 })

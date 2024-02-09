@@ -1,6 +1,5 @@
 import { StoredEventResponse } from '../event'
 
-
 export const createEvent = (options?: Partial<StoredEventResponse>) => {
     const now = new Date()
     const event: StoredEventResponse = {
@@ -10,12 +9,12 @@ export const createEvent = (options?: Partial<StoredEventResponse>) => {
         meta: options?.meta ?? {
             date: now.getTime(),
             userAgent: 'blah',
-            user: { id: '123'}
+            user: { id: '123' },
         },
         sequencenum: options?.sequencenum ?? 0,
         logdate: options?.logdate ?? now.toISOString(),
         data: options?.data ?? {
-            key: 'value'
+            key: 'value',
         },
     }
 

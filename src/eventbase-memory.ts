@@ -42,65 +42,83 @@ export default function Eventbase(): EventBaseType {
         return Promise.resolve()
     }
 
-    const addEvent = async (event: EventToRecord, streamVersionIds?: Record<string, string | undefined>): Promise<StoredEventResponse> => {
+    const addEvent = async (
+        event: EventToRecord,
+        streamVersionIds?: Record<string, string | undefined>
+    ): Promise<StoredEventResponse> => {
         const newEvent: Event = {
             ...event,
             sequencenum: events.length,
         }
 
-
         // if a stream versions are provided, check they matches the current version for the referenced stream
         if (streamVersionIds && Object.keys(streamVersionIds).length > 0) {
-            await withObjectLock(objectLocks, Object.keys(streamVersionIds), async () => {
-                const mismatchedVersions = Object.entries(streamVersionIds).reduce<StreamVersionMismatch[]>(
-                    (mistmatched, [streamId, versionId]) => {
-                        const currentObjectVersionId = streamVersionIndex.get(streamId)
+            await withObjectLock(
+                objectLocks,
+                Object.keys(streamVersionIds),
+                async () => {
+                    const mismatchedVersions = Object.entries(
+                        streamVersionIds
+                    ).reduce<StreamVersionMismatch[]>(
+                        (mistmatched, [streamId, versionId]) => {
+                            const currentObjectVersionId =
+                                streamVersionIndex.get(streamId)
 
-                        if (currentObjectVersionId && currentObjectVersionId !== versionId) {
-                            mistmatched.push({
-                                streamId,
-                                expectedVersionId: versionId,
-                                actualVersionId: currentObjectVersionId,
-                            })
-                        }
-                        return mistmatched
-                    },
-                    [],
-                )
+                            if (
+                                currentObjectVersionId &&
+                                currentObjectVersionId !== versionId
+                            ) {
+                                mistmatched.push({
+                                    streamId,
+                                    expectedVersionId: versionId,
+                                    actualVersionId: currentObjectVersionId,
+                                })
+                            }
+                            return mistmatched
+                        },
+                        []
+                    )
 
-                // Do we have any stream version mismatches?
-                if (mismatchedVersions.length > 0) {
-                    throw new StreamVersionError('Version mismatch detected', mismatchedVersions)
+                    // Do we have any stream version mismatches?
+                    if (mismatchedVersions.length > 0) {
+                        throw new StreamVersionError(
+                            'Version mismatch detected',
+                            mismatchedVersions
+                        )
+                    }
                 }
-            })
-
+            )
         }
 
         streamVersionIndex.set(newEvent.streamId, newEvent.streamVersionId)
         events.push(newEvent)
 
-
         // when we update, we don't need to update all the referenced stream versions. Just this one.
 
         return Promise.resolve({
-                streamId: newEvent.streamId,
-                sequencenum: newEvent.sequencenum,
-                logdate: new Date(newEvent.meta.date).toISOString(),
-                type: newEvent.type,
-                streamVersionId: newEvent.streamVersionId,
-                data: newEvent.data,
-                meta: newEvent.meta,
-            },
-        )
+            streamId: newEvent.streamId,
+            sequencenum: newEvent.sequencenum,
+            logdate: new Date(newEvent.meta.date).toISOString(),
+            type: newEvent.type,
+            streamVersionId: newEvent.streamVersionId,
+            data: newEvent.data,
+            meta: newEvent.meta,
+        })
     }
 
     // Get all events in the correct squence for replay
     const getEventsInOrder = async (minSequenceNumber?: number) => {
-        return Promise.resolve(minSequenceNumber !== undefined ? events.slice(minSequenceNumber - 1) : events)
+        return Promise.resolve(
+            minSequenceNumber !== undefined
+                ? events.slice(minSequenceNumber - 1)
+                : events
+        )
     }
 
-    const getStreamEvents = (streamId: string): Promise<Event[] | undefined> => {
-        return Promise.resolve(events.filter(e => e.streamId === streamId))
+    const getStreamEvents = (
+        streamId: string
+    ): Promise<Event[] | undefined> => {
+        return Promise.resolve(events.filter((e) => e.streamId === streamId))
     }
 
     return {

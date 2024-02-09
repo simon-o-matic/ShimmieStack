@@ -1,12 +1,15 @@
-import express, { Application, Router } from 'express'
 import { expect, jest } from '@jest/globals'
+import express, { Router } from 'express'
+import {
+    authorizeApi,
+    customAuthorization,
+    noAuthorization,
+} from '../authorizers'
 import { mountApi, setApiVersion } from '../routes'
-import { noAuthorization, authorizeApi, customAuthorization } from '../authorizers'
 import MockedFunction = jest.MockedFunction
 
 describe('when mounting a processor', () => {
     describe('When auth is not enforced', () => {
-
         it('and its unique it should be fine', async () => {
             const appMock = jest.fn() as any
             appMock.use = jest.fn() as any
@@ -93,7 +96,9 @@ describe('when mounting a processor', () => {
             try {
                 mountApi(appMock, 'blah', '/blah', router, true)
             } catch (e: any) {
-                expect(e.message).toEqual('Authorization Not Implemented for blah at /blah')
+                expect(e.message).toEqual(
+                    'Authorization Not Implemented for blah at /blah'
+                )
                 return
             }
 
@@ -105,20 +110,21 @@ describe('when mounting a processor', () => {
             appMock.use = jest.fn() as any
             const router = express.Router()
 
-
-            router.get('myfakeauthorizedpath',
+            router.get(
+                'myfakeauthorizedpath',
                 authorizeApi(noAuthorization),
                 (req, res) => {
                     return null
-                },
+                }
             )
 
-            router.get('myfakeauthorizedpath2',
+            router.get(
+                'myfakeauthorizedpath2',
                 authorizeApi(customAuthorization),
                 (req, res) => {
                     // some custom auth happens in the handler body
                     return null
-                },
+                }
             )
 
             mountApi(appMock, 'blah', '/blah', router, true)

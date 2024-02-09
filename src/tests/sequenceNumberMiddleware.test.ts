@@ -1,9 +1,9 @@
 import { Request, Response, Router } from 'express'
-import EventBase from '../eventbase-memory'
-import ShimmieTestStack from '../shimmieteststack'
-import { Meta } from '../event'
-import { sequenceNumberMiddleware } from '../sequenceNumberMiddleware'
 import Encryption from '../encryption'
+import { Meta } from '../event'
+import EventBase from '../eventbase-memory'
+import { sequenceNumberMiddleware } from '../sequenceNumberMiddleware'
+import ShimmieTestStack from '../shimmieteststack'
 
 const meta: Meta = {
     replay: false,
@@ -16,8 +16,6 @@ const meta: Meta = {
 }
 
 describe('SequenceNumberMiddleware', () => {
-
-
     describe('with hashKey', () => {
         const eventbase = EventBase()
         const testStack = ShimmieTestStack(undefined, true, eventbase)
@@ -31,39 +29,35 @@ describe('SequenceNumberMiddleware', () => {
             testStack.restart()
             testStack.use(
                 // todo non-encrypted tests
-                sequenceNumberMiddleware(
-                    {
-                        stackEnsureMinSeqNumFunc: testStack.ensureMinSequenceNumberHandled,
-                        getLastHandledSeqNum: testStack.getLastHandledSequenceNumberHandled,
-                        hashKey,
-                    },
-                ),
+                sequenceNumberMiddleware({
+                    stackEnsureMinSeqNumFunc:
+                        testStack.ensureMinSequenceNumberHandled,
+                    getLastHandledSeqNum:
+                        testStack.getLastHandledSequenceNumberHandled,
+                    hashKey,
+                })
             )
             testStack.mountTest(
                 Router().get('/', (req: Request, res: Response) => {
                     return res.status(200).send()
-                }),
+                })
             )
             testStack.mountTest(
                 Router().post('/', (req: Request, res: Response) => {
                     return res.status(200).send()
-                }),
+                })
             )
             testStack.mountTest(
                 Router().put('/', (req: Request, res: Response) => {
                     return res.status(200).send()
-                }),
+                })
             )
             testStack.mountTest(
                 Router().delete('/', (req: Request, res: Response) => {
                     return res.status(200).send()
-                }),
+                })
             )
-            testStack.subscribe(
-                'AN EVENT',
-                () => {
-                },
-            )
+            testStack.subscribe('AN EVENT', () => {})
             testStack.recordUncheckedEvent({
                 streamId: 'streamId1',
                 eventName: 'AN EVENT',
@@ -82,8 +76,9 @@ describe('SequenceNumberMiddleware', () => {
             const resp = await testStack.testPost({ path: '/' })
             const events = await eventbase.getEventsInOrder()
             const lastEvent = events[events.length - 1]
-            expect(resp.headers['x-seq-num'])
-                .toEqual(lastEvent.sequencenum.toString())
+            expect(resp.headers['x-seq-num']).toEqual(
+                lastEvent.sequencenum.toString()
+            )
         })
 
         describe('Passing min seq num header', () => {
@@ -114,12 +109,8 @@ describe('SequenceNumberMiddleware', () => {
                 // todo remove me, disabled encrypton
                 // const decryptedValue = cryptor.decrypt(resp.headers['x-seq-num'])
                 const decryptedValue = resp.headers['x-seq-num']
-                expect(decryptedValue).toEqual(
-                    currentMaxSeqNum.toString(),
-                )
-                expect(decryptedValue).toEqual(
-                    respSeqNum,
-                )
+                expect(decryptedValue).toEqual(currentMaxSeqNum.toString())
+                expect(decryptedValue).toEqual(respSeqNum)
             })
 
             // todo remove isNan in a few weeks to allow for smooth numeric to encrypted value changeover (same comment in another spot too)
@@ -163,12 +154,14 @@ describe('SequenceNumberMiddleware', () => {
                 decryptMsTotal = decryptMsTotal + (Date.now() - endStamp)
             }
 
-            console.log(JSON.stringify({
-                encryptMsAvg: (encryptMsTotal / (iters * 1.0)),
-                decryptMsAvg: (decryptMsTotal / (iters * 1.0)),
-                encryptMsTotal,
-                decryptMsTotal,
-            }))
+            console.log(
+                JSON.stringify({
+                    encryptMsAvg: encryptMsTotal / (iters * 1.0),
+                    decryptMsAvg: decryptMsTotal / (iters * 1.0),
+                    encryptMsTotal,
+                    decryptMsTotal,
+                })
+            )
         })
     })
 
@@ -183,38 +176,34 @@ describe('SequenceNumberMiddleware', () => {
             eventbase.reset()
             testStack.restart()
             testStack.use(
-                sequenceNumberMiddleware(
-                    {
-                        stackEnsureMinSeqNumFunc: testStack.ensureMinSequenceNumberHandled,
-                        getLastHandledSeqNum: testStack.getLastHandledSequenceNumberHandled,
-                    },
-                ),
+                sequenceNumberMiddleware({
+                    stackEnsureMinSeqNumFunc:
+                        testStack.ensureMinSequenceNumberHandled,
+                    getLastHandledSeqNum:
+                        testStack.getLastHandledSequenceNumberHandled,
+                })
             )
             testStack.mountTest(
                 Router().get('/', (req: Request, res: Response) => {
                     return res.status(200).send()
-                }),
+                })
             )
             testStack.mountTest(
                 Router().post('/', (req: Request, res: Response) => {
                     return res.status(200).send()
-                }),
+                })
             )
             testStack.mountTest(
                 Router().put('/', (req: Request, res: Response) => {
                     return res.status(200).send()
-                }),
+                })
             )
             testStack.mountTest(
                 Router().delete('/', (req: Request, res: Response) => {
                     return res.status(200).send()
-                }),
+                })
             )
-            testStack.subscribe(
-                'AN EVENT',
-                () => {
-                },
-            )
+            testStack.subscribe('AN EVENT', () => {})
             testStack.recordUncheckedEvent({
                 streamId: 'streamId1',
                 eventName: 'AN EVENT',
@@ -234,7 +223,7 @@ describe('SequenceNumberMiddleware', () => {
             const events = await eventbase.getEventsInOrder()
             const lastEvent = events[events.length - 1]
             expect(resp.headers['x-seq-num']).toEqual(
-                lastEvent.sequencenum.toString(),
+                lastEvent.sequencenum.toString()
             )
         })
 
@@ -243,7 +232,7 @@ describe('SequenceNumberMiddleware', () => {
             const events = await eventbase.getEventsInOrder()
             const lastEvent = events[events.length - 1]
             expect(resp.headers['x-seq-num']).toEqual(
-                lastEvent.sequencenum.toString(),
+                lastEvent.sequencenum.toString()
             )
         })
 
@@ -252,7 +241,7 @@ describe('SequenceNumberMiddleware', () => {
             const events = await eventbase.getEventsInOrder()
             const lastEvent = events[events.length - 1]
             expect(resp.headers['x-seq-num']).toEqual(
-                lastEvent.sequencenum.toString(),
+                lastEvent.sequencenum.toString()
             )
         })
 
@@ -276,7 +265,7 @@ describe('SequenceNumberMiddleware', () => {
                     })
                     expect(resp.status).toEqual(200)
                     expect(resp.headers['x-seq-num']).toEqual(
-                        currentMaxSeqNum.toString(),
+                        currentMaxSeqNum.toString()
                     )
                     expect(mockFunc).not.toHaveBeenCalled()
                 })
@@ -302,7 +291,7 @@ describe('SequenceNumberMiddleware', () => {
                     })
                     expect(resp.status).toEqual(200)
                     expect(resp.headers['x-seq-num']).toEqual(
-                        newEvent.sequencenum.toString(),
+                        newEvent.sequencenum.toString()
                     )
                     expect(mockFunc).toHaveBeenCalledWith(newEvent.sequencenum)
                 })

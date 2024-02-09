@@ -27,7 +27,7 @@ export const withObjectLock = async (
     }
 }
 
-export const ANONYMISED_STRING = 'anonymous'
+export const ANONYMISED_STRING = ''
 export const ANONYMISED_NUM = 0
 /** Take any form of data and anonymise any fields to strip PII. This assumes
  * all strings and numbers are created equal. (e.g. won't change emails into

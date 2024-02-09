@@ -2,7 +2,14 @@
 // Set up all the routes from all over the place.
 //
 
-import { Application, ErrorRequestHandler, NextFunction, Request, Response, Router } from 'express'
+import {
+    Application,
+    ErrorRequestHandler,
+    NextFunction,
+    Request,
+    Response,
+    Router,
+} from 'express'
 import { Logger } from './logger'
 
 const timeLogger = (req: Request, res: Response, next: NextFunction) => {
@@ -52,17 +59,19 @@ export const mountApi: ApiMounter = (
 
     const finalMountPoint = apiVersion + addLeadingSlash(mountPoint)
 
-    if(enforceAuthorization){
+    if (enforceAuthorization) {
         // for each endpoint in the router
-        route.stack.forEach( (api: any ) => {
+        route.stack.forEach((api: any) => {
             // check the handler and middleware for a function called "authorizeApi"
             // express doesnt expose the Layer type :(
             const authorizer: any[] = api.route.stack.filter((layer: any) => {
-                return layer.name === "__authorizer"
+                return layer.name === '__authorizer'
             })
 
-            if(authorizer.length === 0){
-                throw new Error(`Authorization Not Implemented for ${name} at ${mountPoint}`)
+            if (authorizer.length === 0) {
+                throw new Error(
+                    `Authorization Not Implemented for ${name} at ${mountPoint}`
+                )
             }
         })
     }
@@ -85,7 +94,10 @@ export const initRoutes = (app: Application) => {
 }
 
 // Any routes that get done after all the user routes have been missed
-export const finaliseRoutes = (app: Application, errorHandler: ErrorRequestHandler): void => {
+export const finaliseRoutes = (
+    app: Application,
+    errorHandler: ErrorRequestHandler
+): void => {
     // call-all 404s
     app.use('*', catchAll404s)
 

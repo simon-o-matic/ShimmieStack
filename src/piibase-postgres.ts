@@ -1,8 +1,8 @@
-import { PiiBaseType } from './event'
 import pg from 'pg'
-const { Pool } = pg
-import { PostgresDbConfig, EventbaseError } from './eventbase-postgres'
+import { PiiBaseType } from './event'
+import { PostgresDbConfig } from './eventbase-postgres'
 import { Logger } from './logger'
+const { Pool } = pg
 
 export class PiiBaseError extends Error {
     constructor(message: string) {
@@ -17,7 +17,7 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     }
 
     const defaultPoolConfig: PostgresDbConfig = {
-        connectionTimeoutMillis: 5000 // wait 5 seconds before timeout on connect
+        connectionTimeoutMillis: 5000, // wait 5 seconds before timeout on connect
     }
 
     const pool = new Pool({
@@ -134,8 +134,8 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     }
 
     // todo implement me
-    const anonymisePiiEventData = async (keys: string[]):Promise<void> => {
-        throw new Error("Not implemented yes")
+    const anonymisePiiEventData = async (keys: string[]): Promise<void> => {
+        throw new Error('Not implemented yes')
     }
 
     return {

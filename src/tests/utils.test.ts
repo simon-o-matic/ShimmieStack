@@ -1,6 +1,6 @@
-import { withObjectLock } from '../utils'
 import { EventToRecord, ObjectLockedError } from '../event'
 import { fetchMatchStreamVersionsQuery, prepareAddEventQuery } from '../queries'
+import { withObjectLock } from '../utils'
 
 describe('Utils', () => {
     describe('withObjectLock', () => {
@@ -28,65 +28,58 @@ describe('Utils', () => {
             expect(objectLocks.has('foo')).toBeFalsy()
         })
 
-        it(
-            'should release the lock if an error is thrown in the block',
-            async () => {
-                try {
-                    await withObjectLock(
-                        objectLocks,
-                        ['foo'],
-                        async () => {
-                            expect(objectLocks.has('foo')).toBeTruthy()
-                            throw new Error('Something happened oh no!')
-                        },
-                    )
-                } catch (e: any) {
-                    expect(e instanceof ObjectLockedError).toBeFalsy()
-                    expect(e.message).toEqual('Something happened oh no!')
-                }
+        it('should release the lock if an error is thrown in the block', async () => {
+            try {
+                await withObjectLock(objectLocks, ['foo'], async () => {
+                    expect(objectLocks.has('foo')).toBeTruthy()
+                    throw new Error('Something happened oh no!')
+                })
+            } catch (e: any) {
+                expect(e instanceof ObjectLockedError).toBeFalsy()
+                expect(e.message).toEqual('Something happened oh no!')
+            }
 
-                // should release the lock once outside the wrapper
-                expect(objectLocks.has('foo')).toBeFalsy()
-            })
+            // should release the lock once outside the wrapper
+            expect(objectLocks.has('foo')).toBeFalsy()
+        })
     })
 
     describe('query formatter', () => {
         it('should correctly format for unchecked events', () => {
-
             const event: EventToRecord = {
-                'streamId': 'abc123',
-                'streamVersionId': '10',
-                'meta': {
-                    'date': 11,
-                    'user': 'exampleUser',
-                    'hasPii': false,
-                    'replay': false,
-                    'userAgent': 'exampleAgent',
+                streamId: 'abc123',
+                streamVersionId: '10',
+                meta: {
+                    date: 11,
+                    user: 'exampleUser',
+                    hasPii: false,
+                    replay: false,
+                    userAgent: 'exampleAgent',
                 },
-                'data': { 'Foo': 'Bar' },
-                'type': 'ExampleEventType',
+                data: { Foo: 'Bar' },
+                type: 'ExampleEventType',
             }
 
             const sql = prepareAddEventQuery(event)
-            expect(sql).toEqual(`insert into eventlist (StreamId, StreamVersionId, Data, Type, Meta)
+            expect(sql)
+                .toEqual(`insert into eventlist (StreamId, StreamVersionId, Data, Type, Meta)
 select \$\$abc123\$\$, \$\$10\$\$, \$\${"Foo":"Bar"}\$\$, \$\$ExampleEventType\$\$, \$\${"date":11,"user":"exampleUser","hasPii":false,"replay":false,"userAgent":"exampleAgent"}\$\$
 RETURNING sequenceNum, streamId, StreamVersionId, logdate, type, Data;`)
         })
 
         it('should correctly format for checked events', () => {
-
             const event: EventToRecord = {
-                'streamId': 'abc123',
-                'streamVersionId': '10',
-                'meta': {
-                    'date': 11,
-                    'user': 'exampleUser',
-                    'hasPii': false,
-                    'replay': false,
-                    'userAgent': 'exampleAgent',
+                streamId: 'abc123',
+                streamVersionId: '10',
+                meta: {
+                    date: 11,
+                    user: 'exampleUser',
+                    hasPii: false,
+                    replay: false,
+                    userAgent: 'exampleAgent',
                 },
-                'data': { 'Foo': 'Bar' },
-                'type': 'ExampleEventType',
+                data: { Foo: 'Bar' },
+                type: 'ExampleEventType',
             }
 
             const sql = prepareAddEventQuery(event, {
