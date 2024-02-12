@@ -115,15 +115,19 @@ export default function Eventbase(): EventBaseType {
         )
     }
 
-    const getStreamEvents = (
-        streamId: string
-    ): Promise<Event[] | undefined> => {
-        return Promise.resolve(events.filter((e) => e.streamId === streamId))
+    /** Get all events for corresponding stream IDs */
+    const getEventsByStreamIds = async (streamIds: string[]) => {
+        return Promise.resolve(
+            events.filter((event) => {
+                // need to handle those mish mash keys in profileKahuna?
+                return streamIds.includes(event.streamId)
+            })
+        )
     }
 
     return {
-        getStreamEvents,
         addEvent,
+        getEventsByStreamIds,
         getEventsInOrder,
         init,
         reset,

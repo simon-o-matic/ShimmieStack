@@ -1,4 +1,3 @@
-import { expect, jest } from '@jest/globals'
 import { Meta } from '../event'
 import { catchAllErrorHandler, EventHistory, StackType } from '../index'
 import ShimmieTestStack from '../shimmieteststack'
@@ -69,13 +68,11 @@ const TestProcessor = (testStack: StackType<RecordModels, SubscribeModels>) => {
     })
 
     const returnRequestDetails = (req: any, res: any) => {
-        return res
-            .status(200)
-            .json({
-                headers: req.headers,
-                body: req.body,
-                queryParams: req.params,
-            })
+        return res.status(200).json({
+            headers: req.headers,
+            body: req.body,
+            queryParams: req.params,
+        })
     }
     router.post('/postonly-nobodyrequired', returnRequestDetails)
 
@@ -142,8 +139,10 @@ describe('when calling posts that generate a history', () => {
             },
         })
 
-        expect(testStack.getHistory('999')?.history.length).toBe(2)
-        expect(testStack.getHistory('34sdfsT3')?.history.length).toBe(1)
+        expect((await testStack.getHistoryNew('999'))?.history.length).toBe(2)
+        expect(
+            (await testStack.getHistoryNew('34sdfsT3'))?.history.length
+        ).toBe(1)
     })
 })
 
@@ -163,7 +162,9 @@ describe('when merging histories of multiple source ids', () => {
                 data: { a: 2 },
             },
         })
-        expect(testStack.getHistory(['111', '222'])?.history).toHaveLength(2)
+        expect(
+            (await testStack.getHistoryNew(['111', '222']))?.history
+        ).toHaveLength(2)
     })
     it('should return history in the order the events occured', async () => {
         await testStack.testPost({
@@ -202,7 +203,8 @@ describe('when merging histories of multiple source ids', () => {
             },
         })
 
-        const history = testStack.getHistory(['333', '444', '555'])?.history
+        const history = (await testStack.getHistoryNew(['333', '444', '555']))
+            ?.history
         if (history) {
             const types = history.map(
                 (histEl: EventHistory<SubscribeModels>) => {
@@ -327,7 +329,9 @@ describe('when calling /whoami', () => {
             },
         ])
 
-        expect(testStack.getHistory('streamid')?.history.length).toEqual(2)
+        expect(
+            (await testStack.getHistoryNew('streamid'))?.history.length
+        ).toEqual(2)
     })
 })
 

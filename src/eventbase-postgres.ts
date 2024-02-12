@@ -3,7 +3,6 @@
 //
 import pg, { PoolConfig } from 'pg'
 import {
-    Event,
     EventBaseType,
     EventToRecord,
     StoredEventResponse,
@@ -130,10 +129,18 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
     const getEventsInOrder = async (minSequenceNumber?: number) => {
         const query =
             minSequenceNumber !== undefined
-                ? `SELECT *
-                                                         FROM eventlist
-                                                         WHERE SequenceNum >= ${minSequenceNumber}
-                                                         ORDER BY SequenceNum`
+                ? `SELECT * FROM eventlist WHERE SequenceNum >= ${minSequenceNumber} ORDER BY SequenceNum`
+                : 'SELECT * FROM eventlist ORDER BY SequenceNum'
+        return await runQuery(query)
+    }
+
+    /** Get all events for corresponding stream IDs */
+    const getEventsByStreamIds = async (streamIds: string[]) => {
+        const query =
+            streamIds.length > 0
+                ? `SELECT * FROM eventlist WHERE StreamId in (${streamIds
+                      .map((id) => `'${id}'`)
+                      .join(',')}) ORDER BY SequenceNum`
                 : 'SELECT * FROM eventlist ORDER BY SequenceNum'
         return await runQuery(query)
     }
@@ -227,16 +234,10 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
     //     return runQuery(query);
     // };
 
-    const getStreamEvents = (
-        streamId: string
-    ): Promise<Event[] | undefined> => {
-        throw new Error('Not implemented yet')
-    }
-
     return {
         getEventsInOrder,
+        getEventsByStreamIds,
         addEvent,
-        getStreamEvents,
         reset,
         deleteEvent,
         updateEventData,

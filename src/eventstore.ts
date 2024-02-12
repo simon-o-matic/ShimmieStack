@@ -15,7 +15,7 @@ import {
 } from './event'
 import EventBusNodejs from './event-bus-nodejs'
 import EventBusRedisPubsub from './event-bus-redis-pubsub'
-import { RecordEventType } from './index'
+import { EventHistory, RecordEventType } from './index'
 import { Logger, StackLogger } from './logger'
 
 export interface EventStoreType<
@@ -39,6 +39,9 @@ export interface EventStoreType<
     getLastEmittedSeqNum: () => number
     getLastHandledSeqNum: () => number
     anonymiseStreamPii: (streamId: string) => Promise<void>
+    getStreamHistory: (
+        streamIds: string[]
+    ) => Promise<EventHistory<SubscribeModels>[]>
     reset: () => Promise<void>
 }
 
@@ -303,6 +306,57 @@ export default function EventStore<
         return allEvents.length
     }
 
+    const getStreamHistory = async (
+        streamIds: string[]
+    ): Promise<EventHistory<SubscribeModels>[]> => {
+        const events = await eventbase.getEventsByStreamIds(streamIds)
+        if (events === undefined) {
+            return []
+        }
+
+        // const piiLookup = piiBase ? await piiBase.getPiiLookup() : undefined
+
+        // const withPii = piiLookup
+        //     ? events.map((event) => {
+        //           const piiKey = event.sequencenum!.toString()
+        //           if (!piiLookup.has(piiKey)) {
+        //               return event
+        //           }
+
+        //           const piiData: Record<string, any> = piiLookup.get(piiKey)
+        //           return {
+        //               ...event,
+        //               data: {
+        //                   ...event.data,
+        //                   ...piiData,
+        //               },
+        //           }
+        //       })
+        //     : events
+
+        return events.map((event) => {
+            // this way or the piiLookup way above? ask James
+            let piiData: Record<string, any> | undefined
+            if (event.meta.hasPii && piiBase) {
+                piiData = piiBase.getPiiData(event.sequencenum.toString())
+            }
+
+            // merge with pii if there is any
+            const data = {
+                ...event.data,
+                ...(piiData ? piiData : {}),
+            }
+
+            return {
+                streamId: event.streamId,
+                data: data as SubscribeModels[keyof SubscribeModels],
+                type: event.type,
+                date: event.meta.date,
+                user: event.meta.user,
+            }
+        })
+    }
+
     const deleteEvent = async (sequenceNumber: number) =>
         await eventbase.deleteEvent(sequenceNumber)
     const updateEventData = async (sequenceNumber: number, data: object) =>
@@ -333,7 +387,7 @@ export default function EventStore<
         }
 
         const streamEvents: Event[] | undefined =
-            await eventbase.getStreamEvents(streamId)
+            await eventbase.getEventsByStreamIds([streamId])
 
         const piiSequenceNumbers = streamEvents
             ?.filter((e) => e.meta.hasPii)
@@ -368,5 +422,6 @@ export default function EventStore<
         updateEventData,
         getLastEmittedSeqNum,
         getLastHandledSeqNum,
+        getStreamHistory,
     }
 }

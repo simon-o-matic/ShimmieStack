@@ -206,6 +206,9 @@ export type StackType<
     getHistory: (
         ids: string | string[]
     ) => StreamHistory<SubscribeModels> | undefined
+    getHistoryNew: (
+        ids: string | string[]
+    ) => Promise<StreamHistory<SubscribeModels> | undefined>
     ensureMinSequenceNumberHandled: ({
         minSequenceNumber,
     }: {
@@ -620,6 +623,33 @@ export default function ShimmieStack<
                 createdAt: undefined,
             }
         },
+
+        getHistoryNew: async (
+            ids: string | string[]
+        ): Promise<StreamHistory<SubscribeModels> | undefined> => {
+            const history = await eventStore.getStreamHistory(
+                Array.isArray(ids) ? ids : [ids]
+            )
+
+            if (!history) {
+                return undefined
+            }
+
+            if (history.length > 0) {
+                return {
+                    history,
+                    updatedAt: history[history?.length - 1].date,
+                    createdAt: history[0].date,
+                }
+            }
+
+            return {
+                history: [],
+                updatedAt: undefined,
+                createdAt: undefined,
+            }
+        },
+
         // add a function to be run before initialize
         registerPreInitFn: (
             fn: () => void | Promise<void>

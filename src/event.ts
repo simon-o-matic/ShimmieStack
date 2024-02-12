@@ -104,12 +104,12 @@ export interface EventBaseType {
     ) => Promise<StoredEventResponse>
     /** get events from the start to the end (for replay) optionally provide a starting point */
     getEventsInOrder: (minSequenceNumber?: number) => Promise<Event[]>
+    /** Get all events for corresponding stream IDs */
+    getEventsByStreamIds: (streamIds: string[]) => Promise<Event[] | undefined>
     /** update a single event with new data (no other fields). Protect this in production */
     updateEventData: (sequenceNumber: number, data: object) => Promise<void>
     /** delete a single event by sequence number. Protect this in production */
     deleteEvent: (sequenceNumber: number) => Promise<void>
-    /** fetch all events for a streamId in order */
-    getStreamEvents: (streamId: string) => Promise<Event[] | undefined>
     /** set up the event base */
     init: () => Promise<void>
     /** clear out all the events */
