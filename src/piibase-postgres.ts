@@ -83,7 +83,9 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     ): Promise<Record<string, any>> => {
         let query = 'SELECT Key, Data FROM pii_store'
         if (keys && keys.length > 0) {
-            query += `WHERE Key in (${keys.map((key) => `'${key}'`).join(',')})`
+            query += ` WHERE Key in (${keys
+                .map((key) => `'${key}'`)
+                .join(',')})`
         }
         const eventRows = await runQuery(query)
         const piiLookup: Record<string, any> = {}
