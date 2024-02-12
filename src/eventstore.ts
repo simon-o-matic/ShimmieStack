@@ -323,7 +323,7 @@ export default function EventStore<
             // this way or the piiLookup way above? ask James
             let piiData: Record<string, any> | undefined
             if (event.meta.hasPii && piiLookup) {
-                piiData = piiLookup.get(event.sequencenum.toString())
+                piiData = piiLookup[event.sequencenum.toString()]
             }
 
             // merge with pii if there is any

@@ -59,7 +59,7 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     ): Promise<void> => {
         const query = `UPDATE pii_store SET Data='${JSON.stringify(
             data
-        )}' WHERE Key = ${key}`
+        )}' WHERE Key = '${key}'`
 
         await runQuery(query)
         return Promise.resolve()
@@ -157,7 +157,7 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
         const piiLookup = await getPiiLookup(keys)
 
         for (const key of keys) {
-            const entry = piiLookup.get(key)
+            const entry = piiLookup[key]
             if (entry) {
                 await updatePiiEventData(key, anonymiseObject(entry))
             }
