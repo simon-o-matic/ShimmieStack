@@ -42,13 +42,24 @@ export default function PiiBase(): PiiBaseType {
     }
 
     // Get all events in the correct squence for replay
-    const getPiiLookup = async (): Promise<Record<string, any>> => {
+    const getPiiLookup = async (
+        keys?: string[]
+    ): Promise<Record<string, any>> => {
+        if (keys && keys.length > 0) {
+            return Promise.resolve(
+                new Map(
+                    [...piiData].filter(([key, value]) => keys.includes(key))
+                )
+            )
+        }
+
         return Promise.resolve(piiData)
     }
 
     const anonymisePiiEventData = async (keys: string[]): Promise<void> => {
+        const piiLookup = await getPiiLookup(keys)
         for (const key of keys) {
-            const entry = piiData.get(key)
+            const entry = piiLookup.get(key)
             if (entry) {
                 piiData.set(key, anonymiseObject(entry))
             }

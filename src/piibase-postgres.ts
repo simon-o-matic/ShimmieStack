@@ -69,8 +69,8 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     const getPiiData = async (
         key: string
     ): Promise<Record<string, any> | undefined> => {
-        const query = 'SELECT Key, Data FROM pii_store WHERE Key = $1'
-        const eventRow = await runQuery(query, [key])
+        const query = `SELECT Key, Data FROM pii_store WHERE Key = '${key}'`
+        const eventRow = await runQuery(query)
         if (!eventRow || !eventRow[0]) {
             return
         }
@@ -78,8 +78,13 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     }
 
     // Get all events as a record<Key,Data>
-    const getPiiLookup = async (): Promise<Record<string, any>> => {
-        const query = 'SELECT Key, Data FROM pii_store'
+    const getPiiLookup = async (
+        keys?: string[]
+    ): Promise<Record<string, any>> => {
+        let query = 'SELECT Key, Data FROM pii_store'
+        if (keys && keys.length > 0) {
+            query += `WHERE Key in (${keys.map((key) => `'${key}'`).join(',')})`
+        }
         const eventRows = await runQuery(query)
         const piiLookup: Record<string, any> = {}
 
@@ -147,12 +152,15 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     }
 
     const anonymisePiiEventData = async (keys: string[]): Promise<void> => {
+        const piiLookup = await getPiiLookup(keys)
+
         for (const key of keys) {
-            const entry = await getPiiData(key)
+            const entry = piiLookup.get(key)
             if (entry) {
                 await updatePiiEventData(key, anonymiseObject(entry))
             }
         }
+
         return Promise.resolve()
     }
 

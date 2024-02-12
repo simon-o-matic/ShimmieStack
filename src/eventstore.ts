@@ -314,31 +314,16 @@ export default function EventStore<
             return []
         }
 
-        // const piiLookup = piiBase ? await piiBase.getPiiLookup() : undefined
-
-        // const withPii = piiLookup
-        //     ? events.map((event) => {
-        //           const piiKey = event.sequencenum!.toString()
-        //           if (!piiLookup.has(piiKey)) {
-        //               return event
-        //           }
-
-        //           const piiData: Record<string, any> = piiLookup.get(piiKey)
-        //           return {
-        //               ...event,
-        //               data: {
-        //                   ...event.data,
-        //                   ...piiData,
-        //               },
-        //           }
-        //       })
-        //     : events
+        const seqNums = events.map((event) => event.sequencenum.toString())
+        const piiLookup = piiBase
+            ? await piiBase.getPiiLookup(seqNums)
+            : undefined
 
         return events.map((event) => {
             // this way or the piiLookup way above? ask James
             let piiData: Record<string, any> | undefined
-            if (event.meta.hasPii && piiBase) {
-                piiData = piiBase.getPiiData(event.sequencenum.toString())
+            if (event.meta.hasPii && piiLookup) {
+                piiData = piiLookup.get(event.sequencenum.toString())
             }
 
             // merge with pii if there is any

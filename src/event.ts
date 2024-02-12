@@ -124,7 +124,7 @@ export interface PiiBaseType {
     /** get a single pii record if it exists */
     getPiiData: (key: string) => Promise<Record<string, any> | undefined>
     /** get all pii records */
-    getPiiLookup: () => Promise<Record<string, any>>
+    getPiiLookup: (keys?: string[]) => Promise<Record<string, any>>
     /** anonymise data in rows with the provided keys */
     anonymisePiiEventData: (keys: string[]) => Promise<void>
     /**  prepare the piibase */
