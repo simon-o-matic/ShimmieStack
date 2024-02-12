@@ -147,9 +147,12 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
         return Promise.resolve()
     }
 
-    const updateEventData = async (sequenceNumber: number, data: object) => {
+    const updateEventData = async (
+        sequenceNumber: number,
+        data: Record<string, any>
+    ) => {
         const query = `UPDATE eventlist
-                       SET Data=${data}
+                       SET Data='${JSON.stringify(data)}'
                        WHERE SequenceNum = ${sequenceNumber}`
         await runQuery(query)
         return Promise.resolve()
