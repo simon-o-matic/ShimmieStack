@@ -138,9 +138,9 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
     const getEventsByStreamIds = async (streamIds: string[]) => {
         const query =
             streamIds.length > 0
-                ? `SELECT * FROM eventlist WHERE StreamId in (${streamIds.join(
-                      ','
-                  )}) ORDER BY SequenceNum`
+                ? `SELECT * FROM eventlist WHERE StreamId in (${streamIds
+                      .map((id) => `'${id}'`)
+                      .join(',')}) ORDER BY SequenceNum`
                 : 'SELECT * FROM eventlist ORDER BY SequenceNum'
         return await runQuery(query)
     }
