@@ -57,7 +57,9 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
         key: string,
         data: Record<string, any>
     ): Promise<void> => {
-        const query = `UPDATE pii_store SET Data=${data} WHERE Key = ${key}`
+        const query = `UPDATE pii_store SET Data='${JSON.stringify(
+            data
+        )}' WHERE Key = ${key}`
 
         await runQuery(query)
         return Promise.resolve()
