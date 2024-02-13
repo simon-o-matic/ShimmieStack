@@ -139,10 +139,8 @@ describe('when calling posts that generate a history', () => {
             },
         })
 
-        expect((await testStack.getHistoryNew('999'))?.history.length).toBe(2)
-        expect(
-            (await testStack.getHistoryNew('34sdfsT3'))?.history.length
-        ).toBe(1)
+        expect((await testStack.getHistory('999'))?.history.length).toBe(2)
+        expect((await testStack.getHistory('34sdfsT3'))?.history.length).toBe(1)
     })
 })
 
@@ -163,7 +161,7 @@ describe('when merging histories of multiple source ids', () => {
             },
         })
         expect(
-            (await testStack.getHistoryNew(['111', '222']))?.history
+            (await testStack.getHistory(['111', '222']))?.history
         ).toHaveLength(2)
     })
     it('should return history in the order the events occured', async () => {
@@ -203,7 +201,7 @@ describe('when merging histories of multiple source ids', () => {
             },
         })
 
-        const history = (await testStack.getHistoryNew(['333', '444', '555']))
+        const history = (await testStack.getHistory(['333', '444', '555']))
             ?.history
         if (history) {
             const types = history.map(
@@ -330,7 +328,7 @@ describe('when calling /whoami', () => {
         ])
 
         expect(
-            (await testStack.getHistoryNew('streamid'))?.history.length
+            (await testStack.getHistory('streamid'))?.history.length
         ).toEqual(2)
     })
 })

@@ -205,9 +205,6 @@ export type StackType<
     use: (a: any) => any
     getHistory: (
         ids: string | string[]
-    ) => StreamHistory<SubscribeModels> | undefined
-    getHistoryNew: (
-        ids: string | string[]
     ) => Promise<StreamHistory<SubscribeModels> | undefined>
     ensureMinSequenceNumberHandled: ({
         minSequenceNumber,
@@ -352,25 +349,6 @@ export default function ShimmieStack<
         }),
     })
 
-    /** set up our history listener, this breaks types */
-    eventStore.subscribe(
-        '*',
-        <EventName extends keyof SubscribeModels>(
-            e: TypedEvent<EventName, SubscribeModels[EventName]>
-        ) => {
-            const historyArray: EventHistory<SubscribeModels>[] =
-                eventHistory.get(e.streamId) || []
-            historyArray.push({
-                streamId: e.streamId,
-                data: e.data,
-                type: e.type,
-                date: e.meta.date,
-                user: e.meta.user,
-            })
-            eventHistory.set(e.streamId, historyArray)
-        }
-    )
-
     let errorHandler: ErrorRequestHandler = catchAllErrorHandler
 
     app.use(cors(config.CORS || {}))
@@ -394,9 +372,6 @@ export default function ShimmieStack<
     // store the references to functions to execute post startup
     const postInitFns: (() => void | Promise<void>)[] = []
     const preInitFns: (() => void | Promise<void>)[] = []
-
-    // do we need a way to reset this?
-    let eventHistory = new Map<string, EventHistory<SubscribeModels>[]>()
 
     const funcs: StackType<RecordModels, SubscribeModels> = {
         startup: async () => {
@@ -590,41 +565,7 @@ export default function ShimmieStack<
          * Up to the caller to collate list of related IDs, getHistory doesn't
          * know or care if they're related events
          */
-        getHistory: (
-            ids: string | string[]
-        ): StreamHistory<SubscribeModels> | undefined => {
-            let history: EventHistory<SubscribeModels>[] | undefined
-            if (typeof ids === 'string') {
-                history = eventHistory.get(ids)
-            } else {
-                history = ids
-                    .flatMap((id) => {
-                        return eventHistory.get(id)
-                    })
-                    .filter((el): el is EventHistory<SubscribeModels> => !!el)
-                    .sort((a, b) => (a.date > b.date ? 1 : -1)) // oldest first
-            }
-
-            if (!history) {
-                return undefined
-            }
-
-            if (history.length > 0) {
-                return {
-                    history,
-                    updatedAt: history[history?.length - 1].date,
-                    createdAt: history[0].date,
-                }
-            }
-
-            return {
-                history: [],
-                updatedAt: undefined,
-                createdAt: undefined,
-            }
-        },
-
-        getHistoryNew: async (
+        getHistory: async (
             ids: string | string[]
         ): Promise<StreamHistory<SubscribeModels> | undefined> => {
             const history = await eventStore.getStreamHistory(
@@ -672,7 +613,6 @@ export default function ShimmieStack<
 
         anonymiseStreamPii: (streamId: string): Promise<void> => {
             return eventStore.anonymiseStreamPii(streamId)
-            // todo also update/wipe history
         },
     }
 
