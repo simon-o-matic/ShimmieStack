@@ -115,6 +115,18 @@ export default function Eventbase(): EventBaseType {
         )
     }
 
+    const anonymiseEvents = async (streamId: string) => {
+        events
+            .filter((event) => {
+                return event.streamId === streamId
+            })
+            .forEach((event) => {
+                event.meta.piiAnonymised = true
+            })
+
+        return Promise.resolve()
+    }
+
     /** Get all events for corresponding stream IDs */
     const getEventsByStreamIds = async (streamIds: string[]) => {
         return Promise.resolve(
@@ -127,12 +139,13 @@ export default function Eventbase(): EventBaseType {
 
     return {
         addEvent,
+        anonymiseEvents,
+        deleteEvent,
         getEventsByStreamIds,
         getEventsInOrder,
         init,
         reset,
-        updateEventData,
-        deleteEvent,
         shutdown,
+        updateEventData,
     }
 }

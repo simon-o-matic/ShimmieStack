@@ -2,6 +2,7 @@
 // TODO: encapsulate the underlying database elsewhere
 //
 import pg, { PoolConfig } from 'pg'
+import Format from 'pg-format'
 import {
     EventBaseType,
     EventToRecord,
@@ -136,12 +137,14 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
 
     /** Get all events for corresponding stream IDs */
     const getEventsByStreamIds = async (streamIds: string[]) => {
-        const query =
-            streamIds.length > 0
-                ? `SELECT * FROM eventlist WHERE StreamId in (${streamIds
-                      .map((id) => `'${id}'`)
-                      .join(',')}) ORDER BY SequenceNum`
-                : 'SELECT * FROM eventlist ORDER BY SequenceNum'
+        let query = 'SELECT * FROM eventlist ORDER BY SequenceNum'
+        if (streamIds.length > 0) {
+            query = Format(
+                'SELECT * FROM eventlist WHERE StreamId in (%L) ORDER BY SequenceNum',
+                streamIds
+            )
+        }
+
         return await runQuery(query)
     }
 
@@ -158,10 +161,15 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
         sequenceNumber: number,
         data: Record<string, any>
     ) => {
-        const query = `UPDATE eventlist
-                       SET Data='${JSON.stringify(data)}'
-                       WHERE SequenceNum = ${sequenceNumber}`
-        await runQuery(query)
+        const query = `UPDATE eventlist SET Data = $1 WHERE SequenceNum = ${sequenceNumber}`
+
+        await runQuery(query, [JSON.stringify(data)])
+        return Promise.resolve()
+    }
+
+    const anonymiseEvents = async (streamId: string) => {
+        const query = `UPDATE eventlist SET meta = jsonb_set(meta, '{piiAnonymised}','true', true) WHERE StreamId = $1`
+        await runQuery(query, [streamId])
         return Promise.resolve()
     }
 
@@ -235,13 +243,14 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
     // };
 
     return {
-        getEventsInOrder,
-        getEventsByStreamIds,
         addEvent,
-        reset,
+        anonymiseEvents,
         deleteEvent,
-        updateEventData,
+        getEventsByStreamIds,
+        getEventsInOrder,
         init,
+        reset,
         shutdown,
+        updateEventData,
     }
 }

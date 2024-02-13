@@ -205,6 +205,7 @@ describe('when anonymising pii', () => {
             expect(anonymised.array[2].objectInArray).toBe(ANONYMISED_STRING)
             expect(anonymised.notAPiiField).toBe(anonEventData.notAPiiField)
             expect(anonymised.alsoNotPii).toBe(anonEventData.alsoNotPii)
+            expect(event.meta.piiAnonymised).toBe(true)
         })
     })
 })

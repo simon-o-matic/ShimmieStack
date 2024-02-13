@@ -1,4 +1,5 @@
 import pg from 'pg'
+import Format from 'pg-format'
 import { PiiBaseType } from './event'
 import { PostgresDbConfig } from './eventbase-postgres'
 import { Logger } from './logger'
@@ -57,11 +58,9 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
         key: string,
         data: Record<string, any>
     ): Promise<void> => {
-        const query = `UPDATE pii_store SET Data='${JSON.stringify(
-            data
-        )}' WHERE Key = '${key}'`
+        const query = 'UPDATE pii_store SET Data = $1 WHERE Key = $2'
 
-        await runQuery(query)
+        await runQuery(query, [JSON.stringify(data), key])
         return Promise.resolve()
     }
 
@@ -69,8 +68,8 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     const getPiiData = async (
         key: string
     ): Promise<Record<string, any> | undefined> => {
-        const query = `SELECT Key, Data FROM pii_store WHERE Key = '${key}'`
-        const eventRow = await runQuery(query)
+        const query = `SELECT Key, Data FROM pii_store WHERE Key = $1`
+        const eventRow = await runQuery(query, [key])
         if (!eventRow || !eventRow[0]) {
             return
         }
@@ -83,10 +82,12 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     ): Promise<Record<string, any>> => {
         let query = 'SELECT Key, Data FROM pii_store'
         if (keys && keys.length > 0) {
-            query += ` WHERE Key in (${keys
-                .map((key) => `'${key}'`)
-                .join(',')})`
+            query = Format(
+                'SELECT Key, Data FROM pii_store WHERE Key in (%L)',
+                keys
+            )
         }
+
         const eventRows = await runQuery(query)
         const piiLookup: Record<string, any> = {}
 

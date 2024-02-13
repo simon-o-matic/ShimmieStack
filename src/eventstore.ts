@@ -320,7 +320,6 @@ export default function EventStore<
             : undefined
 
         return events.map((event) => {
-            // this way or the piiLookup way above? ask James
             let piiData: Record<string, any> | undefined
             if (event.meta.hasPii && piiLookup) {
                 piiData = piiLookup[event.sequencenum.toString()]
@@ -393,6 +392,10 @@ export default function EventStore<
             `Found pii for ${piiSequenceNumbers.length} events to anonymise for streamId: ${streamId}`
         )
 
+        // update the meta of the corresponding events
+        await eventbase.anonymiseEvents(streamId)
+
+        // update the pii data
         return await piiBase.anonymisePiiEventData(piiSequenceNumbers)
     }
 
