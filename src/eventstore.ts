@@ -332,7 +332,7 @@ export default function EventStore<
             }
 
             return {
-                streamId: event.streamId,
+                streamId: event.streamId ?? (event as any)?.streamid,
                 data: data as SubscribeModels[keyof SubscribeModels],
                 type: event.type,
                 date: event.meta.date,
