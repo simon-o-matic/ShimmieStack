@@ -242,6 +242,10 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
     //     return runQuery(query);
     // };
 
+    const getLatestSequenceNumber = async () => {
+        return await runQuery(`SELECT max(sequencenum)::int from eventlist`)
+    }
+
     return {
         addEvent,
         anonymiseEvents,
@@ -252,5 +256,6 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
         reset,
         shutdown,
         updateEventData,
+        getLatestSequenceNumber,
     }
 }

@@ -137,6 +137,10 @@ export default function Eventbase(): EventBaseType {
         )
     }
 
+    const getLatestSequenceNumber = () => {
+        return Promise.resolve(events[events.length - 1].sequencenum)
+    }
+
     return {
         addEvent,
         anonymiseEvents,
@@ -147,5 +151,6 @@ export default function Eventbase(): EventBaseType {
         reset,
         shutdown,
         updateEventData,
+        getLatestSequenceNumber,
     }
 }

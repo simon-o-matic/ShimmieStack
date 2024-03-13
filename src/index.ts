@@ -218,6 +218,9 @@ export type StackType<
     registerPostInitFn: (
         fn: () => void | Promise<void>
     ) => StackType<RecordModels, SubscribeModels>
+    registerSequenceNumberDivergenceHandler: (
+        fn: () => void | Promise<void>,
+    ) => StackType<RecordModels, SubscribeModels>
     anonymiseStreamPii: (streamId: string) => Promise<void>
 }
 
@@ -230,13 +233,16 @@ const initializeShimmieStack = async <
     RecordModels extends Record<string, any>,
     SubscribeModels extends Record<string, any>
 >(
-    app: Express,
-    config: ShimmieConfig,
-    errorHandler: ErrorRequestHandler,
-    eventBase: EventBaseType,
-    eventStore: EventStoreType<RecordModels, SubscribeModels>,
-    piiBase?: PiiBaseType,
-    logger?: StackLogger
+    { app, config, errorHandler, eventBase, eventStore, piiBase, logger, sequenceNumberDivergenceHandler }: {
+        app: Express,
+        config: ShimmieConfig,
+        errorHandler: ErrorRequestHandler,
+        eventBase: EventBaseType,
+        eventStore: EventStoreType<RecordModels, SubscribeModels>,
+        piiBase?: PiiBaseType,
+        logger?: StackLogger
+        sequenceNumberDivergenceHandler: (params: { lastHandled: number, dbLastSeqNum: number }) => void | Promise<void>
+    },
 ) => {
     try {
         Logger.info('ShimmieStack >>>> Initializing.')
@@ -264,6 +270,13 @@ const initializeShimmieStack = async <
         const numEvents = await eventStore.replayEvents()
         Logger.info(`ShimmieStack >>>> replayed ${numEvents} events`)
 
+        // check if synced. if not, call the handler once.
+        const lastHandled = eventStore.getLastHandledSeqNum()
+        const dbLastSeqNum = await eventStore.getLatestDbSequenceNumber()
+
+        if (lastHandled !== dbLastSeqNum) {
+            await sequenceNumberDivergenceHandler({ dbLastSeqNum, lastHandled })
+        }
         // Start accepting requests from the outside world
         await startApiListener(app, config.ServerPort)
 
@@ -350,6 +363,12 @@ export default function ShimmieStack<
     })
 
     let errorHandler: ErrorRequestHandler = catchAllErrorHandler
+    let sequenceNumberDivergenceHandler: (params: {
+        lastHandled: number,
+        dbLastSeqNum: number
+    }) => void | Promise<void> = (params) => {
+        Logger.warn(`Sequence number has diverged from the DB: ${JSON.stringify({ ...params })}`, { ...params })
+    }
 
     app.use(cors(config.CORS || {}))
 
@@ -389,14 +408,15 @@ export default function ShimmieStack<
             Logger.info('ShimmieStack >>>>>>>>>>  <<<<<<<<<<')
             Logger.info('ShimmieStack >>>> INITIALIZING <<<<')
             Logger.info('ShimmieStack >>>>>>>>>>  <<<<<<<<<<')
-            await initializeShimmieStack(
+            await initializeShimmieStack({
                 app,
                 config,
                 errorHandler,
                 eventBase,
                 eventStore,
-                piiBase
-            )
+                piiBase,
+                sequenceNumberDivergenceHandler,
+            })
             // if there are any post init fns registered execute them
             if (postInitFns.length) {
                 Logger.info('ShimmieStack >>>> Running post-init functions')
@@ -604,6 +624,13 @@ export default function ShimmieStack<
             fn: () => void | Promise<void>
         ): StackType<RecordModels, SubscribeModels> => {
             postInitFns.push(fn)
+            return funcs
+        },
+
+        registerSequenceNumberDivergenceHandler: (
+            fn: (params: { lastHandled: number, dbLastSeqNum: number }) => void | Promise<void>,
+        ): StackType<RecordModels, SubscribeModels> => {
+            sequenceNumberDivergenceHandler = fn
             return funcs
         },
 

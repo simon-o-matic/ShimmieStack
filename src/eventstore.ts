@@ -38,6 +38,7 @@ export interface EventStoreType<
     }) => Promise<any>
     getLastEmittedSeqNum: () => number
     getLastHandledSeqNum: () => number
+    getLatestDbSequenceNumber: () => Promise<number>
     anonymiseStreamPii: (streamId: string) => Promise<void>
     getStreamHistory: (
         streamIds: string[]
@@ -363,6 +364,7 @@ export default function EventStore<
 
     const getLastEmittedSeqNum = () => stackEventBus.getLastEmittedSeqNum()
     const getLastHandledSeqNum = () => stackEventBus.getLastHandledSeqNum()
+    const getLatestDbSequenceNumber = () => eventbase.getLatestSequenceNumber()
 
     const anonymiseStreamPii = async (streamId: string): Promise<void> => {
         _logger.info(`Attempting to anonymise data for streamId: ${streamId}`)
@@ -411,5 +413,6 @@ export default function EventStore<
         getLastEmittedSeqNum,
         getLastHandledSeqNum,
         getStreamHistory,
+        getLatestDbSequenceNumber,
     }
 }

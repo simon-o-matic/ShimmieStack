@@ -109,6 +109,8 @@ export interface EventBaseType {
     getEventsByStreamIds: (streamIds: string[]) => Promise<Event[] | undefined>
     /** Updated meta on event to show corresponding pii has been anonymised */
     anonymiseEvents: (streamId: string) => Promise<void>
+    /** fetch the maximum sequence number currently in the eventbase */
+    getLatestSequenceNumber: () => Promise<number>
     /** update a single event with new data (no other fields). Protect this in production */
     updateEventData: (sequenceNumber: number, data: object) => Promise<void>
     /** delete a single event by sequence number. Protect this in production */
