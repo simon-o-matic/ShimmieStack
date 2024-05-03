@@ -243,7 +243,11 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
     // };
 
     const getLatestSequenceNumber = async () => {
-        return await runQuery(`SELECT max(sequencenum)::int from eventlist`)
+        try {
+            return (await runQuery(`SELECT max(sequencenum)::int from eventlist`))[0].max
+        } catch (err: any) {
+            throw new Error(`Error fetching max sequence number: ${err.message}`)
+        }
     }
 
     return {

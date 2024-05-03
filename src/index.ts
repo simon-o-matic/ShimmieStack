@@ -219,7 +219,7 @@ export type StackType<
         fn: () => void | Promise<void>
     ) => StackType<RecordModels, SubscribeModels>
     registerSequenceNumberDivergenceHandler: (
-        fn: () => void | Promise<void>,
+        fn: (params: { lastHandled: number, dbLastSeqNum: number }) => void | Promise<void>,
     ) => StackType<RecordModels, SubscribeModels>
     anonymiseStreamPii: (streamId: string) => Promise<void>
 }
