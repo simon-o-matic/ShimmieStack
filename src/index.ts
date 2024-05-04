@@ -418,6 +418,7 @@ export default function ShimmieStack<
                 errorHandler,
                 eventBase,
                 eventStore,
+                minSequenceNumber,
                 piiBase,
                 sequenceNumberDivergenceHandler,
             })
