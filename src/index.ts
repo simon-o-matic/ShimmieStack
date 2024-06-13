@@ -219,7 +219,7 @@ export type StackType<
         fn: () => void | Promise<void>
     ) => StackType<RecordModels, SubscribeModels>
     registerSequenceNumberDivergenceHandler: (
-        fn: () => void | Promise<void>,
+        fn: () => void | Promise<void>
     ) => StackType<RecordModels, SubscribeModels>
     anonymiseStreamPii: (streamId: string) => Promise<void>
 }
@@ -232,18 +232,28 @@ const startApiListener = async (app: Application, port: number) => {
 const initializeShimmieStack = async <
     RecordModels extends Record<string, any>,
     SubscribeModels extends Record<string, any>
->(
-    { app, config, errorHandler, eventBase, eventStore, piiBase, logger, sequenceNumberDivergenceHandler }: {
-        app: Express,
-        config: ShimmieConfig,
-        errorHandler: ErrorRequestHandler,
-        eventBase: EventBaseType,
-        eventStore: EventStoreType<RecordModels, SubscribeModels>,
-        piiBase?: PiiBaseType,
-        logger?: StackLogger
-        sequenceNumberDivergenceHandler: (params: { lastHandled: number, dbLastSeqNum: number }) => void | Promise<void>
-    },
-) => {
+>({
+    app,
+    config,
+    errorHandler,
+    eventBase,
+    eventStore,
+    piiBase,
+    logger,
+    sequenceNumberDivergenceHandler,
+}: {
+    app: Express
+    config: ShimmieConfig
+    errorHandler: ErrorRequestHandler
+    eventBase: EventBaseType
+    eventStore: EventStoreType<RecordModels, SubscribeModels>
+    piiBase?: PiiBaseType
+    logger?: StackLogger
+    sequenceNumberDivergenceHandler: (params: {
+        lastHandled: number
+        dbLastSeqNum: number
+    }) => void | Promise<void>
+}) => {
     try {
         Logger.info('ShimmieStack >>>> Initializing.')
         Logger.info('ShimmieStack >>>> Environment: ' + process.env.NODE_ENV)
@@ -343,6 +353,8 @@ export default function ShimmieStack<
             limit: config.maxRequestSize,
         })
     )
+
+    app.use(express.urlencoded({ extended: true }))
     app.use(cookieParser())
 
     // if the caller provided a custom logger, use it
@@ -364,10 +376,15 @@ export default function ShimmieStack<
 
     let errorHandler: ErrorRequestHandler = catchAllErrorHandler
     let sequenceNumberDivergenceHandler: (params: {
-        lastHandled: number,
+        lastHandled: number
         dbLastSeqNum: number
     }) => void | Promise<void> = (params) => {
-        Logger.warn(`Sequence number has diverged from the DB: ${JSON.stringify({ ...params })}`, { ...params })
+        Logger.warn(
+            `Sequence number has diverged from the DB: ${JSON.stringify({
+                ...params,
+            })}`,
+            { ...params }
+        )
     }
 
     app.use(cors(config.CORS || {}))
@@ -628,7 +645,10 @@ export default function ShimmieStack<
         },
 
         registerSequenceNumberDivergenceHandler: (
-            fn: (params: { lastHandled: number, dbLastSeqNum: number }) => void | Promise<void>,
+            fn: (params: {
+                lastHandled: number
+                dbLastSeqNum: number
+            }) => void | Promise<void>
         ): StackType<RecordModels, SubscribeModels> => {
             sequenceNumberDivergenceHandler = fn
             return funcs
