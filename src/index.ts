@@ -3,7 +3,15 @@
 //
 import cookieParser from 'cookie-parser'
 import cors, { CorsOptions } from 'cors'
-import express, { Application, ErrorRequestHandler, Express, NextFunction, Request, Response, Router } from 'express'
+import express, {
+    Application,
+    ErrorRequestHandler,
+    Express,
+    NextFunction,
+    Request,
+    Response,
+    Router,
+} from 'express'
 import { AuthorizerFunc } from './authorizers'
 import {
     Event,
@@ -20,10 +28,12 @@ import {
     WILDCARD_TYPE,
 } from './event'
 import EventBusNodejs from './event-bus-nodejs'
-import EventBusRedisPubsub, { EventBusRedisPubsubOptions } from './event-bus-redis-pubsub'
+import EventBusRedisPubsub, {
+    EventBusRedisPubsubOptions,
+} from './event-bus-redis-pubsub'
 import { PostgresDbConfig } from './eventbase-postgres'
 import EventStore, { EventStoreType } from './eventstore'
-import { configureLogger, Logger, StackLogger } from './logger'
+import { Logger, StackLogger, configureLogger } from './logger'
 import * as routes from './routes'
 
 export {
@@ -161,18 +171,18 @@ export type StackType<
     setApiVersion: (version: string) => StackType<RecordModels, SubscribeModels>
     getRouter: () => Router
     recordEvent: <EventName extends keyof RecordModels>(
-        event: RecordEventType<RecordModels, EventName>,
+        event: RecordEventType<RecordModels, EventName>
     ) => Promise<void>
     recordUncheckedEvent: <EventName extends keyof RecordModels>(
-        event: RecordUncheckedEventType<RecordModels, EventName>,
+        event: RecordUncheckedEventType<RecordModels, EventName>
     ) => Promise<void>
     recordEvents: <EventName extends keyof RecordModels>(
         events: RecordEventType<RecordModels, EventName>[],
-        executionOrder?: ExecutionOrder,
+        executionOrder?: ExecutionOrder
     ) => Promise<void>
     recordUncheckedEvents: <EventName extends keyof RecordModels>(
         events: RecordUncheckedEventType<RecordModels, EventName>[],
-        executionOrder?: ExecutionOrder,
+        executionOrder?: ExecutionOrder
     ) => Promise<void>
     startup: (minSequenceNumber?: number) => void
     restart: () => Promise<void>
@@ -180,36 +190,39 @@ export type StackType<
     registerModel<T>(name: string, model: T): void
     getModel<T>(name: string): T
     setErrorHandler(
-        fn: ErrorRequestHandler,
+        fn: ErrorRequestHandler
     ): StackType<RecordModels, SubscribeModels>
     setAppConfig(key: string, value: unknown): void
     mountProcessor: (
         name: string,
         mountPoint: string,
-        router: Router,
+        router: Router
     ) => StackType<RecordModels, SubscribeModels>
     subscribe: <EventName extends keyof SubscribeModels>(
         type: EventName,
-        handler: TypedEventHandler<EventName, SubscribeModels[EventName]>,
+        handler: TypedEventHandler<EventName, SubscribeModels[EventName]>
     ) => void
     use: (a: any) => any
     getHistory: (
-        ids: string | string[],
+        ids: string | string[]
     ) => Promise<StreamHistory<SubscribeModels> | undefined>
     ensureMinSequenceNumberHandled: ({
-                                         minSequenceNumber,
-                                     }: {
+        minSequenceNumber,
+    }: {
         minSequenceNumber: number
     }) => Promise<number>
     getLastHandledSequenceNumberHandled: () => number
     registerPreInitFn: (
-        fn: () => void | Promise<void>,
+        fn: () => void | Promise<void>
     ) => StackType<RecordModels, SubscribeModels>
     registerPostInitFn: (
-        fn: () => void | Promise<void>,
+        fn: () => void | Promise<void>
     ) => StackType<RecordModels, SubscribeModels>
     registerSequenceNumberDivergenceHandler: (
-        fn: (params: { lastHandled: number, dbLastSeqNum: number }) => void | Promise<void>,
+        fn: (params: {
+            lastHandled: number
+            dbLastSeqNum: number
+        }) => void | Promise<void>
     ) => StackType<RecordModels, SubscribeModels>
     anonymiseStreamPii: (streamId: string) => Promise<void>
 }
@@ -222,34 +235,35 @@ const startApiListener = async (app: Application, port: number) => {
 const initializeShimmieStack = async <
     RecordModels extends Record<string, any>,
     SubscribeModels extends Record<string, any>
->(
-    {
-        app,
-        config,
-        errorHandler,
-        eventBase,
-        eventStore,
-        piiBase,
-        minSequenceNumber,
-        logger,
-        sequenceNumberDivergenceHandler,
-    }: {
-        app: Express,
-        config: ShimmieConfig,
-        errorHandler: ErrorRequestHandler,
-        eventBase: EventBaseType,
-        eventStore: EventStoreType<RecordModels, SubscribeModels>,
-        minSequenceNumber?: number, // if we want to start from a given point in the event stream
-        piiBase?: PiiBaseType,
-        logger?: StackLogger
-        sequenceNumberDivergenceHandler: (params: { lastHandled: number, dbLastSeqNum: number }) => void | Promise<void>
-    },
-) => {
+>({
+    app,
+    config,
+    errorHandler,
+    eventBase,
+    eventStore,
+    piiBase,
+    minSequenceNumber,
+    logger,
+    sequenceNumberDivergenceHandler,
+}: {
+    app: Express
+    config: ShimmieConfig
+    errorHandler: ErrorRequestHandler
+    eventBase: EventBaseType
+    eventStore: EventStoreType<RecordModels, SubscribeModels>
+    minSequenceNumber?: number // if we want to start from a given point in the event stream
+    piiBase?: PiiBaseType
+    logger?: StackLogger
+    sequenceNumberDivergenceHandler: (params: {
+        lastHandled: number
+        dbLastSeqNum: number
+    }) => void | Promise<void>
+}) => {
     try {
         Logger.info('ShimmieStack >>>> Initializing.')
         Logger.info('ShimmieStack >>>> Environment: ' + process.env.NODE_ENV)
         Logger.info(
-            'ShimmieStack >>>> Finalizing routes, setting up 404 and error handlers.',
+            'ShimmieStack >>>> Finalizing routes, setting up 404 and error handlers.'
         )
         routes.finaliseRoutes(app, errorHandler)
         Logger.info('ShimmieStack >>>>: All processors mounted')
@@ -264,12 +278,15 @@ const initializeShimmieStack = async <
         }
 
         // Process the entire event history on start up and load into memory
-        Logger.info('ShimmieStack >>>> Executing from seqnum: ' + (minSequenceNumber ?? '0'))
+        Logger.info(
+            'ShimmieStack >>>> Executing from seqnum: ' +
+                (minSequenceNumber ?? '0')
+        )
 
         Logger.info(
-            minSequenceNumber ?
-                `ShimmieStack >>>> Starting to replay the event stream to rebuild memory models from sequence number: ${minSequenceNumber}` :
-                `ShimmieStack >>>> Starting to replay the entire event stream to rebuild memory models`,
+            minSequenceNumber
+                ? `ShimmieStack >>>> Starting to replay the event stream to rebuild memory models from sequence number: ${minSequenceNumber}`
+                : `ShimmieStack >>>> Starting to replay the entire event stream to rebuild memory models`
         )
         const numEvents = await eventStore.replayEvents(minSequenceNumber)
         Logger.info(`ShimmieStack >>>> replayed ${numEvents} events`)
@@ -296,7 +313,7 @@ export const catchAllErrorHandler: ErrorRequestHandler = (
     err: any,
     req: Request,
     res: Response,
-    _next: NextFunction,
+    _next: NextFunction
 ) => {
     let status = err.status ?? err.statusCode ?? 500
     Logger.error(`Caught an unhandled error:  ${err.message}`)
@@ -312,7 +329,7 @@ export default function ShimmieStack<
     adminAuthorizer: AuthorizerFunc, // Authorizer function for the admin APIs (see authorizer.ts)
     piiBase?: PiiBaseType,
     appLogger?: StackLogger,
-    eventBusOptions?: EventBusOptions,
+    eventBusOptions?: EventBusOptions
 ): StackType<RecordModels, SubscribeModels> {
     /** Errors stop the server if not initialised, if initialised they continue on
      *  needs to be an object so any changes to it in this file will reflect
@@ -325,7 +342,7 @@ export default function ShimmieStack<
 
     let app: Express = express()
 
-    process.on('uncaughtException', function(err) {
+    process.on('uncaughtException', function (err) {
         // use `winston` or your own Logger instance as appropriate
         Logger.error(`Uncaught exception occurred: ${err} - ${err.stack}`)
         if (!stackInitialised.initialised) {
@@ -345,8 +362,10 @@ export default function ShimmieStack<
                 req.rawBody = buf
             },
             limit: config.maxRequestSize,
-        }),
+        })
     )
+
+    app.use(express.urlencoded({ extended: true }))
     app.use(cookieParser())
 
     // if the caller provided a custom logger, use it
@@ -368,10 +387,15 @@ export default function ShimmieStack<
 
     let errorHandler: ErrorRequestHandler = catchAllErrorHandler
     let sequenceNumberDivergenceHandler: (params: {
-        lastHandled: number,
+        lastHandled: number
         dbLastSeqNum: number
     }) => void | Promise<void> = (params) => {
-        Logger.warn(`Sequence number has diverged from the DB: ${JSON.stringify({ ...params })}`, { ...params })
+        Logger.warn(
+            `Sequence number has diverged from the DB: ${JSON.stringify({
+                ...params,
+            })}`,
+            { ...params }
+        )
     }
 
     app.use(cors(config.CORS || {}))
@@ -403,7 +427,7 @@ export default function ShimmieStack<
                 Logger.info('ShimmieStack >>>> Running pre-init functions')
                 await Promise.all(preInitFns.map((f) => f()))
                 Logger.info(
-                    'ShimmieStack >>>> Successfully completed pre-init functions',
+                    'ShimmieStack >>>> Successfully completed pre-init functions'
                 )
             } else {
                 Logger.info('ShimmieStack >>>> No pre-init functions to run')
@@ -427,7 +451,7 @@ export default function ShimmieStack<
                 Logger.info('ShimmieStack >>>> Running post-init functions')
                 await Promise.all(postInitFns.map((f) => f()))
                 Logger.info(
-                    'ShimmieStack >>>> Successfully compelted post-init functions',
+                    'ShimmieStack >>>> Successfully compelted post-init functions'
                 )
             } else {
                 Logger.info('ShimmieStack >>>> No post-init functions to run')
@@ -444,7 +468,7 @@ export default function ShimmieStack<
         },
 
         setApiVersion: (
-            version: string,
+            version: string
         ): StackType<RecordModels, SubscribeModels> => {
             routes.setApiVersion(version)
             return funcs
@@ -460,7 +484,7 @@ export default function ShimmieStack<
             return modelStore[name]
         },
         setErrorHandler: (
-            handler: ErrorRequestHandler,
+            handler: ErrorRequestHandler
         ): StackType<RecordModels, SubscribeModels> => {
             errorHandler = handler
             Logger.info('ShimmieStack >>>> Overridden default error handler')
@@ -470,14 +494,14 @@ export default function ShimmieStack<
         mountProcessor: (
             name: string,
             mountPoint: string,
-            router: Router,
+            router: Router
         ): StackType<RecordModels, SubscribeModels> => {
             const url = routes.mountApi(
                 app,
                 name,
                 mountPoint,
                 router,
-                config.enforceAuthorization,
+                config.enforceAuthorization
             )
             Logger.info(`ShimmieStack >>>> Mounted ${url} with [${name}]`)
             return funcs
@@ -485,28 +509,28 @@ export default function ShimmieStack<
 
         subscribe<EventName extends keyof SubscribeModels>(
             type: EventName,
-            handler: TypedEventHandler<EventName, SubscribeModels[EventName]>,
+            handler: TypedEventHandler<EventName, SubscribeModels[EventName]>
         ) {
             eventStore.subscribe(type, handler)
             Logger.info(
-                `ShimmieStack >>>> Registered event handler: ${String(type)}`,
+                `ShimmieStack >>>> Registered event handler: ${String(type)}`
             )
         },
         recordUncheckedEvents: <EventName extends keyof RecordModels>(
             events: RecordUncheckedEventType<RecordModels, EventName>[],
-            executionOrder?: ExecutionOrder,
+            executionOrder?: ExecutionOrder
         ): Promise<void> => {
             return funcs.recordEvents(
                 events.map((e) => ({
                     ...e,
                     streamVersionIds: 'STREAM_VERSIONING_DISABLED',
                 })),
-                executionOrder,
+                executionOrder
             )
         },
         recordEvents: async <EventName extends keyof RecordModels>(
             events: RecordEventType<RecordModels, EventName>[],
-            executionOrder?: ExecutionOrder,
+            executionOrder?: ExecutionOrder
         ) => {
             const executeConcurrently =
                 executionOrder === ExecutionOrder.CONCURRENT
@@ -545,14 +569,14 @@ export default function ShimmieStack<
         },
         // shorthand for disabling versionIds
         recordUncheckedEvent: <EventName extends keyof RecordModels>(
-            event: RecordUncheckedEventType<RecordModels, EventName>,
+            event: RecordUncheckedEventType<RecordModels, EventName>
         ): Promise<void> =>
             eventStore.recordEvent({
                 ...event,
                 streamVersionIds: 'STREAM_VERSIONING_DISABLED',
             }),
         recordEvent: <EventName extends keyof RecordModels>(
-            event: RecordEventType<RecordModels, EventName>,
+            event: RecordEventType<RecordModels, EventName>
         ): Promise<void> => eventStore.recordEvent(event),
 
         // Make a new Express router
@@ -562,8 +586,8 @@ export default function ShimmieStack<
         use: (a: any) => app.use(a),
 
         ensureMinSequenceNumberHandled: async ({
-                                                   minSequenceNumber,
-                                               }): Promise<number> => {
+            minSequenceNumber,
+        }): Promise<number> => {
             // replay any events after the last handled, if the requested minimum > last handled
             if (eventStore.getLastHandledSeqNum() < minSequenceNumber) {
                 Logger.debug(
@@ -572,8 +596,8 @@ export default function ShimmieStack<
                             minSequenceNumber,
                             lastHandledSeqNum:
                                 eventStore.getLastHandledSeqNum(),
-                        },
-                    )}`,
+                        }
+                    )}`
                 )
                 await eventStore.replayEvents(minSequenceNumber)
             }
@@ -591,10 +615,10 @@ export default function ShimmieStack<
          * know or care if they're related events
          */
         getHistory: async (
-            ids: string | string[],
+            ids: string | string[]
         ): Promise<StreamHistory<SubscribeModels> | undefined> => {
             const history = await eventStore.getStreamHistory(
-                Array.isArray(ids) ? ids : [ids],
+                Array.isArray(ids) ? ids : [ids]
             )
 
             if (!history) {
@@ -618,7 +642,7 @@ export default function ShimmieStack<
 
         // add a function to be run before initialize
         registerPreInitFn: (
-            fn: () => void | Promise<void>,
+            fn: () => void | Promise<void>
         ): StackType<RecordModels, SubscribeModels> => {
             preInitFns.push(fn)
             return funcs
@@ -626,14 +650,17 @@ export default function ShimmieStack<
 
         // add a function to be run after initialize
         registerPostInitFn: (
-            fn: () => void | Promise<void>,
+            fn: () => void | Promise<void>
         ): StackType<RecordModels, SubscribeModels> => {
             postInitFns.push(fn)
             return funcs
         },
 
         registerSequenceNumberDivergenceHandler: (
-            fn: (params: { lastHandled: number, dbLastSeqNum: number }) => void | Promise<void>,
+            fn: (params: {
+                lastHandled: number
+                dbLastSeqNum: number
+            }) => void | Promise<void>
         ): StackType<RecordModels, SubscribeModels> => {
             sequenceNumberDivergenceHandler = fn
             return funcs
