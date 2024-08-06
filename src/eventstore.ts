@@ -246,6 +246,11 @@ export default function EventStore<
             minSequenceNumber,
         })
 
+        /** if we are initialising from the current max seq num, update the event bus so it knows it */
+        if(allEvents.length === 0) {
+            stackEventBus.init(minSequenceNumber)
+        }
+
         // get all the events WITHOUT Pii, so we don't iterate them twice.
         let piiLookup: Record<string, any> | undefined
 

@@ -25,6 +25,10 @@ export default function EventBusNodejs({
         lastEmittedSeqNum = -1
     }
 
+    const init = (initialSequenceNumber?: number) => {
+        lastHandledSeqNum = initialSequenceNumber ? initialSequenceNumber : lastHandledSeqNum
+    }
+
     const emit = (type: string, event: Event | StoredEventResponse): void => {
         lastEmittedSeqNum = event.sequencenum
         if (!!options?.initialised) {
@@ -70,6 +74,7 @@ export default function EventBusNodejs({
     return {
         emit,
         on,
+        init,
         reset,
         getLastEmittedSeqNum,
         getLastHandledSeqNum,

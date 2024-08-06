@@ -63,6 +63,7 @@ export type StoredEventResponse<EventName = string, EventType = any> =
 export interface EventBusType {
     on: (type: string, callback: (...args: any[]) => void) => void
     emit: (type: string, event: Event) => void
+    init: (initialSequenceNumber?: number) => void
     getLastEmittedSeqNum: () => number
     getLastHandledSeqNum: () => number
     reset: () => void

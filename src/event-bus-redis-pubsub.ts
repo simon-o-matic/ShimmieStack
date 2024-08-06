@@ -178,6 +178,7 @@ export default function EventBusRedisPubsub({
     return {
         emit,
         reset: nodeEventBus.reset,
+        init: nodeEventBus.init,
         on,
         getLastEmittedSeqNum,
         getLastHandledSeqNum,
