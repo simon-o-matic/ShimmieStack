@@ -247,7 +247,7 @@ export default function EventStore<
         minSequenceNumber?: number,
         chunkSize?: number // chunk size to split the events into
     }): Promise<number> => {
-        const { minSequenceNumber=0, chunkSize=100_000 } = params ?? {}
+        const { minSequenceNumber=0, chunkSize=100_0 } = params ?? {}
         _logger.debug(
             `Executing replayEvents events ${JSON.stringify(options)}`,
         )
@@ -320,7 +320,7 @@ export default function EventStore<
                 if (!!options.initialised) {
                     _logger.debug(`Replaying event: ${event.sequencenum}`)
                 }
-                stackEventBus.emit(event.type, event)
+                await stackEventBus.emit(event.type, event)
             }
 
             // fetch the next chunk

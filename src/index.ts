@@ -288,7 +288,7 @@ const initializeShimmieStack = async <
                 ? `ShimmieStack >>>> Starting to replay the event stream to rebuild memory models from sequence number: ${minSequenceNumber}`
                 : `ShimmieStack >>>> Starting to replay the entire event stream to rebuild memory models`
         )
-        const numEvents = await eventStore.replayEvents(minSequenceNumber)
+        const numEvents = await eventStore.replayEvents({ minSequenceNumber })
         Logger.info(`ShimmieStack >>>> replayed ${numEvents} events`)
 
         // check if synced. if not, call the handler once.

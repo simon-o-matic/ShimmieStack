@@ -138,7 +138,7 @@ export default function EventBusRedisPubsub({
         })
     }
 
-    const emit = (type: string, event: Event | StoredEventResponse): void => {
+    const emit = async (type: string, event: Event | StoredEventResponse): Promise<void> => {
         if (!!options?.initialised) {
             _logger.debug(`${event.sequencenum}: Beginning event emit`)
         }
@@ -159,7 +159,7 @@ export default function EventBusRedisPubsub({
         if (!!options?.initialised) {
             _logger.debug(`${event.sequencenum}: Emitting locally`)
         }
-        nodeEventBus.emit(type, event)
+        await nodeEventBus.emit(type, event)
     }
 
     const on = (type: string, callback: (...args: any[]) => void): void => {

@@ -40,6 +40,8 @@ export interface ShimmieTestStackType<
     use: (a: any) => any
 }
 
+export type SupertestResponse = supertest.Response
+
 // allow indexed function lookup by name
 type SuperTester = supertest.SuperTest<supertest.Test> & Record<string, any>
 
