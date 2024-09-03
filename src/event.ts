@@ -105,7 +105,8 @@ export interface EventBaseType {
         streamVersionIds?: Record<string, string | undefined>
     ) => Promise<StoredEventResponse>
     /** get events from the start to the end (for replay) optionally provide a starting point */
-    getEventsInOrder: (minSequenceNumber?: number) => Promise<Event[]>
+    getEventsInOrder: (params?: { chunkSize?: number, minSequenceNumber?: number
+}) => Promise<Event[]>
     /** Get all events for corresponding stream IDs */
     getEventsByStreamIds: (streamIds: string[]) => Promise<Event[] | undefined>
     /** Updated meta on event to show corresponding pii has been anonymised */

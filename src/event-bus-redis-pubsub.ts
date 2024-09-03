@@ -1,11 +1,6 @@
 import AsyncLock from 'async-lock'
 import Redis, { RedisOptions } from 'ioredis'
-import {
-    Event,
-    EventBusType,
-    GLOBAL_CHANNEL,
-    StoredEventResponse,
-} from './event'
+import { Event, EventBusType, GLOBAL_CHANNEL, StoredEventResponse } from './event'
 import EventBusNodejs from './event-bus-nodejs'
 import { Logger, StackLogger } from './logger'
 
@@ -14,7 +9,7 @@ export interface EventBusRedisPubsubOptions {
     subscribe?: boolean
     logger?: StackLogger
     redisOptions?: RedisOptions
-    replayFunc?: (seqNum: number) => Promise<number>
+    replayFunc?: (params: { seqNum: number, chunkSize?: number }) => Promise<number>
     options?: { initialised: boolean }
 }
 
@@ -30,13 +25,13 @@ export class RedisPubsubError extends Error {
 }
 
 export default function EventBusRedisPubsub({
-    url,
-    redisOptions,
-    logger,
-    replayFunc,
-    subscribe = true,
-    options,
-}: EventBusRedisPubsubOptions): EventBusType {
+                                                url,
+                                                redisOptions,
+                                                logger,
+                                                replayFunc,
+                                                subscribe = true,
+                                                options,
+                                            }: EventBusRedisPubsubOptions): EventBusType {
     const pubClient = redisOptions
         ? new Redis(url, redisOptions)
         : new Redis(url)
@@ -61,7 +56,7 @@ export default function EventBusRedisPubsub({
             if (err) {
                 throw new RedisPubsubError(
                     `An error occurred subscribing to redis event bus: ${err.message}`,
-                    err
+                    err,
                 )
             }
         })
@@ -69,14 +64,14 @@ export default function EventBusRedisPubsub({
         subClient.on('message', async (channel, message) => {
             if (!options?.initialised) {
                 _logger.debug(
-                    `Message received via PubSub before app initialised.`
+                    `Message received via PubSub before app initialised.`,
                 )
                 return
             }
             try {
                 const event: StoredEventResponse = JSON.parse(message)
                 _logger.debug(
-                    `${event.sequencenum}: Handling new event via PubSub`
+                    `${event.sequencenum}: Handling new event via PubSub`,
                 )
 
                 // Only process one event at a time.
@@ -88,7 +83,7 @@ export default function EventBusRedisPubsub({
                     const expectedSeqNum =
                         nodeEventBus.getLastHandledSeqNum() + 1
                     _logger.debug(
-                        `${event.sequencenum}: Expected SeqNum: ${expectedSeqNum}`
+                        `${event.sequencenum}: Expected SeqNum: ${expectedSeqNum}`,
                     )
 
                     const eventBusDelayMs = event.meta.emittedAt
@@ -100,13 +95,13 @@ export default function EventBusRedisPubsub({
                             {
                                 sequenceNum: event.sequencenum,
                                 eventBusDelay: eventBusDelayMs,
-                            }
+                            },
                         )
                     }
                     // if we are ahead of this event, don't do anything.
                     if (event.sequencenum < expectedSeqNum) {
                         _logger.debug(
-                            `${event.sequencenum}: Expected SeqNum (${expectedSeqNum}) > event.Seqnum (${event.sequencenum}) skipping`
+                            `${event.sequencenum}: Expected SeqNum (${expectedSeqNum}) > event.Seqnum (${event.sequencenum}) skipping`,
                         )
                         return
                     }
@@ -129,15 +124,15 @@ export default function EventBusRedisPubsub({
                     }
 
                     _logger.debug(
-                        `${event.sequencenum}: Received event out of order, triggering replay`
+                        `${event.sequencenum}: Received event out of order, triggering replay`,
                     )
                     // if we are here, our local is potentially behind/missing events. Go fetch any missing events.
-                    await replayFunc(expectedSeqNum)
+                    await replayFunc({ seqNum: expectedSeqNum })
                     _logger.debug(`${event.sequencenum}: Replay complete`)
                 })
             } catch (e) {
                 _logger.warn(
-                    `Unable to parse or local emit redis message: ${e}`
+                    `Unable to parse or local emit redis message: ${e}`,
                 )
             }
         })
@@ -158,7 +153,7 @@ export default function EventBusRedisPubsub({
                         ...event.meta,
                         emittedAt: Date.now(),
                     },
-                })
+                }),
             )
         }
         if (!!options?.initialised) {

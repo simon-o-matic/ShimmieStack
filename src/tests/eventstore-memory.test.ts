@@ -13,14 +13,12 @@ interface AnEventName {
 
 type RecordModels = {
     AN_EVENT_NAME: AnEventName
+    'AN EVENT': {}
     AN_EVENT_WITH_NO_LISTENERS_NAME: { data: string }
     ANOTHER_EVENT_NAME: { data: number }
 }
 
-type SubscribeModels = {
-    AN_EVENT_NAME: { data: string }
-    ANOTHER_EVENT_NAME: { data: number }
-}
+type SubscribeModels = RecordModels
 
 const eventStore = EventStore<RecordModels, SubscribeModels>({
     eventbase: eventBase,
@@ -59,7 +57,8 @@ describe('EventStore Memory', () => {
 
     describe('when recording an event', () => {
         it('there should be one event in the database if one is recorded', async () => {
-            eventStore.subscribe('AN_EVENT_NAME', () => {})
+            eventStore.subscribe('AN_EVENT_NAME', () => {
+            })
             await eventStore.recordEvent({
                 streamId: 'streamid',
                 eventName: 'AN_EVENT_NAME',
@@ -120,7 +119,7 @@ describe('EventStore Memory', () => {
             })
 
             expect(Logger.warn).toHaveBeenCalledWith(
-                'ShimmieStack >>>> Event AN_EVENT_WITH_NO_LISTENERS_NAME has no listeners'
+                'ShimmieStack >>>> Event AN_EVENT_WITH_NO_LISTENERS_NAME has no listeners',
             )
         })
     })
@@ -192,7 +191,7 @@ describe('EventStore Memory', () => {
                 eventStore.subscribe('AN_EVENT_NAME', (event) => {
                     valueSet = true
                     throw new Error(
-                        'Something happened and should stop the app launching'
+                        'Something happened and should stop the app launching',
                     )
                 })
                 await eventStore.recordEvent({
@@ -228,12 +227,164 @@ describe('EventStore Memory', () => {
                 } catch (err: any) {
                     expect(err).toBeDefined()
                     expect(err.message).toEqual(
-                        'Something happened and should stop the app launching'
+                        'Something happened and should stop the app launching',
                     )
                     return
                 }
                 throw new Error('Should have thrown during init but didnt')
             })
         })
+    })
+
+    describe('when getting events', () => {
+        beforeEach(() => {
+            eventStore.recordEvent({
+                streamId: 'streamId1',
+                eventName: 'AN EVENT',
+                eventData: {},
+                meta,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            })
+            eventStore.recordEvent({
+                streamId: 'streamId2',
+                eventName: 'AN EVENT',
+                eventData: {},
+                meta,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            })
+            eventStore.recordEvent({
+                streamId: 'streamId3',
+                eventName: 'AN EVENT',
+                eventData: {},
+                meta,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            })
+            eventStore.recordEvent({
+                streamId: 'streamId4',
+                eventName: 'AN EVENT',
+                eventData: {},
+                meta,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            })
+        })
+
+        it('should get all events when no params provided', async () => {
+            const events = await eventStore.getEvents()
+            expect(events).toHaveLength(4)
+        })
+
+        it('should start from minSeqNum when provided', async () => {
+            const events = await eventStore.getEvents({ minSequenceNumber: 2 })
+            expect(events).toHaveLength(2)
+        })
+
+        it('should start from minSeqNum when provided and chunk results', async () => {
+            const events = await eventStore.getEvents({ minSequenceNumber: 2, chunkSize: 1 })
+            expect(events).toHaveLength(1)
+            expect(events[0].sequencenum).toEqual(2)
+            expect(events[0].streamId).toEqual('streamId3')
+        })
+
+        it('should handle chunking properly', async () => {
+            for (let i = 0; i < 100; i++) {
+                eventStore.recordEvent({
+                    streamId: 'streamId4',
+                    eventName: 'AN EVENT',
+                    eventData: {},
+                    meta,
+                    streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+                })
+            }
+            const chunkSize = 20
+            let minSequenceNumber = 10
+            let events = await eventStore.getEvents({ minSequenceNumber, chunkSize })
+            expect(events).toHaveLength(chunkSize)
+            expect(events[0].sequencenum).toEqual(minSequenceNumber)
+
+            minSequenceNumber = 90
+            events = await eventStore.getEvents({ minSequenceNumber, chunkSize })
+            expect(events).toHaveLength(14)
+            expect(events[13].sequencenum).toEqual(103)
+        })
+    })
+    describe('when replaying events', () => {
+        beforeEach(() => {
+            eventStore.recordEvent({
+                streamId: 'streamId1',
+                eventName: 'AN EVENT',
+                eventData: {},
+                meta,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            })
+            eventStore.recordEvent({
+                streamId: 'streamId2',
+                eventName: 'AN EVENT',
+                eventData: {},
+                meta,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            })
+            eventStore.recordEvent({
+                streamId: 'streamId3',
+                eventName: 'AN EVENT',
+                eventData: {},
+                meta,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            })
+            eventStore.recordEvent({
+                streamId: 'streamId4',
+                eventName: 'AN EVENT',
+                eventData: {},
+                meta,
+                streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+            })
+        })
+
+        it('should replay all events when no params provided', async () => {
+            const listenerMock = jest.fn()
+            eventStore.subscribe('AN EVENT', listenerMock)
+            const events = await eventStore.replayEvents()
+            expect(events).toEqual(4)
+            expect(listenerMock).toHaveBeenCalledTimes(4)
+        })
+
+        it('should replay all events from the min sequence number when one is provided', async () => {
+            const listenerMock = jest.fn()
+            eventStore.subscribe('AN EVENT', listenerMock)
+            const events = await eventStore.replayEvents({ minSequenceNumber: 2 })
+            expect(events).toEqual(2)
+            expect(listenerMock).toHaveBeenCalledTimes(2)
+        })
+
+        describe('with many events', () => {
+            beforeEach(() => {
+                for (let i = 0; i < 100; i++) {
+                    eventStore.recordEvent({
+                        streamId: 'streamId4',
+                        eventName: 'AN EVENT',
+                        eventData: {},
+                        meta,
+                        streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+                    })
+                    jest.clearAllMocks()
+                }
+            })
+            it('should replay all events in chunks', async () => {
+                const minSequenceNumber = 10
+                const chunkSize = 20
+                const listenerMock = jest.fn()
+                eventStore.subscribe('AN EVENT', listenerMock)
+                const events = await eventStore.replayEvents({ minSequenceNumber, chunkSize })
+                expect(events).toEqual(94)
+                expect(listenerMock).toHaveBeenCalledTimes(94)
+            })
+            it('should replay all events in one group', async () => {
+                const listenerMock = jest.fn()
+                eventStore.subscribe('AN EVENT', listenerMock)
+                const events = await eventStore.replayEvents({ minSequenceNumber: 2 })
+                expect(events).toEqual(102)
+                expect(listenerMock).toHaveBeenCalledTimes(102)
+            })
+        })
+
     })
 })

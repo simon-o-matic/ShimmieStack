@@ -3,23 +3,13 @@
 //
 import pg, { PoolConfig } from 'pg'
 import Format from 'pg-format'
-import {
-    EventBaseType,
-    EventToRecord,
-    StoredEventResponse,
-    StreamVersionError,
-    StreamVersionMismatch,
-} from './event'
+import { EventBaseType, EventToRecord, StoredEventResponse, StreamVersionError, StreamVersionMismatch } from './event'
 import { Logger } from './logger'
-import {
-    createEventListTableQuery,
-    fetchMatchStreamVersionsQuery,
-    prepareAddEventQuery,
-} from './queries'
+import { createEventListTableQuery, fetchMatchStreamVersionsQuery, prepareAddEventQuery } from './queries'
 
 const { Pool } = pg
 
-pg.types.setTypeParser(20, function (val) {
+pg.types.setTypeParser(20, function(val) {
     return parseInt(val, 10)
 })
 export type PostgresDbConfig = Partial<PoolConfig>
@@ -57,7 +47,7 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
 
     const addEvent = async (
         event: EventToRecord,
-        streamVersionIds?: Record<string, string | undefined>
+        streamVersionIds?: Record<string, string | undefined>,
     ): Promise<StoredEventResponse> => {
         // prepare and parameterised the addEvent query based on whether streamVersionIds were provided or not.
         const query = prepareAddEventQuery(event, streamVersionIds)
@@ -67,22 +57,22 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
         if (!results || results.length === 0) {
             if (!streamVersionIds) {
                 Logger.error(
-                    "Something unexpected happened. We shouldn't be in here without checking versions"
+                    'Something unexpected happened. We shouldn\'t be in here without checking versions',
                 )
                 throw new Error(
-                    'Unexpcted error occured. Unable to add event to stream.'
+                    'Unexpcted error occured. Unable to add event to stream.',
                 )
             }
             // running a second query is bad, but we didnt successfully write anyway so its probably fine
             const mismatchedVersionDbResult = await runQuery(
-                fetchMatchStreamVersionsQuery(Object.keys(streamVersionIds))
+                fetchMatchStreamVersionsQuery(Object.keys(streamVersionIds)),
             )
             if (
                 !mismatchedVersionDbResult ||
                 mismatchedVersionDbResult.length < 1
             ) {
                 throw Error(
-                    'Sopmething went wrong. Unable to fetch details about db mismatch'
+                    'Sopmething went wrong. Unable to fetch details about db mismatch',
                 )
             }
             // lets get some info out about the failure
@@ -93,7 +83,7 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
                         version: {
                             streamid: string
                             StreamVersionId: string
-                        }
+                        },
                     ) => {
                         if (
                             version.StreamVersionId !==
@@ -109,17 +99,17 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
                         }
                         return mismatched
                     },
-                    []
+                    [],
                 )
 
             Logger.error(
                 `Version mismatch detected: ${JSON.stringify(
-                    mismatchedVersions
-                )}`
+                    mismatchedVersions,
+                )}`,
             )
             throw new StreamVersionError(
                 'Version mismatch detected: ',
-                mismatchedVersions
+                mismatchedVersions,
             )
         }
 
@@ -127,11 +117,19 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
     }
 
     // Get all events in the correct squence for replay
-    const getEventsInOrder = async (minSequenceNumber?: number) => {
+    const getEventsInOrder = async (params?: {
+        chunkSize?: number, minSequenceNumber?: number
+    }) => {
+        const { chunkSize, minSequenceNumber } = params ?? {}
+        const limitStatement = chunkSize ? `LIMIT ${chunkSize} OFFSET ${minSequenceNumber ?? 0}` : ''
+
         const query =
             minSequenceNumber !== undefined
-                ? `SELECT * FROM eventlist WHERE SequenceNum >= ${minSequenceNumber} ORDER BY SequenceNum`
-                : 'SELECT * FROM eventlist ORDER BY SequenceNum'
+                ? `SELECT *
+                   FROM eventlist
+                   WHERE SequenceNum >= ${minSequenceNumber} ${limitStatement}
+                   ORDER BY SequenceNum`
+                : 'SELECT * FROM eventlist ORDER BY SequenceNum ${limitStatement}'
         return await runQuery(query)
     }
 
@@ -141,7 +139,7 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
         if (streamIds.length > 0) {
             query = Format(
                 'SELECT * FROM eventlist WHERE StreamId in (%L) ORDER BY SequenceNum',
-                streamIds
+                streamIds,
             )
         }
 
@@ -159,16 +157,20 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
 
     const updateEventData = async (
         sequenceNumber: number,
-        data: Record<string, any>
+        data: Record<string, any>,
     ) => {
-        const query = `UPDATE eventlist SET Data = $1 WHERE SequenceNum = ${sequenceNumber}`
+        const query = `UPDATE eventlist
+                       SET Data = $1
+                       WHERE SequenceNum = ${sequenceNumber}`
 
         await runQuery(query, [JSON.stringify(data)])
         return Promise.resolve()
     }
 
     const anonymiseEvents = async (streamId: string) => {
-        const query = `UPDATE eventlist SET meta = jsonb_set(meta, '{piiAnonymised}','true', true) WHERE StreamId = $1`
+        const query = `UPDATE eventlist
+                       SET meta = jsonb_set(meta, '{piiAnonymised}', 'true', true)
+                       WHERE StreamId = $1`
         await runQuery(query, [streamId])
         return Promise.resolve()
     }
@@ -184,7 +186,7 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
 
     const runQuery = async (
         query: string,
-        values: string[] | undefined = undefined
+        values: string[] | undefined = undefined,
     ) => {
         try {
             const res = values
@@ -217,7 +219,7 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
                 retries++
                 // sleep for 5 seconds
                 Logger.log(
-                    `Failed to setup eventbase tables, trying again in 5 seconds ${err}`
+                    `Failed to setup eventbase tables, trying again in 5 seconds ${err}`,
                 )
                 await new Promise((resolve) => setTimeout(resolve, 5000))
             }
@@ -244,7 +246,8 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
 
     const getLatestSequenceNumber = async () => {
         try {
-            return (await runQuery(`SELECT max(sequencenum)::int from eventlist`))[0].max
+            return (await runQuery(`SELECT max(sequencenum) ::int
+                                    from eventlist`))[0].max
         } catch (err: any) {
             throw new Error(`Error fetching max sequence number: ${err.message}`)
         }

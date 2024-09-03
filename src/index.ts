@@ -599,7 +599,7 @@ export default function ShimmieStack<
                         }
                     )}`
                 )
-                await eventStore.replayEvents(minSequenceNumber)
+                await eventStore.replayEvents({ minSequenceNumber })
             }
             const lastHandled = eventStore.getLastHandledSeqNum()
             Logger.debug(`Last handled sequence number: ${lastHandled}`)
