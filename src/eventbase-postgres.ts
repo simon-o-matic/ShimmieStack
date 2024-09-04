@@ -127,10 +127,8 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
             minSequenceNumber !== undefined
                 ? `SELECT *
                    FROM eventlist
-                   WHERE SequenceNum >= ${minSequenceNumber} 
-                   ORDER BY SequenceNum
-                   ${limitStatement}
-                   `
+                   WHERE SequenceNum >= ${minSequenceNumber} ${limitStatement}
+                   ORDER BY SequenceNum`
                 : 'SELECT * FROM eventlist ORDER BY SequenceNum ${limitStatement}'
         return await runQuery(query)
     }

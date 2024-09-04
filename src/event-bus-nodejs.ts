@@ -17,7 +17,7 @@ export default function EventBusNodejs({
 }: EventBusNodejsOptions): EventBusType {
     let lastEmittedSeqNum: number = -1
     let lastHandledSeqNum: number = -1
-    const callbackLookup: Map<string, ((...args: any[]) => Promise<void> | void)[]> = new Map()
+    const callbackLookup: Map<string, ((...args: any[]) => void)[]> = new Map()
     const _logger = logger ?? Logger
 
     const reset = () => {
@@ -29,7 +29,7 @@ export default function EventBusNodejs({
         lastHandledSeqNum = initialSequenceNumber ? initialSequenceNumber : lastHandledSeqNum
     }
 
-    const emit = async (type: string, event: Event | StoredEventResponse): Promise<void> => {
+    const emit = (type: string, event: Event | StoredEventResponse): void => {
         lastEmittedSeqNum = event.sequencenum
         if (!!options?.initialised) {
             _logger.debug(
@@ -43,7 +43,7 @@ export default function EventBusNodejs({
             if (callbacks.length > 0) {
                 // ensure we call all type callbacks
                 for (const callback of callbacks ?? []) {
-                    await callback(event)
+                    callback(event)
                 }
             }
             lastHandledSeqNum = event.sequencenum
@@ -61,7 +61,7 @@ export default function EventBusNodejs({
         }
     }
 
-    const on = (type: string, callback: (...args: any[]) => Promise<void> | void): void => {
+    const on = (type: string, callback: (...args: any[]) => void): void => {
         // keep track of the callbacks we register, to ensure every one of them is called.
         const callbacks = callbackLookup.get(type) ?? []
         callbacks.push(callback)
