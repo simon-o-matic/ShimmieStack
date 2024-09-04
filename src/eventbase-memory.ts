@@ -44,7 +44,7 @@ export default function Eventbase(): EventBaseType {
 
     const addEvent = async (
         event: EventToRecord,
-        streamVersionIds?: Record<string, string | undefined>,
+        streamVersionIds?: Record<string, string | undefined>
     ): Promise<StoredEventResponse> => {
         const newEvent: Event = {
             ...event,
@@ -58,7 +58,7 @@ export default function Eventbase(): EventBaseType {
                 Object.keys(streamVersionIds),
                 async () => {
                     const mismatchedVersions = Object.entries(
-                        streamVersionIds,
+                        streamVersionIds
                     ).reduce<StreamVersionMismatch[]>(
                         (mistmatched, [streamId, versionId]) => {
                             const currentObjectVersionId =
@@ -76,17 +76,17 @@ export default function Eventbase(): EventBaseType {
                             }
                             return mistmatched
                         },
-                        [],
+                        []
                     )
 
                     // Do we have any stream version mismatches?
                     if (mismatchedVersions.length > 0) {
                         throw new StreamVersionError(
                             'Version mismatch detected',
-                            mismatchedVersions,
+                            mismatchedVersions
                         )
                     }
-                },
+                }
             )
         }
 
@@ -107,12 +107,11 @@ export default function Eventbase(): EventBaseType {
     }
 
     // Get all events in the correct squence for replay
-    const getEventsInOrder = async (params?: { chunkSize?: number, minSequenceNumber?: number }) => {
-        const { chunkSize, minSequenceNumber } = params ?? {}
+    const getEventsInOrder = async (minSequenceNumber?: number) => {
         return Promise.resolve(
             minSequenceNumber !== undefined
-                ? events.slice(minSequenceNumber, chunkSize ? minSequenceNumber + chunkSize : undefined)
-                : events,
+                ? events.slice(minSequenceNumber - 1)
+                : events
         )
     }
 
@@ -134,7 +133,7 @@ export default function Eventbase(): EventBaseType {
             events.filter((event) => {
                 // need to handle those mish mash keys in profileKahuna?
                 return streamIds.includes(event.streamId)
-            }),
+            })
         )
     }
 

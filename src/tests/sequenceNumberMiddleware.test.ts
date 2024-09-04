@@ -70,18 +70,6 @@ describe('SequenceNumberMiddleware', () => {
                 eventData: {},
                 meta,
             })
-            testStack.recordUncheckedEvent({
-                streamId: 'streamId3',
-                eventName: 'AN EVENT',
-                eventData: {},
-                meta,
-            })
-            testStack.recordUncheckedEvent({
-                streamId: 'streamId4',
-                eventName: 'AN EVENT',
-                eventData: {},
-                meta,
-            })
         })
 
         it('Should set the response header with the seqNum on post', async () => {
