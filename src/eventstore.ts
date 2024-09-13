@@ -246,9 +246,9 @@ export default function EventStore<
             minSequenceNumber,
         })
 
-        /** if we are initialising from the current max seq num, update the event bus so it knows it */
-        if(allEvents.length === 0) {
-            stackEventBus.init(minSequenceNumber)
+        /** if we are initialising and cant find anything ahead of the init'd number, update the event bus so it knows it */
+        if(minSequenceNumber && minSequenceNumber > 0 && allEvents.length === 0 ) {
+            stackEventBus.init(minSequenceNumber - 1)
         }
 
         // get all the events WITHOUT Pii, so we don't iterate them twice.
