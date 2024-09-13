@@ -274,6 +274,14 @@ const initializeShimmieStack = async <
             await piiBase.init()
             Logger.info('ShimmieStack >>>> pii database connected.')
         }
+        let dbLastSeqNum: number
+
+        if(lastHandledSequenceNumber){
+            // ensure we aren't missing events by somehow being ahead of the max.
+            const dbMaxSeqNum = await eventStore.getLatestDbSequenceNumber()
+            lastHandledSequenceNumber = lastHandledSequenceNumber < dbMaxSeqNum ? lastHandledSequenceNumber : dbMaxSeqNum
+        }
+
 
          Logger.info(
             lastHandledSequenceNumber
@@ -285,7 +293,7 @@ const initializeShimmieStack = async <
 
         // check if synced. if not, call the handler once.
         const lastHandled = eventStore.getLastHandledSeqNum()
-        const dbLastSeqNum = await eventStore.getLatestDbSequenceNumber()
+        dbLastSeqNum = await eventStore.getLatestDbSequenceNumber()
 
         if (lastHandled !== dbLastSeqNum) {
             await sequenceNumberDivergenceHandler({ dbLastSeqNum, lastHandled })
