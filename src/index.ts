@@ -184,7 +184,7 @@ export type StackType<
         events: RecordUncheckedEventType<RecordModels, EventName>[],
         executionOrder?: ExecutionOrder
     ) => Promise<void>
-    startup: (minSequenceNumber?: number) => void
+    startup: (lastHandledSequenceNumber?: number) => void
     restart: () => Promise<void>
     shutdown: () => void
     registerModel<T>(name: string, model: T): void
@@ -242,8 +242,7 @@ const initializeShimmieStack = async <
     eventBase,
     eventStore,
     piiBase,
-    minSequenceNumber,
-    logger,
+    lastHandledSequenceNumber,
     sequenceNumberDivergenceHandler,
 }: {
     app: Express
@@ -251,9 +250,8 @@ const initializeShimmieStack = async <
     errorHandler: ErrorRequestHandler
     eventBase: EventBaseType
     eventStore: EventStoreType<RecordModels, SubscribeModels>
-    minSequenceNumber?: number // if we want to start from a given point in the event stream
+    lastHandledSequenceNumber?: number // If partially processed or loading a checkpoint, what was the last event already handled?
     piiBase?: PiiBaseType
-    logger?: StackLogger
     sequenceNumberDivergenceHandler: (params: {
         lastHandled: number
         dbLastSeqNum: number
@@ -277,18 +275,12 @@ const initializeShimmieStack = async <
             Logger.info('ShimmieStack >>>> pii database connected.')
         }
 
-        // Process the entire event history on start up and load into memory
-        Logger.info(
-            'ShimmieStack >>>> Executing from seqnum: ' +
-                (minSequenceNumber ?? '0')
-        )
-
-        Logger.info(
-            minSequenceNumber
-                ? `ShimmieStack >>>> Starting to replay the event stream to rebuild memory models from sequence number: ${minSequenceNumber}`
+         Logger.info(
+            lastHandledSequenceNumber
+                ? `ShimmieStack >>>> Starting to replay the event stream to rebuild memory models after sequence number: ${lastHandledSequenceNumber}`
                 : `ShimmieStack >>>> Starting to replay the entire event stream to rebuild memory models`
         )
-        const numEvents = await eventStore.replayEvents(minSequenceNumber)
+        const numEvents = await eventStore.replayEvents(lastHandledSequenceNumber ? lastHandledSequenceNumber + 1 : 0)
         Logger.info(`ShimmieStack >>>> replayed ${numEvents} events`)
 
         // check if synced. if not, call the handler once.
@@ -421,7 +413,7 @@ export default function ShimmieStack<
     const preInitFns: (() => void | Promise<void>)[] = []
 
     const funcs: StackType<RecordModels, SubscribeModels> = {
-        startup: async (minSequenceNumber) => {
+        startup: async (lastHandledSequenceNumber) => {
             // if there are any post init fns registered execute them
             if (preInitFns.length) {
                 Logger.info('ShimmieStack >>>> Running pre-init functions')
@@ -442,7 +434,7 @@ export default function ShimmieStack<
                 errorHandler,
                 eventBase,
                 eventStore,
-                minSequenceNumber,
+                lastHandledSequenceNumber,
                 piiBase,
                 sequenceNumberDivergenceHandler,
             })
@@ -451,7 +443,7 @@ export default function ShimmieStack<
                 Logger.info('ShimmieStack >>>> Running post-init functions')
                 await Promise.all(postInitFns.map((f) => f()))
                 Logger.info(
-                    'ShimmieStack >>>> Successfully compelted post-init functions'
+                    'ShimmieStack >>>> Successfully completed post-init functions'
                 )
             } else {
                 Logger.info('ShimmieStack >>>> No post-init functions to run')
