@@ -15,6 +15,7 @@ export interface Meta extends UserMeta {
     emittedAt?: number
     eventBusDelayMs?: number
     piiAnonymised?: boolean
+    deletedAtDate?: number
 }
 
 export type PiiFields = string[]

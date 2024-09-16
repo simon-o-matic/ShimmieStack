@@ -247,7 +247,11 @@ export default function EventStore<
         })
 
         /** if we are initialising and cant find anything ahead of the init'd number, update the event bus so it knows it */
-        if(minSequenceNumber && minSequenceNumber > 0 && allEvents.length === 0 ) {
+        if (
+            minSequenceNumber &&
+            minSequenceNumber > 0 &&
+            allEvents.length === 0
+        ) {
             stackEventBus.init(minSequenceNumber - 1)
         }
 
@@ -262,6 +266,10 @@ export default function EventStore<
         _logger.debug(`Replaying ${allEvents.length} events.`)
         for (let e of allEvents) {
             let data = e.data
+
+            if (e.meta.deletedAtDate) {
+                continue
+            }
 
             // We may have a case with a key and the lookup without a value, if the value has been deleted from the piiBase
             // so if we have pii in this event, the piiLookup is defined and we a record in the lookup for this event, using
