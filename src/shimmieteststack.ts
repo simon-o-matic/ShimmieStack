@@ -49,7 +49,7 @@ export default function ShimmieTestStack<
 >(
     defaultAuthHeaderValue?: string,
     usePiiBase: boolean = false,
-    eventBase?: EventBaseType
+    eventBase?: EventBaseType,
 ): ShimmieTestStackType<RecordModels, SubscribeModels> {
     const authHeaderValue = defaultAuthHeaderValue
     const app = express()
@@ -57,44 +57,48 @@ export default function ShimmieTestStack<
     app.use(cookieParser())
 
     const prepareRequest =
-        (method: string) =>
-        ({
-            path,
-            headers,
-            withAuth = true,
-            queryParams,
-        }: {
-            path: string
-            headers?: Record<string, string>
-            withAuth?: boolean
-            queryParams?: Record<string, any>
-        }): supertest.Test => {
-            const req: supertest.Test = (supertest(app) as SuperTester)[method](
-                path
-            )
+        (method: |
+            'post' |
+            'get' |
+            'put' |
+            'delete') =>
+            ({
+                 path,
+                 headers,
+                 withAuth = true,
+                 queryParams,
+             }: {
+                path: string
+                headers?: Record<string, string>
+                withAuth?: boolean
+                queryParams?: Record<string, any>
+            }): supertest.Test => {
+                const req: supertest.Test = supertest(app)[method](
+                    path,
+                )
 
-            if (authHeaderValue && withAuth) {
-                req.set("'Authorization'", `Bearer ${authHeaderValue}`)
-            }
+                if (authHeaderValue && withAuth) {
+                    req.set('\'Authorization\'', `Bearer ${authHeaderValue}`)
+                }
 
-            if (queryParams) {
-                if (['GET', 'HEAD'].includes(method)) {
-                    req.query(queryParams)
-                } else {
-                    console.warn(
-                        'Super test only allows query params on GET and HEAD requests'
+                if (queryParams) {
+                    if (['GET', 'HEAD'].includes(method)) {
+                        req.query(queryParams)
+                    } else {
+                        console.warn(
+                            'Super test only allows query params on GET and HEAD requests',
+                        )
+                    }
+                }
+
+                if (headers) {
+                    Object.entries(headers).map((header) =>
+                        req.set(header[0], header[1]),
                     )
                 }
-            }
 
-            if (headers) {
-                Object.entries(headers).map((header) =>
-                    req.set(header[0], header[1])
-                )
+                return req
             }
-
-            return req
-        }
 
     const methods = {
         post: prepareRequest('post'),
@@ -117,7 +121,7 @@ export default function ShimmieTestStack<
         },
         memoryBase,
         authorizeApi(noAuthorization), // authorize admin apis with no auth for the test
-        piiBase
+        piiBase,
     )
 
     // Mount al the test processors at the root for ease of local testing.
@@ -127,68 +131,68 @@ export default function ShimmieTestStack<
 
     /** Get helper that uses supertest to hook into the express route to make the actual call */
     const testGet = async ({
-        path,
-        headers,
-        expectedResponseCode,
-    }: TestRequestParams): Promise<supertest.Response> => {
+                               path,
+                               headers,
+                               expectedResponseCode,
+                           }: TestRequestParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
                 .get({ path, headers })
                 .expect(expectedResponseCode ?? 200)
                 .end((err: any, res: supertest.Response) =>
-                    err ? reject(res) : resolve(res)
+                    err ? reject(res) : resolve(res),
                 )
         })
     }
 
     /** Post helper that uses supertest to hook into the express route to make the actual call */
     const testPost = async ({
-        path,
-        headers,
-        expectedResponseCode,
-        body,
-    }: TestRequestWithBodyParams): Promise<supertest.Response> => {
+                                path,
+                                headers,
+                                expectedResponseCode,
+                                body,
+                            }: TestRequestWithBodyParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
                 .post({ path, headers })
                 .expect(expectedResponseCode ?? 200)
                 .send(body ?? {})
                 .end((err: any, res: supertest.Response) =>
-                    err ? reject(res) : resolve(res)
+                    err ? reject(res) : resolve(res),
                 )
         })
     }
 
     /** Put helper that uses supertest to hook into the express route to make the actual call */
     const testPut = async ({
-        path,
-        headers,
-        expectedResponseCode,
-        body,
-    }: TestRequestWithBodyParams): Promise<supertest.Response> => {
+                               path,
+                               headers,
+                               expectedResponseCode,
+                               body,
+                           }: TestRequestWithBodyParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
                 .put({ path, headers })
                 .expect(expectedResponseCode ?? 200)
                 .send(body ?? {})
                 .end((err: any, res: supertest.Response) =>
-                    err ? reject(res) : resolve(res)
+                    err ? reject(res) : resolve(res),
                 )
         })
     }
 
     /** Delete helper that uses supertest to hook into the express route to make the actual call */
     const testDelete = async ({
-        path,
-        headers,
-        expectedResponseCode,
-    }: TestRequestParams): Promise<supertest.Response> => {
+                                  path,
+                                  headers,
+                                  expectedResponseCode,
+                              }: TestRequestParams): Promise<supertest.Response> => {
         return new Promise<supertest.Response>((resolve, reject) => {
             return methods
                 .delete({ path, headers })
                 .expect(expectedResponseCode ?? 200)
                 .end((err: any, res: supertest.Response) =>
-                    err ? reject(res) : resolve(res)
+                    err ? reject(res) : resolve(res),
                 )
         })
     }
