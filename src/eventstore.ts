@@ -166,7 +166,7 @@ export default function EventStore<
             )
         }
 
-        stackEventBus.emit(String(eventName), storedEvent)
+        await stackEventBus.emit(String(eventName), storedEvent)
 
         return storedEvent
     }
@@ -176,16 +176,16 @@ export default function EventStore<
         type: EventName,
         callback: (
             event: TypedEvent<EventName, SubscribeModels[EventName]>
-        ) => void
-    ): void => {
+        ) => void | Promise<void>
+    ): void | Promise<void> => {
         // wrap the handler in a try catch so we don't crash the server with unhandled exceptions.
         const tryCatchCallback: (
             event: TypedEvent<EventName, SubscribeModels[EventName]>
-        ) => void = (
-            eventModel: TypedEvent<EventName, SubscribeModels[EventName]>
-        ): void => {
+        ) => Promise<void> = async (
+            eventModel: TypedEvent<EventName, SubscribeModels[EventName]>,
+        ): Promise<void> => {
             try {
-                return callback(eventModel)
+                return await callback(eventModel)
             } catch (e) {
                 _logger.error(
                     `Unable to handle event subscription. Error when handling "${String(
@@ -305,7 +305,7 @@ export default function EventStore<
             if (!!options.initialised) {
                 _logger.debug(`Replaying event: ${event.sequencenum}`)
             }
-            stackEventBus.emit(event.type, event)
+            await stackEventBus.emit(event.type, event)
         }
 
         _logger.debug(`Replayed ${allEvents.length} events.`)

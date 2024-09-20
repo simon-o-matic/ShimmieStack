@@ -61,8 +61,8 @@ export type StoredEventResponse<EventName = string, EventType = any> =
  * The interface event buses must match to be used as a drop in
  */
 export interface EventBusType {
-    on: (type: string, callback: (...args: any[]) => void) => void
-    emit: (type: string, event: Event) => void
+    on: (type: string, callback: (...args: any[]) => void | Promise<void>) => void
+    emit: (type: string, event: Event) => Promise<void>
     init: (initialSequenceNumber?: number) => void
     getLastEmittedSeqNum: () => number
     getLastHandledSeqNum: () => number

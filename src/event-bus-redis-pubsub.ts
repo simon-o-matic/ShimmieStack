@@ -49,7 +49,7 @@ export default function EventBusRedisPubsub({
         logger: _logger,
     })
 
-    // ensure we are only replaying
+    // ensure only one replay at a time
     let replayLock = new AsyncLock()
 
     if (!replayFunc) {
@@ -114,7 +114,7 @@ export default function EventBusRedisPubsub({
                     if (event.sequencenum === expectedSeqNum) {
                         _logger.debug(`${event.sequencenum}: Emitting event`)
                         // if we are here, this is the next event. process it.
-                        nodeEventBus.emit(event.type, {
+                        await nodeEventBus.emit(event.type, {
                             ...event,
                             meta: {
                                 ...event.meta,
@@ -143,7 +143,7 @@ export default function EventBusRedisPubsub({
         })
     }
 
-    const emit = (type: string, event: Event | StoredEventResponse): void => {
+    const emit = async (type: string, event: Event | StoredEventResponse): Promise<void> => {
         if (!!options?.initialised) {
             _logger.debug(`${event.sequencenum}: Beginning event emit`)
         }
@@ -159,12 +159,14 @@ export default function EventBusRedisPubsub({
                         emittedAt: Date.now(),
                     },
                 })
-            )
+            ).catch((reason) => {
+                Logger.error("Unable to publish event via redis pub client", reason)
+            })
         }
         if (!!options?.initialised) {
             _logger.debug(`${event.sequencenum}: Emitting locally`)
         }
-        nodeEventBus.emit(type, event)
+        await nodeEventBus.emit(type, event)
     }
 
     const on = (type: string, callback: (...args: any[]) => void): void => {

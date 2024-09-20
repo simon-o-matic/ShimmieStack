@@ -187,13 +187,62 @@ describe('EventStore Memory', () => {
 
     describe('when subscribing to an event', () => {
         describe('an error in the subscription', () => {
-            it('should be caught and handled', async () => {
+            beforeEach(() => {
+                eventStoreOptions.initialised = true
+            })
+            it('should be caught and handled with sync callback', async () => {
                 let valueSet = false
                 eventStore.subscribe('AN_EVENT_NAME', (event) => {
                     valueSet = true
                     throw new Error(
                         'Something happened and should stop the app launching'
                     )
+                })
+                await eventStore.recordEvent({
+                    streamId: 'streamid',
+                    eventName: 'AN_EVENT_NAME',
+                    eventData: { data: 'blah' },
+                    streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+                    meta: meta,
+                })
+                expect(valueSet).toBe(true)
+                await eventStore.recordEvent({
+                    streamId: 'streamid',
+                    eventName: 'AN_EVENT_NAME',
+                    eventData: { data: 'blah' },
+                    streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+                    meta: meta,
+                })
+
+                const numEvents = await eventStore.getEvents()
+
+                // both events should be there, and the errored subscriber should log and not crash the app.
+                expect(numEvents.length).toEqual(2)
+
+                eventStoreOptions.initialised = false
+                try {
+                    await eventStore.recordEvent({
+                        streamId: 'streamid',
+                        eventName: 'AN_EVENT_NAME',
+                        eventData: { data: 'blah' },
+                        streamVersionIds: 'STREAM_VERSIONING_DISABLED',
+                        meta: meta,
+                    })
+                } catch (err: any) {
+                    expect(err).toBeDefined()
+                    expect(err.message).toEqual(
+                        'Something happened and should stop the app launching'
+                    )
+                    return
+                }
+                throw new Error('Should have thrown during init but didnt')
+            })
+
+            it('should be caught and handled with an async callback', async () => {
+                let valueSet = false
+                eventStore.subscribe('AN_EVENT_NAME', async (event) => {
+                    valueSet = true
+                    return Promise.reject({ 'message':'Something happened and should stop the app launching'})
                 })
                 await eventStore.recordEvent({
                     streamId: 'streamid',
