@@ -27,7 +27,7 @@ export default function EventBusNodejs({
 
     const init = (initialSequenceNumber?: number) => {
         lastHandledSeqNum = initialSequenceNumber ?? lastHandledSeqNum
-        _logger.info(`Event bus last handled initialised to: ${lastHandledSeqNum}`)
+        _logger.info(`Event bus last handled set to: ${lastHandledSeqNum}`)
     }
 
     const emit = async (type: string, event: Event | StoredEventResponse): Promise<void> => {
