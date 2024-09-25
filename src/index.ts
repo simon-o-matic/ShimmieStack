@@ -578,15 +578,15 @@ export default function ShimmieStack<
         ensureMinSequenceNumberHandled: async ({
                                                    minSequenceNumber,
                                                }): Promise<number> => {
-            const minSeqNum = minSequenceNumber ?? (await eventStore.getLatestDbSequenceNumber() + 1) // +1 so we don't replay if both on the same max event
+            const dbMaxSeqNum = await eventStore.getLatestDbSequenceNumber()
+            const minSeqNum = minSequenceNumber
             // replay any events after the last handled, if the requested minimum > last handled. If no requested min, get db max.
-            if (eventStore.getLastHandledSeqNum() < minSeqNum) {
+            if (eventStore.getLastHandledSeqNum() < (minSeqNum ?? dbMaxSeqNum)) {
                 Logger.debug(
                     `Behind requested requested minSeqNum. Executing minSeqNum lookup: ${JSON.stringify(
                         {
-                            minSeqNum,
-                            lastHandledSeqNum:
-                                eventStore.getLastHandledSeqNum(),
+                            minSeqNum: minSeqNum ?? (dbMaxSeqNum + 1), // +1 so we don't replay if both on the same max event
+                            lastHandledSeqNum: eventStore.getLastHandledSeqNum(),
                         },
                     )}`,
                 )
