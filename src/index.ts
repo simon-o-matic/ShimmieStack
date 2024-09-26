@@ -299,6 +299,15 @@ const initializeShimmieStack = async <
     }
 }
 
+export class StackNotInitialisedError extends Error {
+
+    constructor(msg: string, errorDetails?: Error) {
+        super(msg)
+        // Set the prototype explicitly.
+        Object.setPrototypeOf(this, StackNotInitialisedError.prototype)
+    }
+}
+
 export const catchAllErrorHandler: ErrorRequestHandler = (
     err: any,
     req: Request,
@@ -578,19 +587,18 @@ export default function ShimmieStack<
         ensureMinSequenceNumberHandled: async ({
                                                    minSequenceNumber,
                                                }): Promise<number> => {
-            const dbMaxSeqNum = await eventStore.getLatestDbSequenceNumber()
-            const minSeqNum = minSequenceNumber
+            const requiredSeqNumForReplay = minSequenceNumber ?? (await eventStore.getLatestDbSequenceNumber() + 1)
             // replay any events after the last handled, if the requested minimum > last handled. If no requested min, get db max.
-            if (eventStore.getLastHandledSeqNum() < (minSeqNum ?? dbMaxSeqNum)) {
+            if (eventStore.getLastHandledSeqNum() < requiredSeqNumForReplay) {
                 Logger.debug(
                     `Behind requested requested minSeqNum. Executing minSeqNum lookup: ${JSON.stringify(
                         {
-                            minSeqNum: minSeqNum ?? (dbMaxSeqNum + 1), // +1 so we don't replay if both on the same max event
+                            minSeqNum: requiredSeqNumForReplay, // +1 so we don't replay if both on the same max event
                             lastHandledSeqNum: eventStore.getLastHandledSeqNum(),
                         },
                     )}`,
                 )
-                await eventStore.replayEvents(minSeqNum)
+                await eventStore.replayEvents(requiredSeqNumForReplay)
             }
             const lastHandled = eventStore.getLastHandledSeqNum()
             Logger.debug(`Last handled sequence number: ${lastHandled}`)

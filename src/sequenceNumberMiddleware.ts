@@ -1,4 +1,5 @@
 import { Handler, NextFunction, Request, Response } from 'express'
+import { StackNotInitialisedError } from './index'
 
 const commandMethods = ['PUT', 'POST', 'DELETE']
 const SEQ_NUM_MIN_HEADER = 'X-Seq-Num-Min'
