@@ -259,7 +259,7 @@ export default function EventStore<
         let piiLookup: Record<string, any> | undefined
 
         // if we have a pii db, get all the pii for re-populating the emitted events
-        if (piiBase) {
+        if (piiBase && allEvents.length > 0) {
             piiLookup = await piiBase.getPiiLookup()
         }
 
