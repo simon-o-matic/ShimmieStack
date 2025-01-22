@@ -95,7 +95,7 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
         if (params?.minSequenceNumber !== undefined) {
             const minSequenceNumber = params.minSequenceNumber
             query = Format(
-                'SELECT Key, Data FROM pii_store WHERE Key::integer >= %d',
+                'SELECT Key, Data FROM pii_store WHERE Key::integer >= %s',
                 minSequenceNumber
             )
         }
