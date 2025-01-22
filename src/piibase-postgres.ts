@@ -77,14 +77,26 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     }
 
     // Get all events as a record<Key,Data>
+    // Get all events in the correct squence for replay
     const getPiiLookup = async (
-        keys?: string[]
+        params: {
+            keys?: string[], minSequenceNumber?: number
+        } | undefined,
     ): Promise<Record<string, any>> => {
         let query = 'SELECT Key, Data FROM pii_store'
-        if (keys && keys.length > 0) {
+        if (params?.keys && params.keys.length > 0) {
+            const keys = params.keys
             query = Format(
                 'SELECT Key, Data FROM pii_store WHERE Key in (%L)',
                 keys
+            )
+        }
+
+        if (params?.minSequenceNumber !== undefined) {
+            const minSequenceNumber = params.minSequenceNumber
+            query = Format(
+                'SELECT Key, Data FROM pii_store WHERE Key::integer >= %d',
+                minSequenceNumber
             )
         }
 
@@ -155,7 +167,7 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
     }
 
     const anonymisePiiEventData = async (keys: string[]): Promise<void> => {
-        const piiLookup = await getPiiLookup(keys)
+        const piiLookup = await getPiiLookup({ keys })
 
         for (const key of keys) {
             const entry = piiLookup[key]

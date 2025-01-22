@@ -218,7 +218,7 @@ export default function EventStore<
         }
 
         // if we want pii and we have a pii db, combine the event data
-        const piiLookup: Record<string, any> = await piiBase.getPiiLookup()
+        const piiLookup: Record<string, any> = await piiBase.getPiiLookup({minSequenceNumber})
         return events.map((event) => {
             const piiKey = event.sequencenum!.toString()
             if (!piiLookup.has(piiKey)) {
@@ -260,7 +260,7 @@ export default function EventStore<
 
         // if we have a pii db, get all the pii for re-populating the emitted events
         if (piiBase && allEvents.length > 0) {
-            piiLookup = await piiBase.getPiiLookup()
+            piiLookup = await piiBase.getPiiLookup({ minSequenceNumber })
         }
 
         _logger.debug(`Replaying ${allEvents.length} events.`)
@@ -330,7 +330,7 @@ export default function EventStore<
 
         const seqNums = events.map((event) => event.sequencenum.toString())
         const piiLookup = piiBase
-            ? await piiBase.getPiiLookup(seqNums)
+            ? await piiBase.getPiiLookup({ keys: seqNums })
             : undefined
 
         return events.map((event) => {

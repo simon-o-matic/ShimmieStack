@@ -23,7 +23,7 @@ export default function PiiBase(): PiiBaseType {
 
     const addPiiEventData = async (
         key: string,
-        data: Record<string, any>
+        data: Record<string, any>,
     ): Promise<Record<string, any>> => {
         piiData.set(key, data)
 
@@ -32,7 +32,7 @@ export default function PiiBase(): PiiBaseType {
 
     // Get all events in the correct squence for replay
     const getPiiData = async (
-        key: string
+        key: string,
     ): Promise<Record<string, any> | undefined> => {
         if (piiData.has(key)) {
             return piiData.get(key)
@@ -43,13 +43,25 @@ export default function PiiBase(): PiiBaseType {
 
     // Get all events in the correct squence for replay
     const getPiiLookup = async (
-        keys?: string[]
+        params: {
+            keys?: string[], minSequenceNumber?: number
+        } | undefined,
     ): Promise<Record<string, any>> => {
-        if (keys && keys.length > 0) {
+
+        if (params?.keys && params?.keys.length > 0) {
+            const keys = params.keys
             return Promise.resolve(
                 new Map(
-                    [...piiData].filter(([key, value]) => keys.includes(key))
-                )
+                    [...piiData].filter(([key, value]) => keys.includes(key)),
+                ),
+            )
+        }
+        if (params?.minSequenceNumber !== undefined) {
+            const minSeq = params.minSequenceNumber
+            return Promise.resolve(
+                new Map(
+                    [...piiData].filter(([key, value]) => parseInt(key) >= minSeq),
+                ),
             )
         }
 
@@ -57,7 +69,7 @@ export default function PiiBase(): PiiBaseType {
     }
 
     const anonymisePiiEventData = async (keys: string[]): Promise<void> => {
-        const piiLookup = await getPiiLookup(keys)
+        const piiLookup = await getPiiLookup({ keys })
         for (const key of keys) {
             const entry = piiLookup.get(key)
             if (entry) {
