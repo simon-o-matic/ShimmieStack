@@ -1,7 +1,6 @@
 import { Handler, NextFunction, Request, Response } from 'express'
-import { StackNotInitialisedError } from './index'
 
-const commandMethods = ['PUT', 'POST', 'DELETE']
+const commandMethods = ['PUT', 'POST', 'DELETE', 'PATCH']
 const SEQ_NUM_MIN_HEADER = 'X-Seq-Num-Min'
 const CURRENT_SEQ_NUM_HEADER = 'X-Seq-Num'
 /**
@@ -13,9 +12,9 @@ const CURRENT_SEQ_NUM_HEADER = 'X-Seq-Num'
  * @param hashKey
  */
 export const sequenceNumberMiddleware = ({
-                                             stackEnsureMinSeqNumFunc,
-                                             getLastHandledSeqNum,
-                                         }: {
+    stackEnsureMinSeqNumFunc,
+    getLastHandledSeqNum,
+}: {
     stackEnsureMinSeqNumFunc: (options: {
         minSequenceNumber?: number
     }) => Promise<number>
@@ -23,7 +22,9 @@ export const sequenceNumberMiddleware = ({
 }): Handler => {
     return async (req: Request, res: Response, next: NextFunction) => {
         const temp = res.send
-        const isCommandRequest = commandMethods.includes(req.method.toUpperCase())
+        const isCommandRequest = commandMethods.includes(
+            req.method.toUpperCase()
+        )
         let minSequenceNumber: number | undefined
 
         // if the caller knows what number they need, save a db round trip and ensure that has loaded.
@@ -43,10 +44,7 @@ export const sequenceNumberMiddleware = ({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         res.send = (body?: any) => {
             // if a command request, or a min seq number was requested, return the last handled seq num in a header
-            if (
-                isCommandRequest ||
-                minSequenceNumber !== undefined
-            ) {
+            if (isCommandRequest || minSequenceNumber !== undefined) {
                 const lastHandled = getLastHandledSeqNum().toString()
 
                 res.set(CURRENT_SEQ_NUM_HEADER, lastHandled)
