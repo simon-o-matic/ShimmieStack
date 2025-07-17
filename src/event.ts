@@ -62,7 +62,10 @@ export type StoredEventResponse<EventName = string, EventType = any> =
  * The interface event buses must match to be used as a drop in
  */
 export interface EventBusType {
-    on: (type: string, callback: (...args: any[]) => void | Promise<void>) => void
+    on: (
+        type: string,
+        callback: (...args: any[]) => void | Promise<void>
+    ) => void
     emit: (type: string, event: Event) => Promise<void>
     init: (initialSequenceNumber?: number) => void
     getLastEmittedSeqNum: () => number
@@ -107,6 +110,10 @@ export interface EventBaseType {
     ) => Promise<StoredEventResponse>
     /** get events from the start to the end (for replay) optionally provide a starting point */
     getEventsInOrder: (minSequenceNumber?: number) => Promise<Event[]>
+    /** stream events from the start to the end (for replay) optionally provide a starting point */
+    getEventsInOrderStream: (
+        minSequenceNumber?: number
+    ) => AsyncGenerator<Event>
     /** Get all events for corresponding stream IDs */
     getEventsByStreamIds: (streamIds: string[]) => Promise<Event[] | undefined>
     /** Updated meta on event to show corresponding pii has been anonymised */
@@ -131,7 +138,10 @@ export interface PiiBaseType {
     /** get a single pii record if it exists */
     getPiiData: (key: string) => Promise<Record<string, any> | undefined>
     /** get all pii records */
-    getPiiLookup: (params?:{ keys?: string[], minSequenceNumber?: number }) => Promise<Record<string, any>>
+    getPiiLookup: (params?: {
+        keys?: string[]
+        minSequenceNumber?: number
+    }) => Promise<Record<string, any>>
     /** anonymise data in rows with the provided keys */
     anonymisePiiEventData: (keys: string[]) => Promise<void>
     /**  prepare the piibase */

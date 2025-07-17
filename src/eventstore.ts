@@ -23,6 +23,7 @@ export interface EventStoreType<
     SubscribeModels extends Record<string, any>
 > {
     replayEvents: (minSequenceNumber?: number) => Promise<number>
+    replayEventsStreamed: (minSequenceNumber?: number) => Promise<number>
     recordEvent: <EventName extends keyof RecordModels>(
         event: RecordEventType<RecordModels, EventName>
     ) => Promise<any>
@@ -182,7 +183,7 @@ export default function EventStore<
         const tryCatchCallback: (
             event: TypedEvent<EventName, SubscribeModels[EventName]>
         ) => Promise<void> = async (
-            eventModel: TypedEvent<EventName, SubscribeModels[EventName]>,
+            eventModel: TypedEvent<EventName, SubscribeModels[EventName]>
         ): Promise<void> => {
             try {
                 return await callback(eventModel)
@@ -218,7 +219,9 @@ export default function EventStore<
         }
 
         // if we want pii and we have a pii db, combine the event data
-        const piiLookup: Record<string, any> = await piiBase.getPiiLookup({minSequenceNumber})
+        const piiLookup: Record<string, any> = await piiBase.getPiiLookup({
+            minSequenceNumber,
+        })
         return events.map((event) => {
             const piiKey = event.sequencenum!.toString()
             if (!piiLookup.has(piiKey)) {
@@ -320,6 +323,103 @@ export default function EventStore<
         return allEvents.length
     }
 
+    const replayEventsStreamed = async (
+        minSequenceNumber?: number
+    ): Promise<number> => {
+        _logger.debug(
+            `Executing replayEventsStreamed events ${JSON.stringify(options)}`
+        )
+        /** if we are initialising and cant find anything ahead of the init'd number, update the event bus so it knows it */
+        const latestDbSeqNum = await eventbase.getLatestSequenceNumber()
+
+        if (
+            minSequenceNumber &&
+            minSequenceNumber > 0 &&
+            latestDbSeqNum < minSequenceNumber
+        ) {
+            stackEventBus.init(minSequenceNumber - 1)
+        }
+
+        _logger.info(
+            `Starting streamed replay from seq ${minSequenceNumber ?? 0}`
+        )
+
+        const stream = await eventbase.getEventsInOrderStream(minSequenceNumber)
+        let count = 0
+
+        // if we have a pii db, get all the pii for re-populating the emitted events
+        const piiLookup = piiBase
+            ? await piiBase.getPiiLookup({ minSequenceNumber }) // NOTE: may want to query per event row if this starts eating all the memory too...
+            : undefined
+
+        for await (const e of stream) {
+            if (e.meta.deletedAtDate) continue
+
+            let data = e.data
+
+            // We may have a case with a key and the lookup without a value,
+            // if the value has been deleted from the piiBase so if we have
+            // pii in this event, the piiLookup is defined and we a record in
+            // the lookup for this event, using the sequence num as a key merge
+            // the non-pii and pii data so the caller gets back what they
+            // provided
+            if (
+                e.meta.hasPii &&
+                piiLookup &&
+                e.sequencenum &&
+                piiLookup[e.sequencenum.toString()]
+            ) {
+                data = {
+                    ...data,
+                    ...piiLookup[e.sequencenum.toString()],
+                }
+            }
+
+            // if there is no date in the meta then we can use the logdate
+            // col from the db
+            const meta = { ...e.meta, replay: true }
+            if (!meta.date) {
+                meta.date = e.logdate ? new Date(e.logdate).getTime() : 0
+            }
+
+            // fix some casing issues
+            const streamId = e.streamId ?? (e as any)?.streamid
+
+            // handle old versionless events
+            const streamVersionId =
+                'streamversionid' in e
+                    ? (e.streamversionid as string)
+                    : e.streamVersionId ?? `${streamId}-${e.sequencenum}`
+
+            // WARNING: These are field names from the database and hence are
+            // all LOWERCASE
+            const event: Event = {
+                data,
+                streamId,
+                meta,
+                type: e.type,
+                streamVersionId,
+                sequencenum: e.sequencenum,
+            }
+
+            if (!!options.initialised) {
+                _logger.debug(`Replaying event: ${event.sequencenum}`)
+            }
+
+            await stackEventBus.emit(event.type, event)
+            count++
+
+            // garbage collect every 100,000 events
+            if (count % 100_000 === 0) {
+                _logger.info(`Replayed ${count} events...`)
+                global.gc?.()
+            }
+        }
+
+        _logger.info(`Finished streamed replay: ${count} events.`)
+        return count
+    }
+
     const getStreamHistory = async (
         streamIds: string[]
     ): Promise<EventHistory<SubscribeModels>[]> => {
@@ -418,6 +518,7 @@ export default function EventStore<
         anonymiseStreamPii,
         reset,
         replayEvents,
+        replayEventsStreamed,
         recordEvent,
         subscribe,
         getEvents,

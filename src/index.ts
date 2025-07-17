@@ -290,7 +290,7 @@ const initializeShimmieStack = async <
                 ? `ShimmieStack >>>> Starting to replay the event stream to rebuild memory models after sequence number: ${lastHandledSequenceNumber}`
                 : `ShimmieStack >>>> Starting to replay the entire event stream to rebuild memory models`
         )
-        const numEvents = await eventStore.replayEvents(
+        const numEvents = await eventStore.replayEventsStreamed(
             lastHandledSequenceNumber ? lastHandledSequenceNumber + 1 : 0
         )
         Logger.info(`ShimmieStack >>>> replayed ${numEvents} events`)

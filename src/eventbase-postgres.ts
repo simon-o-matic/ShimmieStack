@@ -3,6 +3,7 @@
 //
 import pg, { PoolConfig } from 'pg'
 import Format from 'pg-format'
+import QueryStream from 'pg-query-stream'
 import {
     EventBaseType,
     EventToRecord,
@@ -135,6 +136,23 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
         return await runQuery(query)
     }
 
+    const getEventsInOrderStream = async function* (minSequenceNumber = 0) {
+        const client = await pool.connect()
+        try {
+            const sql = `SELECT * FROM eventlist WHERE SequenceNum >= $1 ORDER BY SequenceNum`
+            const query = new QueryStream(sql, [minSequenceNumber], {
+                batchSize: 1000,
+            })
+            const stream = client.query(query)
+
+            for await (const row of stream) {
+                yield row
+            }
+        } finally {
+            client.release()
+        }
+    }
+
     /** Get all events for corresponding stream IDs */
     const getEventsByStreamIds = async (streamIds: string[]) => {
         let query = 'SELECT * FROM eventlist ORDER BY SequenceNum'
@@ -244,9 +262,13 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
 
     const getLatestSequenceNumber = async () => {
         try {
-            return (await runQuery(`SELECT max(sequencenum)::int from eventlist`))[0].max
+            return (
+                await runQuery(`SELECT max(sequencenum)::int from eventlist`)
+            )[0].max
         } catch (err: any) {
-            throw new Error(`Error fetching max sequence number: ${err.message}`)
+            throw new Error(
+                `Error fetching max sequence number: ${err.message}`
+            )
         }
     }
 
@@ -256,6 +278,7 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
         deleteEvent,
         getEventsByStreamIds,
         getEventsInOrder,
+        getEventsInOrderStream,
         init,
         reset,
         shutdown,

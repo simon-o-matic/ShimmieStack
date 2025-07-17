@@ -115,6 +115,14 @@ export default function Eventbase(): EventBaseType {
         )
     }
 
+    const getEventsInOrderStream = async function* (minSequenceNumber = 0) {
+        for (const event of events) {
+            if (event.sequencenum >= minSequenceNumber) {
+                yield event
+            }
+        }
+    }
+
     const anonymiseEvents = async (streamId: string) => {
         events
             .filter((event) => {
@@ -147,6 +155,7 @@ export default function Eventbase(): EventBaseType {
         deleteEvent,
         getEventsByStreamIds,
         getEventsInOrder,
+        getEventsInOrderStream,
         init,
         reset,
         shutdown,
