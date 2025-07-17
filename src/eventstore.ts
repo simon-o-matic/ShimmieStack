@@ -3,6 +3,7 @@
 //
 
 import { v4 as uuid } from 'uuid'
+import * as v8 from 'v8'
 import {
     Event,
     EventBaseType,
@@ -410,9 +411,20 @@ export default function EventStore<
             count++
 
             // garbage collect every 100,000 events
+            // add --expose-gc to node options to use gc
             if (count % 100_000 === 0) {
                 _logger.info(`Replayed ${count} events...`)
+                _logger.info(
+                    `Heap used: ${
+                        v8.getHeapStatistics().used_heap_size / 1024 / 1024
+                    } MB`
+                )
                 global.gc?.()
+                _logger.info(
+                    `Heap used after gc: ${
+                        v8.getHeapStatistics().used_heap_size / 1024 / 1024
+                    } MB`
+                )
             }
         }
 
