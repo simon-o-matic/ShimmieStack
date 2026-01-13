@@ -43,7 +43,8 @@ export interface EventStoreType<
     getLatestDbSequenceNumber: () => Promise<number>
     anonymiseStreamPii: (streamId: string) => Promise<void>
     getStreamHistory: (
-        streamIds: string[]
+        streamIds: string[],
+        type?: string
     ) => Promise<EventHistory<SubscribeModels>[]>
     reset: () => Promise<void>
 }
@@ -433,9 +434,10 @@ export default function EventStore<
     }
 
     const getStreamHistory = async (
-        streamIds: string[]
+        streamIds: string[],
+        type?: string
     ): Promise<EventHistory<SubscribeModels>[]> => {
-        const events = await eventbase.getEventsByStreamIds(streamIds)
+        const events = await eventbase.getEventsByStreamIds(streamIds, type)
         if (events === undefined) {
             return []
         }

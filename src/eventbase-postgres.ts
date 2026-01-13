@@ -153,15 +153,21 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
         }
     }
 
-    /** Get all events for corresponding stream IDs */
-    const getEventsByStreamIds = async (streamIds: string[]) => {
-        let query = 'SELECT * FROM eventlist ORDER BY SequenceNum'
-        if (streamIds.length > 0) {
-            query = Format(
-                'SELECT * FROM eventlist WHERE StreamId in (%L) ORDER BY SequenceNum',
-                streamIds
-            )
+    /** Get all events for corresponding stream IDs, optionally filter by type */
+    const getEventsByStreamIds = async (streamIds: string[], type?: string) => {
+        if (streamIds.length === 0) {
+            return []
         }
+
+        const query = Format(
+            `SELECT *
+            FROM eventlist 
+            WHERE StreamId in (%L)
+                AND TYPE = COALESCE($2, TYPE)
+            ORDER BY SequenceNum`,
+            streamIds,
+            type
+        )
 
         return await runQuery(query)
     }

@@ -115,7 +115,10 @@ export interface EventBaseType {
         minSequenceNumber?: number
     ) => AsyncGenerator<Event>
     /** Get all events for corresponding stream IDs */
-    getEventsByStreamIds: (streamIds: string[]) => Promise<Event[] | undefined>
+    getEventsByStreamIds: (
+        streamIds: string[],
+        type?: string
+    ) => Promise<Event[] | undefined>
     /** Updated meta on event to show corresponding pii has been anonymised */
     anonymiseEvents: (streamId: string) => Promise<void>
     /** fetch the maximum sequence number currently in the eventbase */
