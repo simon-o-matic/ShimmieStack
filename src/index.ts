@@ -204,7 +204,8 @@ export type StackType<
     ) => void
     use: (a: any) => any
     getHistory: (
-        ids: string | string[]
+        ids: string | string[],
+        type?: string
     ) => Promise<StreamHistory<SubscribeModels> | undefined>
     ensureMinSequenceNumberHandled: ({
         minSequenceNumber,
@@ -631,10 +632,12 @@ export default function ShimmieStack<
          * know or care if they're related events
          */
         getHistory: async (
-            ids: string | string[]
+            ids: string | string[],
+            type?: string
         ): Promise<StreamHistory<SubscribeModels> | undefined> => {
             const history = await eventStore.getStreamHistory(
-                Array.isArray(ids) ? ids : [ids]
+                Array.isArray(ids) ? ids : [ids],
+                type
             )
 
             if (!history) {

@@ -141,6 +141,9 @@ describe('when calling posts that generate a history', () => {
 
         expect((await testStack.getHistory('999'))?.history.length).toBe(2)
         expect((await testStack.getHistory('34sdfsT3'))?.history.length).toBe(1)
+        expect(
+            (await testStack.getHistory('999', 'alice'))?.history.length
+        ).toBe(1)
     })
 })
 
