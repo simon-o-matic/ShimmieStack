@@ -159,17 +159,19 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
             return []
         }
 
-        const query = Format(
-            `SELECT *
+        let query = `SELECT *
             FROM eventlist 
-            WHERE StreamId in (%L)
-                AND TYPE = COALESCE($2, TYPE)
-            ORDER BY SequenceNum`,
-            streamIds,
-            type
-        )
+            WHERE StreamId in (%L)`
 
-        return await runQuery(query)
+        if (type) {
+            query += ` AND TYPE = %L`
+        }
+
+        query += ` ORDER BY SequenceNum`
+
+        const formattedQuery = Format(query, streamIds, ...(type ? [type] : []))
+
+        return await runQuery(formattedQuery)
     }
 
     /** TODO: work out what to do with PII data */
