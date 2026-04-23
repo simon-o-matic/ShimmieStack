@@ -9,6 +9,14 @@ import {
 import EventBusNodejs from './event-bus-nodejs'
 import { Logger, StackLogger } from './logger'
 
+export interface ReplayProgressOptions {
+    every: number
+    onProgress: (ctx: {
+        count: number
+        lastSequenceNumber: number
+    }) => void | Promise<void>
+}
+
 export interface EventBusRedisPubsubOptions {
     url: string
     subscribe?: boolean
@@ -16,6 +24,7 @@ export interface EventBusRedisPubsubOptions {
     redisOptions?: RedisOptions
     replayFunc?: (seqNum: number) => Promise<number>
     options?: { initialised: boolean }
+    replayProgress?: ReplayProgressOptions
 }
 
 export class RedisPubsubError extends Error {
@@ -143,25 +152,33 @@ export default function EventBusRedisPubsub({
         })
     }
 
-    const emit = async (type: string, event: Event | StoredEventResponse): Promise<void> => {
+    const emit = async (
+        type: string,
+        event: Event | StoredEventResponse
+    ): Promise<void> => {
         if (!!options?.initialised) {
             _logger.debug(`${event.sequencenum}: Beginning event emit`)
         }
         // don't publish replays globally.
         if (!event.meta.replay) {
             _logger.debug(`${event.sequencenum}: Emitting via PubSub`)
-            pubClient.publish(
-                GLOBAL_CHANNEL,
-                JSON.stringify({
-                    ...event,
-                    meta: {
-                        ...event.meta,
-                        emittedAt: Date.now(),
-                    },
+            pubClient
+                .publish(
+                    GLOBAL_CHANNEL,
+                    JSON.stringify({
+                        ...event,
+                        meta: {
+                            ...event.meta,
+                            emittedAt: Date.now(),
+                        },
+                    })
+                )
+                .catch((reason) => {
+                    Logger.error(
+                        'Unable to publish event via redis pub client',
+                        reason
+                    )
                 })
-            ).catch((reason) => {
-                Logger.error("Unable to publish event via redis pub client", reason)
-            })
         }
         if (!!options?.initialised) {
             _logger.debug(`${event.sequencenum}: Emitting locally`)

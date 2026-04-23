@@ -1,6 +1,11 @@
 //
 
-import { EventBusRedisPubsubOptions } from './event-bus-redis-pubsub'
+import type {
+    EventBusRedisPubsubOptions,
+    ReplayProgressOptions,
+} from './event-bus-redis-pubsub'
+
+export type { ReplayProgressOptions } from './event-bus-redis-pubsub'
 
 export interface UserMeta {
     userAgent: string
@@ -73,7 +78,9 @@ export interface EventBusType {
     reset: () => void
 }
 
-export type EventBusOptions = EventBusRedisPubsubOptions
+export type EventBusOptions =
+    | EventBusRedisPubsubOptions
+    | { replayProgress?: ReplayProgressOptions }
 
 /**  The error type thrown when object versions don't match */
 export class StreamVersionError extends Error {

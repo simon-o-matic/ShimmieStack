@@ -7,15 +7,17 @@ import * as v8 from 'v8'
 import {
     Event,
     EventBaseType,
-    EventBusOptions,
     EventToRecord,
     PiiBaseType,
+    ReplayProgressOptions,
     StoredEventResponse,
     TypedEvent,
     TypedEventHandler,
 } from './event'
 import EventBusNodejs from './event-bus-nodejs'
-import EventBusRedisPubsub from './event-bus-redis-pubsub'
+import EventBusRedisPubsub, {
+    EventBusRedisPubsubOptions,
+} from './event-bus-redis-pubsub'
 import { EventHistory, RecordEventType } from './index'
 import { Logger, StackLogger } from './logger'
 
@@ -57,14 +59,44 @@ export default function EventStore<
     piiBase,
     eventBusOptions,
     options,
+    replayProgress,
 }: {
     eventbase: EventBaseType
     piiBase?: PiiBaseType
-    eventBusOptions?: EventBusOptions
+    eventBusOptions?: Omit<EventBusRedisPubsubOptions, 'replayProgress'>
     options: { initialised: boolean; logger?: StackLogger }
+    replayProgress?: ReplayProgressOptions
 }): EventStoreType<RecordModels, SubscribeModels> {
     const allSubscriptions = new Map<string, boolean>()
     const _logger = options?.logger ?? Logger
+
+    const runReplayProgressIfDue = async (
+        count: number,
+        lastSequenceNumber: number
+    ): Promise<void> => {
+        const cfg = replayProgress
+        if (!cfg?.onProgress || typeof cfg.onProgress !== 'function') {
+            return
+        }
+        const every = cfg.every
+        if (!Number.isFinite(every) || every <= 0) {
+            return
+        }
+        if (count % every !== 0) {
+            return
+        }
+        _logger.info(
+            `[REPLAY-PROGRESS] every=${every} count=${count} lastSequenceNumber=${lastSequenceNumber}`
+        )
+        try {
+            await cfg.onProgress({ count, lastSequenceNumber })
+        } catch (err: any) {
+            _logger.error(
+                `[REPLAY-PROGRESS] onProgress failed: ${err?.message ?? err}`
+            )
+            throw err
+        }
+    }
     const recordEvent = async <EventName extends keyof RecordModels>({
         streamId,
         eventName,
@@ -268,6 +300,7 @@ export default function EventStore<
         }
 
         _logger.debug(`Replaying ${allEvents.length} events.`)
+        let replayedCount = 0
         for (let e of allEvents) {
             let data = e.data
 
@@ -318,6 +351,8 @@ export default function EventStore<
                 _logger.debug(`Replaying event: ${event.sequencenum}`)
             }
             await stackEventBus.emit(event.type, event)
+            replayedCount++
+            await runReplayProgressIfDue(replayedCount, e.sequencenum)
         }
 
         _logger.debug(`Replayed ${allEvents.length} events.`)
@@ -515,6 +550,8 @@ export default function EventStore<
                 lastCompletedSeq = e.sequencenum
                 lastEventFinishedAt = Date.now()
                 inFlight.phase = 'between_events'
+
+                await runReplayProgressIfDue(count, lastCompletedSeq)
 
                 // log event count every 10,000 events
                 if (count % 10_000 === 0) {

@@ -21,6 +21,7 @@ import {
     Meta,
     PiiBaseType,
     PiiFields,
+    ReplayProgressOptions,
     StreamVersionError,
     TypedEvent,
     TypedEventDep,
@@ -45,6 +46,7 @@ export {
     EventBusType,
     NextFunction,
     PostgresDbConfig,
+    ReplayProgressOptions,
     Request,
     Response,
     Router,
@@ -96,12 +98,12 @@ export interface StreamHistory<SubscribeModels> {
 
 export type RecordUncheckedEventType<
     RecordModels,
-    EventName extends keyof RecordModels
+    EventName extends keyof RecordModels,
 > = Omit<RecordEventType<RecordModels, EventName>, 'streamVersionIds'>
 
 export type RecordEventType<
     RecordModels,
-    EventName extends keyof RecordModels
+    EventName extends keyof RecordModels,
 > = {
     streamId: string
     eventName: EventName
@@ -166,7 +168,7 @@ export type RecordEventType<
  */
 export type StackType<
     RecordModels extends Record<string, any> = Record<string, any>,
-    SubscribeModels extends Record<string, any> = Record<string, any>
+    SubscribeModels extends Record<string, any> = Record<string, any>,
 > = {
     setApiVersion: (version: string) => StackType<RecordModels, SubscribeModels>
     getRouter: () => Router
@@ -235,7 +237,7 @@ const startApiListener = async (app: Application, port: number) => {
 
 const initializeShimmieStack = async <
     RecordModels extends Record<string, any>,
-    SubscribeModels extends Record<string, any>
+    SubscribeModels extends Record<string, any>,
 >({
     app,
     config,
@@ -322,6 +324,32 @@ export class StackNotInitialisedError extends Error {
     }
 }
 
+const splitEventBusOptionsForStore = (
+    eventBusOptions: EventBusOptions | undefined
+): {
+    replayProgress?: ReplayProgressOptions
+    redisEventBusOptions?: Omit<EventBusRedisPubsubOptions, 'replayProgress'>
+} => {
+    if (!eventBusOptions) {
+        return {}
+    }
+    const { replayProgress, ...rest } =
+        eventBusOptions as EventBusRedisPubsubOptions
+    const redisKeys = Object.keys(rest).filter(
+        (k) => (rest as Record<string, unknown>)[k] !== undefined
+    )
+    if (redisKeys.length === 0) {
+        return { replayProgress }
+    }
+    return {
+        replayProgress,
+        redisEventBusOptions: rest as Omit<
+            EventBusRedisPubsubOptions,
+            'replayProgress'
+        >,
+    }
+}
+
 export const catchAllErrorHandler: ErrorRequestHandler = (
     err: any,
     req: Request,
@@ -335,7 +363,7 @@ export const catchAllErrorHandler: ErrorRequestHandler = (
 
 export default function ShimmieStack<
     RecordModels extends Record<string, any> = Record<string, any>,
-    SubscribeModels extends Record<string, any> = Record<string, any>
+    SubscribeModels extends Record<string, any> = Record<string, any>,
 >(
     config: ShimmieConfig,
     eventBase: EventBaseType,
@@ -388,14 +416,21 @@ export default function ShimmieStack<
         throw Error('Missing event base parameter to ShimmieStack')
     }
 
+    const { replayProgress, redisEventBusOptions } =
+        splitEventBusOptionsForStore(eventBusOptions)
+
     /** initialise the event store service by giving it an event database (db, memory, file ) */
     const eventStore = EventStore<RecordModels, SubscribeModels>({
         eventbase: eventBase,
         piiBase: piiBase,
         options: stackInitialised,
-        ...(eventBusOptions && {
-            eventBusOptions: { ...eventBusOptions, options: stackInitialised },
+        ...(redisEventBusOptions && {
+            eventBusOptions: {
+                ...redisEventBusOptions,
+                options: stackInitialised,
+            },
         }),
+        ...(replayProgress && { replayProgress }),
     })
 
     let errorHandler: ErrorRequestHandler = catchAllErrorHandler
