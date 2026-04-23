@@ -409,7 +409,31 @@ export default function EventStore<
                 )
             }
 
-            await stackEventBus.emit(event.type, event)
+            const slowEmitLogAfterMs = 10_000
+            const slowEmitLogEveryMs = 30_000
+            const emitStartedAt = Date.now()
+
+            let slowEmitTimeout: NodeJS.Timeout | undefined
+            let slowEmitInterval: NodeJS.Timeout | undefined
+            try {
+                slowEmitTimeout = setTimeout(() => {
+                    const elapsedMs = Date.now() - emitStartedAt
+                    _logger.warn(
+                        `Slow replay emit (${elapsedMs}ms): seq=${event.sequencenum} type=${event.type} streamId=${event.streamId}`
+                    )
+                    slowEmitInterval = setInterval(() => {
+                        const elapsedMs = Date.now() - emitStartedAt
+                        _logger.warn(
+                            `Still waiting on replay emit (${elapsedMs}ms): seq=${event.sequencenum} type=${event.type} streamId=${event.streamId}`
+                        )
+                    }, slowEmitLogEveryMs)
+                }, slowEmitLogAfterMs)
+
+                await stackEventBus.emit(event.type, event)
+            } finally {
+                if (slowEmitTimeout) clearTimeout(slowEmitTimeout)
+                if (slowEmitInterval) clearInterval(slowEmitInterval)
+            }
             count++
 
             // log event count every 10,000 events
