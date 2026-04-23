@@ -353,110 +353,193 @@ export default function EventStore<
             ? await piiBase.getPiiLookup({ minSequenceNumber }) // NOTE: may want to query per event row if this starts eating all the memory too...
             : undefined
 
-        for await (const e of stream) {
-            if (e.meta.deletedAtDate) continue
+        const replayHeartbeatMs = 30_000
+        const slowStreamWaitLogMs = 2_000
+        const slowPreEmitLogMs = 2_000
+        const largeDataStringLogBytes = 200_000
 
-            let data = e.data
+        let lastEventFinishedAt = Date.now()
+        let lastStreamWaitMs: number | undefined
+        let lastCompletedSeq: number | undefined
+        const inFlight: {
+            seq?: number
+            type?: string
+            phase: string
+        } = { phase: 'init' }
+        let replayHeartbeat: NodeJS.Timeout | undefined
 
-            // We may have a case with a key and the lookup without a value,
-            // if the value has been deleted from the piiBase so if we have
-            // pii in this event, the piiLookup is defined and we a record in
-            // the lookup for this event, using the sequence num as a key merge
-            // the non-pii and pii data so the caller gets back what they
-            // provided
-            if (
-                e.meta.hasPii &&
-                piiLookup &&
-                e.sequencenum &&
-                piiLookup[e.sequencenum.toString()]
-            ) {
-                data = {
-                    ...data,
-                    ...piiLookup[e.sequencenum.toString()],
+        try {
+            replayHeartbeat = setInterval(() => {
+                _logger.info(
+                    `[REPLAY-HEARTBEAT] replayedCount=${count} lastCompletedSeq=${
+                        lastCompletedSeq ?? 'n/a'
+                    } inFlight=${
+                        inFlight.seq
+                            ? `seq=${inFlight.seq} type=${inFlight.type} phase=${inFlight.phase}`
+                            : 'n/a'
+                    } lastStreamWaitMs=${lastStreamWaitMs ?? 'n/a'}`
+                )
+            }, replayHeartbeatMs)
+
+            for await (const e of stream) {
+                const receivedRowAt = Date.now()
+                lastStreamWaitMs = receivedRowAt - lastEventFinishedAt
+                inFlight.seq = e.sequencenum
+                inFlight.type = e.type
+                inFlight.phase = 'stream_wait'
+                if (lastStreamWaitMs >= slowStreamWaitLogMs) {
+                    _logger.info(
+                        `[REPLAY-PHASE] slow stream wait: ${lastStreamWaitMs}ms (next seq ${e.sequencenum} type ${e.type})`
+                    )
+                }
+
+                if (e.meta.deletedAtDate) {
+                    lastEventFinishedAt = Date.now()
+                    inFlight.phase = 'skipped_deleted'
+                    continue
+                }
+
+                inFlight.phase = 'data'
+
+                const rawDataUnknown: unknown = e.data
+                const dataStringBytes =
+                    typeof rawDataUnknown === 'string'
+                        ? rawDataUnknown.length
+                        : 0
+                if (dataStringBytes >= largeDataStringLogBytes) {
+                    _logger.info(
+                        `[REPLAY-PAYLOAD] large data string: seq=${
+                            e.sequencenum
+                        } type=${e.type} dataBytes~=${dataStringBytes}`
+                    )
+                }
+
+                let data = e.data
+
+                // We may have a case with a key and the lookup without a value,
+                // if the value has been deleted from the piiBase so if we have
+                // pii in this event, the piiLookup is defined and we a record in
+                // the lookup for this event, using the sequence num as a key merge
+                // the non-pii and pii data so the caller gets back what they
+                // provided
+                inFlight.phase = 'pii_merge'
+                if (
+                    e.meta.hasPii &&
+                    piiLookup &&
+                    e.sequencenum &&
+                    piiLookup[e.sequencenum.toString()]
+                ) {
+                    data = {
+                        ...data,
+                        ...piiLookup[e.sequencenum.toString()],
+                    }
+                }
+
+                // if there is no date in the meta then we can use the logdate
+                // col from the db
+                const meta = { ...e.meta, replay: true }
+                if (!meta.date) {
+                    meta.date = e.logdate ? new Date(e.logdate).getTime() : 0
+                }
+
+                // fix some casing issues
+                const streamId = e.streamId ?? (e as any)?.streamid
+
+                // handle old versionless events
+                const streamVersionId =
+                    'streamversionid' in e
+                        ? (e.streamversionid as string)
+                        : (e.streamVersionId ?? `${streamId}-${e.sequencenum}`)
+
+                // WARNING: These are field names from the database and hence are
+                // all LOWERCASE
+                inFlight.phase = 'build_event'
+                const event: Event = {
+                    data,
+                    streamId,
+                    meta,
+                    type: e.type,
+                    streamVersionId,
+                    sequencenum: e.sequencenum,
+                }
+
+                if (!!options.initialised) {
+                    _logger.debug(
+                        `Replaying ${event.type} event: ${event.sequencenum}`
+                    )
+                }
+
+                const slowEmitLogAfterMs = 10_000
+                const slowEmitLogEveryMs = 30_000
+                const emitStartedAt = Date.now()
+                const preEmitMs = emitStartedAt - receivedRowAt
+                if (preEmitMs >= slowPreEmitLogMs) {
+                    _logger.info(
+                        `[REPLAY-PHASE] slow pre-emit: ${preEmitMs}ms seq=${event.sequencenum} type=${event.type}`
+                    )
+                }
+
+                const logReplayEmitStall = (
+                    label: string,
+                    elapsedMs: number
+                ) => {
+                    // Some app loggers passed via ShimmieStack's configureLogger() may
+                    // omit or no-op `warn` in production; `info` is the reliable line.
+                    const message = `${label} (${elapsedMs}ms): seq=${event.sequencenum} type=${event.type} streamId=${event.streamId}`
+                    _logger.info(`[REPLAY-EMIT-STALL] ${message}`)
+                    _logger.warn(message)
+                }
+
+                let slowEmitTimeout: NodeJS.Timeout | undefined
+                let slowEmitInterval: NodeJS.Timeout | undefined
+                inFlight.phase = 'emit'
+                try {
+                    slowEmitTimeout = setTimeout(() => {
+                        const elapsedMs = Date.now() - emitStartedAt
+                        logReplayEmitStall('Slow replay emit', elapsedMs)
+                        slowEmitInterval = setInterval(() => {
+                            const elapsedMs = Date.now() - emitStartedAt
+                            logReplayEmitStall(
+                                'Still waiting on replay emit',
+                                elapsedMs
+                            )
+                        }, slowEmitLogEveryMs)
+                    }, slowEmitLogAfterMs)
+
+                    await stackEventBus.emit(event.type, event)
+                } finally {
+                    if (slowEmitTimeout) clearTimeout(slowEmitTimeout)
+                    if (slowEmitInterval) clearInterval(slowEmitInterval)
+                }
+                count++
+                lastCompletedSeq = e.sequencenum
+                lastEventFinishedAt = Date.now()
+                inFlight.phase = 'between_events'
+
+                // log event count every 10,000 events
+                if (count % 10_000 === 0) {
+                    _logger.info(`Replayed ${count} events...`)
+                }
+
+                // garbage collect every 100,000 events
+                // add --expose-gc to node options to use gc
+                if (count % 100_000 === 0) {
+                    _logger.info(`Replayed ${count} events...`)
+                    _logger.info(
+                        `Heap used: ${
+                            v8.getHeapStatistics().used_heap_size / 1024 / 1024
+                        } MB`
+                    )
+                    global.gc?.()
+                    _logger.info(
+                        `Heap used after gc: ${
+                            v8.getHeapStatistics().used_heap_size / 1024 / 1024
+                        } MB`
+                    )
                 }
             }
-
-            // if there is no date in the meta then we can use the logdate
-            // col from the db
-            const meta = { ...e.meta, replay: true }
-            if (!meta.date) {
-                meta.date = e.logdate ? new Date(e.logdate).getTime() : 0
-            }
-
-            // fix some casing issues
-            const streamId = e.streamId ?? (e as any)?.streamid
-
-            // handle old versionless events
-            const streamVersionId =
-                'streamversionid' in e
-                    ? (e.streamversionid as string)
-                    : (e.streamVersionId ?? `${streamId}-${e.sequencenum}`)
-
-            // WARNING: These are field names from the database and hence are
-            // all LOWERCASE
-            const event: Event = {
-                data,
-                streamId,
-                meta,
-                type: e.type,
-                streamVersionId,
-                sequencenum: e.sequencenum,
-            }
-
-            if (!!options.initialised) {
-                _logger.debug(
-                    `Replaying ${event.type} event: ${event.sequencenum}`
-                )
-            }
-
-            const slowEmitLogAfterMs = 10_000
-            const slowEmitLogEveryMs = 30_000
-            const emitStartedAt = Date.now()
-
-            let slowEmitTimeout: NodeJS.Timeout | undefined
-            let slowEmitInterval: NodeJS.Timeout | undefined
-            try {
-                slowEmitTimeout = setTimeout(() => {
-                    const elapsedMs = Date.now() - emitStartedAt
-                    _logger.warn(
-                        `Slow replay emit (${elapsedMs}ms): seq=${event.sequencenum} type=${event.type} streamId=${event.streamId}`
-                    )
-                    slowEmitInterval = setInterval(() => {
-                        const elapsedMs = Date.now() - emitStartedAt
-                        _logger.warn(
-                            `Still waiting on replay emit (${elapsedMs}ms): seq=${event.sequencenum} type=${event.type} streamId=${event.streamId}`
-                        )
-                    }, slowEmitLogEveryMs)
-                }, slowEmitLogAfterMs)
-
-                await stackEventBus.emit(event.type, event)
-            } finally {
-                if (slowEmitTimeout) clearTimeout(slowEmitTimeout)
-                if (slowEmitInterval) clearInterval(slowEmitInterval)
-            }
-            count++
-
-            // log event count every 10,000 events
-            if (count % 10_000 === 0) {
-                _logger.info(`Replayed ${count} events...`)
-            }
-
-            // garbage collect every 100,000 events
-            // add --expose-gc to node options to use gc
-            if (count % 100_000 === 0) {
-                _logger.info(`Replayed ${count} events...`)
-                _logger.info(
-                    `Heap used: ${
-                        v8.getHeapStatistics().used_heap_size / 1024 / 1024
-                    } MB`
-                )
-                global.gc?.()
-                _logger.info(
-                    `Heap used after gc: ${
-                        v8.getHeapStatistics().used_heap_size / 1024 / 1024
-                    } MB`
-                )
-            }
+        } finally {
+            if (replayHeartbeat) clearInterval(replayHeartbeat)
         }
 
         _logger.info(`Finished streamed replay: ${count} events.`)
