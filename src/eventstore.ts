@@ -403,7 +403,11 @@ export default function EventStore<
                 sequencenum: e.sequencenum,
             }
 
-            _logger.debug(`Replaying ${event.type} event: ${event.sequencenum}`)
+            if (!!options.initialised) {
+                _logger.debug(
+                    `Replaying ${event.type} event: ${event.sequencenum}`
+                )
+            }
 
             await stackEventBus.emit(event.type, event)
             count++
