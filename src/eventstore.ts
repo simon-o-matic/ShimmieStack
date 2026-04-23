@@ -21,7 +21,7 @@ import { Logger, StackLogger } from './logger'
 
 export interface EventStoreType<
     RecordModels extends Record<string, any>,
-    SubscribeModels extends Record<string, any>
+    SubscribeModels extends Record<string, any>,
 > {
     replayEvents: (minSequenceNumber?: number) => Promise<number>
     replayEventsStreamed: (minSequenceNumber?: number) => Promise<number>
@@ -51,7 +51,7 @@ export interface EventStoreType<
 
 export default function EventStore<
     RecordModels extends Record<string, any>,
-    SubscribeModels extends Record<string, any>
+    SubscribeModels extends Record<string, any>,
 >({
     eventbase,
     piiBase,
@@ -211,9 +211,8 @@ export default function EventStore<
     }) => {
         const { withPii, minSequenceNumber } = options ?? { withPii: true }
         _logger.debug(`Executing getEvents events ${JSON.stringify(options)}`)
-        const events: Event[] = await eventbase.getEventsInOrder(
-            minSequenceNumber
-        )
+        const events: Event[] =
+            await eventbase.getEventsInOrder(minSequenceNumber)
 
         // If we don't use a pii db, or we don't want the pii with the db return the events
         if (!withPii || !piiBase) {
@@ -304,7 +303,7 @@ export default function EventStore<
             const streamVersionId =
                 'streamversionid' in e
                     ? (e.streamversionid as string)
-                    : e.streamVersionId ?? `${streamId}-${e.sequencenum}`
+                    : (e.streamVersionId ?? `${streamId}-${e.sequencenum}`)
 
             // WARNING: These are field names from the database and hence are all LOWERCASE
             const event: Event = {
@@ -391,7 +390,7 @@ export default function EventStore<
             const streamVersionId =
                 'streamversionid' in e
                     ? (e.streamversionid as string)
-                    : e.streamVersionId ?? `${streamId}-${e.sequencenum}`
+                    : (e.streamVersionId ?? `${streamId}-${e.sequencenum}`)
 
             // WARNING: These are field names from the database and hence are
             // all LOWERCASE
@@ -410,6 +409,11 @@ export default function EventStore<
 
             await stackEventBus.emit(event.type, event)
             count++
+
+            // log event count every 10,000 events
+            if (count % 10_000 === 0) {
+                _logger.info(`Replayed ${count} events...`)
+            }
 
             // garbage collect every 100,000 events
             // add --expose-gc to node options to use gc
