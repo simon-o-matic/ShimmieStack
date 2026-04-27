@@ -350,7 +350,6 @@ export default function EventStore<
             if (!!options.initialised) {
                 _logger.debug(`Replaying event: ${event.sequencenum}`)
             }
-            _logger.info(`Replaying event: ${event.type} ${event.sequencenum}`)
             await stackEventBus.emit(event.type, event)
             replayedCount++
             await runReplayProgressIfDue(replayedCount, e.sequencenum)
@@ -504,6 +503,9 @@ export default function EventStore<
                         `Replaying ${event.type} event: ${event.sequencenum}`
                     )
                 }
+                _logger.debug(
+                    `Replaying event: ${event.type} ${event.sequencenum}`
+                )
 
                 const slowEmitLogAfterMs = 10_000
                 const slowEmitLogEveryMs = 30_000
