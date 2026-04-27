@@ -503,9 +503,12 @@ export default function EventStore<
                         `Replaying ${event.type} event: ${event.sequencenum}`
                     )
                 }
-                _logger.debug(
-                    `Replaying event: ${event.type} ${event.sequencenum}`
-                )
+
+                if (event.type.includes('SUPER')) {
+                    _logger.debug(
+                        `Replaying SUPER event: ${event.type} ${event.sequencenum}`
+                    )
+                }
 
                 const slowEmitLogAfterMs = 10_000
                 const slowEmitLogEveryMs = 30_000
