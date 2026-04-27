@@ -350,6 +350,11 @@ export default function EventStore<
             if (!!options.initialised) {
                 _logger.debug(`Replaying event: ${event.sequencenum}`)
             }
+            if (event.sequencenum > 3644151) {
+                _logger.debug(
+                    `Replaying event: ${event.type} ${event.sequencenum}`
+                )
+            }
             await stackEventBus.emit(event.type, event)
             replayedCount++
             await runReplayProgressIfDue(replayedCount, e.sequencenum)
