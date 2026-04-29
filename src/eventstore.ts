@@ -504,12 +504,6 @@ export default function EventStore<
                     )
                 }
 
-                if (event.type.includes('SUPER')) {
-                    _logger.debug(
-                        `Replaying SUPER event: ${event.type} ${event.sequencenum}`
-                    )
-                }
-
                 const slowEmitLogAfterMs = 10_000
                 const slowEmitLogEveryMs = 30_000
                 const emitStartedAt = Date.now()
