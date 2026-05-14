@@ -302,7 +302,7 @@ describe('when calling /whoami', () => {
     it('the current user should be returned', async () => {
         const response = await testStack.testGet({ path: '/whoami' })
         expect(response.body.me).toBe('shimmie')
-        expect(testStack.recordUncheckedEvent).toBeCalledTimes(1)
+        expect(testStack.recordUncheckedEvent).toHaveBeenCalledTimes(1)
     })
 })
 
