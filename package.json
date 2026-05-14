@@ -37,7 +37,7 @@
         "pg-query-stream": "^4.14.0",
         "supertest": "^7.2.2",
         "ts-jest": "^29.4.9",
-        "uuid": "^10.0.0"
+        "uuid": "^11.1.1"
     },
     "devDependencies": {
         "@types/async-lock": "^1.4.2",
@@ -48,7 +48,7 @@
         "@types/node": "^25.7.0",
         "@types/pg": "^8.20.0",
         "@types/pg-format": "^1.0.5",
-        "@types/uuid": "^10.0.0",
+        "@types/uuid": "^11.0.0",
         "dotenv": "^17.4.2",
         "tsc-watch": "^7.2.0",
         "typescript": "^5.9.3"
