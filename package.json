@@ -51,6 +51,6 @@
         "@types/uuid": "^11.0.0",
         "dotenv": "^17.4.2",
         "tsc-watch": "^7.2.0",
-        "typescript": "^5.9.3"
+        "typescript": "^6.0.3"
     }
 }
