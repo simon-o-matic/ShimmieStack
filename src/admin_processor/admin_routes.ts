@@ -41,7 +41,7 @@ export default function (
             return res.status(403).send()
         } else {
             try {
-                const seqNumInt = Number.parseInt(req.params.sequenceNumber)
+                const seqNumInt = Number.parseInt(String(req.params.sequenceNumber))
                 const rows = await adminCommands.deleteEvent(seqNumInt)
                 return res.status(200).send(rows)
             } catch (err: any) {
@@ -55,7 +55,7 @@ export default function (
             return res.status(403).send()
         } else {
             try {
-                const seqNumInt = Number.parseInt(req.params.sequenceNumber)
+                const seqNumInt = Number.parseInt(String(req.params.sequenceNumber))
                 const rows = await adminCommands.updateEventData(
                     seqNumInt,
                     req.body

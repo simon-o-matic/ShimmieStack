@@ -99,7 +99,7 @@ export const finaliseRoutes = (
     errorHandler: ErrorRequestHandler
 ): void => {
     // call-all 404s
-    app.use('*', catchAll404s)
+    app.use(catchAll404s)
 
     // set the default error handler
     app.use(errorHandler)
