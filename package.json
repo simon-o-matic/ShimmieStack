@@ -14,7 +14,7 @@
         "publish": "cp README.md  dist && cp package-publish.json dist/package.json && npm run build && cd dist && npm publish"
     },
     "engines": {
-        "node": ">=18"
+        "node": ">=24.15.0"
     },
     "repository": {
         "type": "git",
