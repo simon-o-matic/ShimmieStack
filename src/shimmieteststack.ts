@@ -2,7 +2,6 @@ import cookieParser from 'cookie-parser'
 import express, { Router } from 'express'
 import supertest from 'supertest'
 
-import 'express-async-errors'
 import { authorizeApi, noAuthorization } from './authorizers'
 import { EventBaseType } from './event'
 import Eventbase from './eventbase-memory'

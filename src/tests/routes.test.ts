@@ -15,7 +15,7 @@ describe('when mounting a processor', () => {
             appMock.use = jest.fn() as any
             const routerMock = jest.fn() as unknown as Router
             mountApi(appMock, 'blah', '/blah', routerMock, false)
-            expect(appMock.use).toBeCalledTimes(1)
+            expect(appMock.use).toHaveBeenCalledTimes(1)
         })
 
         // it('and its a duplicate it should throw', async () => {
@@ -43,7 +43,7 @@ describe('when mounting a processor', () => {
             appMock.use = jest.fn() as any
             const routerMock = jest.fn() as unknown as Router
             mountApi(appMock, 'blah', 'noslash', routerMock, false)
-            expect(appMock.use).toBeCalledWith('/noslash', expect.anything())
+            expect(appMock.use).toHaveBeenCalledWith('/noslash', expect.anything())
         })
 
         it('and it has a version it should be pre-pended with a slash', async () => {
@@ -52,7 +52,7 @@ describe('when mounting a processor', () => {
             const routerMock = jest.fn() as unknown as Router
             setApiVersion('v1')
             mountApi(appMock, 'blah', 'noslash', routerMock, false)
-            expect(appMock.use).toBeCalledWith('/v1/noslash', expect.anything())
+            expect(appMock.use).toHaveBeenCalledWith('/v1/noslash', expect.anything())
         })
 
         it('and it has a slashed version it should be pre-pended with the slash', async () => {
@@ -61,7 +61,7 @@ describe('when mounting a processor', () => {
             const routerMock = jest.fn() as unknown as Router
             setApiVersion('/v2')
             mountApi(appMock, 'blah', '/foo', routerMock, false)
-            expect(appMock.use).toBeCalledWith('/v2/foo', expect.anything())
+            expect(appMock.use).toHaveBeenCalledWith('/v2/foo', expect.anything())
         })
 
         it('should be able to change the api version twice', async () => {
@@ -71,15 +71,15 @@ describe('when mounting a processor', () => {
 
             setApiVersion('/v2 ')
             mountApi(appMock, 'blah', '/foo ', routerMock, false)
-            expect(appMock.use).toBeCalledWith('/v2/foo', expect.anything())
+            expect(appMock.use).toHaveBeenCalledWith('/v2/foo', expect.anything())
 
             setApiVersion(' v4')
             mountApi(appMock, 'blah', 'bar', routerMock, false)
-            expect(appMock.use).toBeCalledWith('/v4/bar', expect.anything())
+            expect(appMock.use).toHaveBeenCalledWith('/v4/bar', expect.anything())
 
             setApiVersion('')
             mountApi(appMock, 'blah', '  /baz ', routerMock, false)
-            expect(appMock.use).toBeCalledWith('/baz', expect.anything())
+            expect(appMock.use).toHaveBeenCalledWith('/baz', expect.anything())
         })
     })
 

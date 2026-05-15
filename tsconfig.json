@@ -3,10 +3,13 @@
         "strict": true,
         "target": "ES2020",
         "outDir": "./dist",
+        "rootDir": "./src",
         "module": "ES2020",
         "sourceMap": true,
         "declaration": true,
         "moduleResolution": "node",
+        "ignoreDeprecations": "6.0",
+        "types": ["jest", "node"],
         "esModuleInterop": true,
         "strictPropertyInitialization": false // because we have classes without methods as objects
     },
