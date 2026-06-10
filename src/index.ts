@@ -59,6 +59,11 @@ export interface ShimmieConfig {
     CORS?: CorsOptions
     enforceAuthorization: boolean
     maxRequestSize?: string | number
+    // How long the HTTP server holds idle keep-alive connections open. MUST
+    // exceed any fronting load balancer's idle timeout (AWS ALB default 60s):
+    // if the server closes a kept-alive socket first, the LB races it and
+    // serves intermittent 502s. Default 65s.
+    keepAliveTimeoutMs?: number
 }
 
 // testing a new naming scheme. Replace IEvent if we like this one better. Easier
@@ -230,9 +235,26 @@ export type StackType<
     anonymiseStreamPii: (streamId: string) => Promise<void>
 }
 
-const startApiListener = async (app: Application, port: number) => {
-    await app.listen(port)
-    Logger.info(`ShimmieStack >>>> API Server listening on ${port}!`)
+// The server's keep-alive window must outlast the load balancer's idle
+// timeout (AWS ALB default 60s; Node default is only 5s) so the LB never
+// reuses a socket the server has already closed — that race surfaces as
+// intermittent 502s under load.
+const DEFAULT_KEEP_ALIVE_TIMEOUT_MS = 65_000
+
+export const startApiListener = async (
+    app: Application,
+    port: number,
+    keepAliveTimeoutMs: number = DEFAULT_KEEP_ALIVE_TIMEOUT_MS
+) => {
+    const server = await app.listen(port)
+    server.keepAliveTimeout = keepAliveTimeoutMs
+    // Node enforces headersTimeout across keep-alive gaps too — it must
+    // exceed keepAliveTimeout or sockets die before the keep-alive window.
+    server.headersTimeout = keepAliveTimeoutMs + 1000
+    Logger.info(
+        `ShimmieStack >>>> API Server listening on ${port}! (keepAliveTimeout ${server.keepAliveTimeout}ms)`
+    )
+    return server
 }
 
 const initializeShimmieStack = async <
@@ -306,7 +328,11 @@ const initializeShimmieStack = async <
             await sequenceNumberDivergenceHandler({ dbLastSeqNum, lastHandled })
         }
         // Start accepting requests from the outside world
-        await startApiListener(app, config.ServerPort)
+        await startApiListener(
+            app,
+            config.ServerPort,
+            config.keepAliveTimeoutMs
+        )
 
         Logger.info('ShimmieStack >>>> Stack init complete')
     } catch (err) {
