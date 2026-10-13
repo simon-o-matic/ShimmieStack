@@ -268,10 +268,14 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
     //     return runQuery(query);
     // };
 
+    // Returns -1 when the eventlist is empty. sequencenum is a bigserial and
+    // int8 is parsed to a JS number above, so there is no ::int cast here.
     const getLatestSequenceNumber = async () => {
         try {
             return (
-                await runQuery(`SELECT max(sequencenum)::int from eventlist`)
+                await runQuery(
+                    `SELECT COALESCE(max(sequencenum), -1) AS max from eventlist`
+                )
             )[0].max
         } catch (err: any) {
             throw new Error(

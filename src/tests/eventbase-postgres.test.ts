@@ -93,6 +93,34 @@ describeWithPostgres('Postgres Eventbase', () => {
         })
     })
 
+    describe('getLatestSequenceNumber', () => {
+        it('returns -1 for an empty event base', async () => {
+            expect(await eventBase.getLatestSequenceNumber()).toBe(-1)
+        })
+
+        it('returns the sequence number of the last stored event', async () => {
+            await eventBase.addEvent({ ...nastyEvent, streamId: 'S1', streamVersionId: 'V1', meta })
+            const stored = await eventBase.addEvent({ ...nastyEvent, streamId: 'S1', streamVersionId: 'V2', meta })
+            expect(await eventBase.getLatestSequenceNumber()).toBe(stored.sequencenum)
+        })
+
+        it('does not truncate sequence numbers beyond 32 bits', async () => {
+            const beyondInt32 = 2 ** 31 + 1
+            const client = new pg.Client({ connectionString })
+            await client.connect()
+            try {
+                await client.query(
+                    `ALTER SEQUENCE eventlist_sequencenum_seq RESTART WITH ${beyondInt32}`
+                )
+            } finally {
+                await client.end()
+            }
+            const stored = await eventBase.addEvent({ ...nastyEvent, streamId: 'S1', streamVersionId: 'V1', meta })
+            expect(stored.sequencenum).toBe(beyondInt32)
+            expect(await eventBase.getLatestSequenceNumber()).toBe(beyondInt32)
+        })
+    })
+
     describe('checked write', () => {
         it('still signals a version mismatch with an empty result', async () => {
             await eventBase.addEvent({
