@@ -46,10 +46,20 @@ export default function Eventbase(): EventBaseType {
         event: EventToRecord,
         streamVersionIds?: Record<string, string | undefined>
     ): Promise<StoredEventResponse> => {
-        const newEvent: Event = {
-            ...event,
-            sequencenum: events.length,
+        // assign the sequence number and append. Called inside the object lock
+        // for checked writes so the version check and the append are atomic.
+        const appendEvent = (): Event => {
+            const newEvent: Event = {
+                ...event,
+                sequencenum: events.length,
+            }
+            // when we update, we don't need to update all the referenced stream versions. Just this one.
+            streamVersionIndex.set(newEvent.streamId, newEvent.streamVersionId)
+            events.push(newEvent)
+            return newEvent
         }
+
+        let newEvent: Event | undefined
 
         // if a stream versions are provided, check they matches the current version for the referenced stream
         if (streamVersionIds && Object.keys(streamVersionIds).length > 0) {
@@ -86,14 +96,17 @@ export default function Eventbase(): EventBaseType {
                             mismatchedVersions
                         )
                     }
+
+                    newEvent = appendEvent()
                 }
             )
+        } else {
+            newEvent = appendEvent()
         }
 
-        streamVersionIndex.set(newEvent.streamId, newEvent.streamVersionId)
-        events.push(newEvent)
-
-        // when we update, we don't need to update all the referenced stream versions. Just this one.
+        if (!newEvent) {
+            throw new Error('Unexpected error occurred. Unable to add event to stream.')
+        }
 
         return Promise.resolve({
             streamId: newEvent.streamId,
@@ -106,11 +119,13 @@ export default function Eventbase(): EventBaseType {
         })
     }
 
-    // Get all events in the correct squence for replay
+    // Get all events in the correct squence for replay. minSequenceNumber is inclusive.
     const getEventsInOrder = async (minSequenceNumber?: number) => {
         return Promise.resolve(
             minSequenceNumber !== undefined
-                ? events.slice(minSequenceNumber - 1)
+                ? events.filter(
+                      (event) => event.sequencenum >= minSequenceNumber
+                  )
                 : events
         )
     }
@@ -148,8 +163,11 @@ export default function Eventbase(): EventBaseType {
         )
     }
 
+    // -1 when the log is empty, matching the postgres eventbase
     const getLatestSequenceNumber = () => {
-        return Promise.resolve(events[events.length - 1].sequencenum)
+        return Promise.resolve(
+            events.length > 0 ? events[events.length - 1].sequencenum : -1
+        )
     }
 
     return {
