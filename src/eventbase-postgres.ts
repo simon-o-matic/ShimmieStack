@@ -60,9 +60,9 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
         event: EventToRecord,
         streamVersionIds?: Record<string, string | undefined>
     ): Promise<StoredEventResponse> => {
-        // prepare and parameterised the addEvent query based on whether streamVersionIds were provided or not.
-        const query = prepareAddEventQuery(event, streamVersionIds)
-        const results: StoredEventResponse[] = await runQuery(query)
+        // prepare the parameterised addEvent query based on whether streamVersionIds were provided or not.
+        const { text, values } = prepareAddEventQuery(event, streamVersionIds)
+        const results: StoredEventResponse[] = await runQuery(text, values)
 
         // if we get no result we didnt manage to record an event but the query succeeded, this is a version failure
         if (!results || results.length === 0) {
@@ -210,7 +210,7 @@ export default function Eventbase(config: PostgresDbConfig): EventBaseType {
 
     const runQuery = async (
         query: string,
-        values: string[] | undefined = undefined
+        values: any[] | undefined = undefined
     ) => {
         try {
             const res = values
