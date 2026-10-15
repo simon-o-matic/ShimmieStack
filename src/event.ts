@@ -128,7 +128,7 @@ export interface EventBaseType {
     ) => Promise<Event[] | undefined>
     /** Updated meta on event to show corresponding pii has been anonymised */
     anonymiseEvents: (streamId: string) => Promise<void>
-    /** fetch the maximum sequence number currently in the eventbase */
+    /** fetch the maximum sequence number currently in the eventbase, or -1 if it is empty */
     getLatestSequenceNumber: () => Promise<number>
     /** update a single event with new data (no other fields). Protect this in production */
     updateEventData: (sequenceNumber: number, data: object) => Promise<void>
