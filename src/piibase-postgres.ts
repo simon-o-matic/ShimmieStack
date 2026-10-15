@@ -83,6 +83,13 @@ export default function PiiBase(config: PostgresDbConfig): PiiBaseType {
             keys?: string[], minSequenceNumber?: number
         } | undefined,
     ): Promise<Record<string, any>> => {
+        // An explicit empty key list means "nothing to look up". Without this
+        // guard it would fall through to the unfiltered SELECT and pull the
+        // whole pii_store into memory.
+        if (params?.keys !== undefined && params.keys.length === 0) {
+            return {}
+        }
+
         let query = 'SELECT Key, Data FROM pii_store'
         if (params?.keys && params.keys.length > 0) {
             const keys = params.keys

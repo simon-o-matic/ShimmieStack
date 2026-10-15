@@ -209,3 +209,33 @@ describe('when anonymising pii', () => {
         })
     })
 })
+
+describe('when looking up pii by key', () => {
+    beforeEach(async () => {
+        await piiBase.addPiiEventData('1', { email: 'one@example.com' })
+        await piiBase.addPiiEventData('2', { email: 'two@example.com' })
+    })
+
+    it('returns nothing for an empty key list rather than every record', async () => {
+        const lookup = await piiBase.getPiiLookup({ keys: [] })
+        expect(lookup).toEqual({})
+    })
+
+    it('returns only the requested keys', async () => {
+        const lookup = await piiBase.getPiiLookup({ keys: ['2'] })
+        expect(lookup).toEqual({ '2': { email: 'two@example.com' } })
+    })
+
+    it('returns keys at or above minSequenceNumber', async () => {
+        const lookup = await piiBase.getPiiLookup({ minSequenceNumber: 2 })
+        expect(Object.keys(lookup)).toEqual(['2'])
+    })
+
+    it('returns every record as a plain object when no filter is given', async () => {
+        const lookup = await piiBase.getPiiLookup()
+        expect(lookup).toEqual({
+            '1': { email: 'one@example.com' },
+            '2': { email: 'two@example.com' },
+        })
+    })
+})

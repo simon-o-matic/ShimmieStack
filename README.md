@@ -158,6 +158,28 @@ So very quickly you can have a flexible working event sourced server that is all
 See [https://github.com/B0yc3y/ShimmieStackExamples](https://github.com/B0yc3y/ShimmieStackExamples) for example projects.
 These examples show how to persist data, use auth, object versioning, how to store PII seperately from the event store for GDPR reasons.
 
+### Reading a stream's history
+
+`stack.getHistory(ids, type?)` returns `{ history, createdAt, updatedAt }` for one
+or more stream ids, with `history` ordered oldest to newest. Each entry has
+`streamId`, `type`, `date`, `user`, `data` and `sequenceNum`.
+
+`date` is whatever the caller put in the event's meta, at millisecond
+resolution, so events recorded together usually share one value. Use
+`sequenceNum` (the event's position in the event store, strictly increasing in
+record order) as the tiebreak when you re-sort:
+
+```javascript
+const newestFirst = [...history].sort(
+    (a, b) => b.date - a.date || b.sequenceNum - a.sequenceNum
+)
+```
+
+Passing an empty id list returns an empty history without touching the stores.
+The optional `type` filter only trims what is returned: on Postgres the
+`eventlist` table is indexed on `StreamId` alone, so a typed read costs the
+database the same as an untyped read of the same streams.
+
 ### todo
 - Update this readme
 - Make meta acceopt generic at stack creation time, default it to Meta defined here.

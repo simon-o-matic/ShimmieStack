@@ -257,11 +257,11 @@ export default function EventStore<
         })
         return events.map((event) => {
             const piiKey = event.sequencenum!.toString()
-            if (!piiLookup.has(piiKey)) {
+            if (!(piiKey in piiLookup)) {
                 return event
             }
 
-            const piiData: Record<string, any> = piiLookup.get(piiKey)
+            const piiData: Record<string, any> = piiLookup[piiKey]
             return {
                 ...event,
                 data: {
@@ -314,7 +314,7 @@ export default function EventStore<
             if (
                 e.meta.hasPii &&
                 piiLookup &&
-                e.sequencenum &&
+                e.sequencenum !== undefined && // 0 is a valid sequence number
                 e.sequencenum in piiLookup
             ) {
                 data = {
@@ -461,7 +461,7 @@ export default function EventStore<
                 if (
                     e.meta.hasPii &&
                     piiLookup &&
-                    e.sequencenum &&
+                    e.sequencenum !== undefined && // 0 is a valid sequence number
                     piiLookup[e.sequencenum.toString()]
                 ) {
                     data = {
@@ -588,7 +588,10 @@ export default function EventStore<
         type?: string
     ): Promise<EventHistory<SubscribeModels>[]> => {
         const events = await eventbase.getEventsByStreamIds(streamIds, type)
-        if (events === undefined) {
+        // No events (no stream ids, unknown streams, or a type filter that
+        // matched nothing): return early without touching the PII base. An
+        // empty key list must never turn into an unbounded PII lookup.
+        if (!events || events.length === 0) {
             return []
         }
 
@@ -615,6 +618,7 @@ export default function EventStore<
                 type: event.type,
                 date: event.meta.date,
                 user: event.meta.user,
+                sequenceNum: event.sequencenum,
             }
         })
     }

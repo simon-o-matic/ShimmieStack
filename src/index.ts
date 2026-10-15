@@ -90,9 +90,16 @@ export enum ExecutionOrder {
 export interface EventHistory<SubscribeModels> {
     streamId: string
     type: keyof SubscribeModels
+    /** Caller-supplied timestamp from the event's meta. Millisecond
+     *  resolution, and events recorded together commonly share one value,
+     *  so it is NOT a total order on its own: tie-break on sequenceNum. */
     date: number
     user: any
     data: SubscribeModels[keyof SubscribeModels]
+    /** The event's position in the event store. Strictly increasing in the
+     *  order the events were recorded, so it is the tiebreak for events that
+     *  share a date: sort by (date, sequenceNum) for a stable order. */
+    sequenceNum: number
 }
 
 export interface StreamHistory<SubscribeModels> {
@@ -689,8 +696,18 @@ export default function ShimmieStack<
 
         /**
          * Get all EventHistory of every stream ID passed - sorted oldest to newest
+         * by sequenceNum. Each entry carries its sequenceNum so callers can
+         * re-sort and still break ties between entries that share a date.
          * Up to the caller to collate list of related IDs, getHistory doesn't
-         * know or care if they're related events
+         * know or care if they're related events.
+         *
+         * Passing an empty id list returns an empty history without touching
+         * the event or PII stores.
+         *
+         * The optional type filter is applied on top of the per-stream read
+         * (the Postgres eventbase indexes eventlist on StreamId only), so a
+         * typed read costs the database the same as an untyped read of the
+         * same streams; it only trims what is returned.
          */
         getHistory: async (
             ids: string | string[],

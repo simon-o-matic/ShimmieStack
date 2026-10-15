@@ -41,37 +41,36 @@ export default function PiiBase(): PiiBaseType {
         return Promise.resolve(undefined)
     }
 
-    // Get all events in the correct squence for replay
+    // Get pii records keyed by sequence number, as a plain object so the
+    // shape matches the Postgres implementation and the PiiBaseType contract.
     const getPiiLookup = async (
         params: {
             keys?: string[], minSequenceNumber?: number
         } | undefined,
     ): Promise<Record<string, any>> => {
+        // An explicit empty key list means "nothing to look up", matching the
+        // Postgres implementation rather than returning every record.
+        if (params?.keys !== undefined && params.keys.length === 0) {
+            return Promise.resolve({})
+        }
 
-        if (params?.keys && params?.keys.length > 0) {
+        let entries = [...piiData]
+
+        if (params?.keys && params.keys.length > 0) {
             const keys = params.keys
-            return Promise.resolve(
-                new Map(
-                    [...piiData].filter(([key, value]) => keys.includes(key)),
-                ),
-            )
-        }
-        if (params?.minSequenceNumber !== undefined) {
+            entries = entries.filter(([key]) => keys.includes(key))
+        } else if (params?.minSequenceNumber !== undefined) {
             const minSeq = params.minSequenceNumber
-            return Promise.resolve(
-                new Map(
-                    [...piiData].filter(([key, value]) => parseInt(key) >= minSeq),
-                ),
-            )
+            entries = entries.filter(([key]) => parseInt(key) >= minSeq)
         }
 
-        return Promise.resolve(piiData)
+        return Promise.resolve(Object.fromEntries(entries))
     }
 
     const anonymisePiiEventData = async (keys: string[]): Promise<void> => {
         const piiLookup = await getPiiLookup({ keys })
         for (const key of keys) {
-            const entry = piiLookup.get(key)
+            const entry = piiLookup[key]
             if (entry) {
                 piiData.set(key, anonymiseObject(entry))
             }

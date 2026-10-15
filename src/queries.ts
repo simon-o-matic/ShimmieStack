@@ -84,6 +84,12 @@ CREATE TABLE IF NOT EXISTS eventlist
     UNIQUE (StreamId, StreamVersionId)
 );
 
--- create an index on streamId for quick versioning lookups
+-- create an index on streamId for quick versioning lookups.
+-- NOTE: there is deliberately no (StreamId, Type) index. getEventsByStreamIds
+-- with a type filter still reads every row of the stream via this index and
+-- filters by Type afterwards, so a typed read is no cheaper for the database
+-- than an untyped one. Adding a composite index would need a migration run
+-- outside createTables (CREATE INDEX CONCURRENTLY cannot run inside the
+-- implicit transaction this multi-statement query executes in).
 CREATE INDEX IF NOT EXISTS streamId_idx ON eventlist (StreamId);
 `

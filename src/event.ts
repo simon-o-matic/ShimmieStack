@@ -147,7 +147,10 @@ export interface PiiBaseType {
     addPiiEventData: (key: string, data: any) => Promise<any>
     /** get a single pii record if it exists */
     getPiiData: (key: string) => Promise<Record<string, any> | undefined>
-    /** get all pii records */
+    /** get pii records keyed by event sequence number. With no params every
+     *  record is returned; with `keys` only those keys; with
+     *  `minSequenceNumber` only keys at or above it. An explicit empty `keys`
+     *  list returns an empty lookup without querying the store. */
     getPiiLookup: (params?: {
         keys?: string[]
         minSequenceNumber?: number
