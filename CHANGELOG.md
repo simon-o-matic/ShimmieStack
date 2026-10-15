@@ -2,8 +2,25 @@
 
 ## 2.2.0
 
+### Security
+
+- Postgres `addEvent` interpolated event values with `pg-format %s` inside
+  dollar-quoted literals, so a `$$` in event data or meta (such as a request's
+  user agent) could terminate the literal and inject SQL. Every value now
+  travels as a positional parameter, and the version-checked write is a single
+  statement taking its stream/version pairs via `unnest()`.
+
 ### Fixed
 
+- Postgres `getLatestSequenceNumber` cast `max(sequencenum)` to `int`, which
+  fails once the bigserial passes 2^31. The cast is dropped, and an empty
+  table now returns -1 (documented on `EventBaseType`, matching the memory
+  base) instead of leaking `NULL`.
+- Memory event base: `getLatestSequenceNumber` threw on an empty log (crashing
+  cold start), `getEventsInOrder(0)` returned only the last event so replay
+  from 0 dropped history, and `addEvent` assigned the sequence number outside
+  the lock so two concurrent checked writes against one version could both
+  land. All three fixed; a shared contract test now runs against both bases.
 - `getHistory` / `getStreamHistory` with no matching events (an empty id list,
   unknown ids, or a `type` filter that matches nothing) now returns an empty
   history without consulting the PII base. Previously the empty event list was
