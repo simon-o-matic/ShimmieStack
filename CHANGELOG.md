@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.2.1
+
+### Fixed
+
+- `ShimmieTestStack` now serves supertest requests from one HTTP server bound
+  explicitly to `127.0.0.1` on an ephemeral port. It used to hand supertest a
+  bare express app, which makes supertest call `app.listen(0)` per request: a
+  wildcard bind that macOS will satisfy with a port another process already
+  holds on the loopback address, so the request lands on that process instead
+  (stray 401/404/405 responses from desktop apps) or never answers, leaving
+  the per-request server open so jest cannot exit. Consumers that patched
+  `net.Server.prototype.listen` in their jest setup to work around this can
+  remove the patch.
+
+### Added
+
+- `ShimmieTestStack.serverAddress()` resolves to the bound address, and
+  `ShimmieTestStack.shutdown()` closes the server. Both are optional: the
+  server and its sockets are unref'd, so a stack created at module scope and
+  never shut down does not keep the jest process alive.
+
 ## 2.2.0
 
 ### Security

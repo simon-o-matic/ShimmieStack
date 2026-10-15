@@ -1,5 +1,7 @@
 import cookieParser from 'cookie-parser'
 import express, { Router } from 'express'
+import http from 'http'
+import { AddressInfo } from 'net'
 import supertest from 'supertest'
 
 import { authorizeApi, noAuthorization } from './authorizers'
@@ -37,6 +39,13 @@ export interface ShimmieTestStackType<
     testPut: (params: TestRequestWithBodyParams) => Promise<supertest.Response>
     testDelete: (params: TestRequestParams) => Promise<supertest.Response>
     use: (a: any) => any
+    /** The address the test stack's HTTP server is bound to (always
+     *  127.0.0.1 and an ephemeral port). Resolves once the server is
+     *  listening. */
+    serverAddress: () => Promise<AddressInfo>
+    /** Close the test stack's HTTP server. Optional: the server never keeps
+     *  the process alive on its own, so jest exits either way. */
+    shutdown: () => Promise<void>
 }
 
 // allow indexed function lookup by name
@@ -55,6 +64,42 @@ export default function ShimmieTestStack<
     app.use(express.json())
     app.use(cookieParser())
 
+    // One server for the whole test stack, bound explicitly to the loopback
+    // address. Handing supertest a bare express app makes it call
+    // app.listen(0) per request: a wildcard bind that macOS will happily
+    // satisfy with a port another process already holds on 127.0.0.1, so the
+    // request lands on that process instead (or never answers, and the
+    // per-request server is never closed, so jest cannot exit). supertest
+    // leaves a server that is already listening alone.
+    //
+    // The server and its sockets are unref'd so an idle stack never keeps the
+    // process alive: consumers create the stack at module scope and most
+    // never call shutdown. An in-flight request is kept alive by the client
+    // side, so unref'ing the server side loses nothing.
+    const server = http.createServer(app)
+    server.unref()
+    server.on('connection', (socket) => socket.unref())
+    const listening = new Promise<void>((resolve, reject) => {
+        server.once('error', reject)
+        server.listen(0, '127.0.0.1', () => {
+            server.off('error', reject)
+            resolve()
+        })
+    })
+    // listen(0, host) resolves the host asynchronously, so address() is null
+    // until then and supertest would start its own wildcard server. Every
+    // request waits for this first.
+    let shutDown = false
+    const serverReady = async (): Promise<http.Server> => {
+        if (shutDown) {
+            // after close() address() is null again and supertest would
+            // start its own wildcard server; refuse instead
+            throw new Error('ShimmieTestStack has been shut down')
+        }
+        await listening
+        return server
+    }
+
     const prepareRequest =
         (method: 'post' | 'get' | 'put' | 'delete') =>
         ({
@@ -68,7 +113,7 @@ export default function ShimmieTestStack<
             withAuth?: boolean
             queryParams?: Record<string, any>
         }): supertest.Test => {
-            const req: supertest.Test = supertest(app)[method](path)
+            const req: supertest.Test = supertest(server)[method](path)
 
             if (authHeaderValue && withAuth) {
                 req.set("'Authorization'", `Bearer ${authHeaderValue}`)
@@ -128,6 +173,7 @@ export default function ShimmieTestStack<
         headers,
         expectedResponseCode,
     }: TestRequestParams): Promise<supertest.Response> => {
+        await serverReady()
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
                 .get({ path, headers })
@@ -145,6 +191,7 @@ export default function ShimmieTestStack<
         expectedResponseCode,
         body,
     }: TestRequestWithBodyParams): Promise<supertest.Response> => {
+        await serverReady()
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
                 .post({ path, headers })
@@ -163,6 +210,7 @@ export default function ShimmieTestStack<
         expectedResponseCode,
         body,
     }: TestRequestWithBodyParams): Promise<supertest.Response> => {
+        await serverReady()
         return new Promise<supertest.Response>((resolve, reject) => {
             methods
                 .put({ path, headers })
@@ -180,6 +228,7 @@ export default function ShimmieTestStack<
         headers,
         expectedResponseCode,
     }: TestRequestParams): Promise<supertest.Response> => {
+        await serverReady()
         return new Promise<supertest.Response>((resolve, reject) => {
             return methods
                 .delete({ path, headers })
@@ -215,6 +264,23 @@ export default function ShimmieTestStack<
             testStack.restart()
             jest.clearAllMocks()
             jest.clearAllTimers()
+        },
+        serverAddress: async () => {
+            await listening
+            return server.address() as AddressInfo
+        },
+        shutdown: async () => {
+            shutDown = true
+            // wait for a still-pending bind, or close() would run before the
+            // handle exists and the bind would then reopen the server
+            await listening.catch(() => undefined)
+            // Drop idle keep-alive sockets too, otherwise close() waits for
+            // them to time out.
+            server.closeAllConnections()
+            await new Promise<void>((resolve) =>
+                server.close(() => resolve())
+            )
+            testStack.shutdown()
         },
     }
 }
